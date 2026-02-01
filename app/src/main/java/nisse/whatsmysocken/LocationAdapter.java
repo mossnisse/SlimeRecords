@@ -15,19 +15,19 @@ import java.util.List;
 public class LocationAdapter extends RecyclerView.Adapter<LocationAdapter.LocationViewHolder> {
 
     private List<LocationWithPhotos> locationList = new ArrayList<>();
+    private OnItemLongClickListener longClickListener;
+    private OnItemClickListener clickListener;
 
-    // High-performance list updating
-    public void setLocations(List<LocationWithPhotos> newList) {
-        DiffUtil.DiffResult diffResult = DiffUtil.calculateDiff(new LocationDiffCallback(this.locationList, newList));
-        this.locationList.clear();
-        this.locationList.addAll(newList);
-        diffResult.dispatchUpdatesTo(this);
+
+    public interface OnItemClickListener {
+        void onItemClick(LocationWithPhotos item);
     }
-
+    public void setOnItemClickListener(OnItemClickListener listener) {
+        this.clickListener = listener;
+    }
     public interface OnItemLongClickListener {
         void onItemLongClick(LocationRecord location);
     }
-    private OnItemLongClickListener longClickListener;
     public void setOnItemLongClickListener(OnItemLongClickListener listener) {
         this.longClickListener = listener;
     }
@@ -39,6 +39,14 @@ public class LocationAdapter extends RecyclerView.Adapter<LocationAdapter.Locati
         return new LocationViewHolder(view);
     }
 
+    // High-performance list updating
+    public void setLocations(List<LocationWithPhotos> newList) {
+        DiffUtil.DiffResult diffResult = DiffUtil.calculateDiff(new LocationDiffCallback(this.locationList, newList));
+        this.locationList.clear();
+        this.locationList.addAll(newList);
+        diffResult.dispatchUpdatesTo(this);
+    }
+
     @Override
     public void onBindViewHolder(@NonNull LocationViewHolder holder, int position) {
         LocationWithPhotos current = locationList.get(position);
@@ -47,6 +55,16 @@ public class LocationAdapter extends RecyclerView.Adapter<LocationAdapter.Locati
         holder.tvNote.setText(current.location.note.isEmpty() ? "No Note" : current.location.note);
         holder.tvCoords.setText(String.format("Lat: %.4f, Lon: %.4f",
                 current.location.latitude, current.location.longitude));
+
+        // Bind the Date
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.getDefault());
+        String dateString = sdf.format(new java.util.Date(current.location.timestamp));
+        holder.tvDate.setText(dateString);
+
+        // Handle regular click
+        holder.itemView.setOnClickListener(v -> {
+            if (clickListener != null) clickListener.onItemClick(current);
+        });
 
         // Handle Photos (Show the first one as a thumbnail if it exists)
         if (current.photos != null && !current.photos.isEmpty()) {
@@ -74,13 +92,14 @@ public class LocationAdapter extends RecyclerView.Adapter<LocationAdapter.Locati
     }
 
     static class LocationViewHolder extends RecyclerView.ViewHolder {
-        TextView tvNote, tvCoords;
+        TextView tvNote, tvCoords, tvDate;;
         ImageView ivThumbnail;
 
         public LocationViewHolder(@NonNull View itemView) {
             super(itemView);
             tvNote = itemView.findViewById(R.id.tv_note);
             tvCoords = itemView.findViewById(R.id.tv_coords);
+            tvDate = itemView.findViewById(R.id.tv_date);
             ivThumbnail = itemView.findViewById(R.id.iv_thumbnail);
         }
     }

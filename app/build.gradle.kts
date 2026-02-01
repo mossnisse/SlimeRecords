@@ -34,6 +34,7 @@ dependencies {
     implementation("androidx.navigation:navigation-fragment:2.7.6")
     implementation("androidx.navigation:navigation-ui:2.7.6")
     implementation("androidx.preference:preference-ktx:1.2.1")
+    implementation("com.github.bumptech.glide:glide:4.16.0")
 
     // Room components
     val roomVersion = "2.6.1"

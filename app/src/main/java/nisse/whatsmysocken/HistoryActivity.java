@@ -1,11 +1,13 @@
 package nisse.whatsmysocken;
 
 import android.app.AlertDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import java.util.ArrayList;
 
 public class HistoryActivity extends AppCompatActivity {
     private LocationAdapter adapter;
@@ -44,6 +46,24 @@ public class HistoryActivity extends AppCompatActivity {
                     })
                     .setNegativeButton("Cancel", null)
                     .show();
+        });
+
+        adapter.setOnItemClickListener(item -> {
+            Intent intent = new Intent(this, LocationDetailActivity.class);
+            // Pass the data we already have
+            intent.putExtra("lat", item.location.latitude);
+            intent.putExtra("lon", item.location.longitude);
+            intent.putExtra("note", item.location.note);
+            intent.putExtra("is_new", false); // Important: tells detail screen NOT to save a new record
+
+            // If you want to show photos in DetailActivity, pass the paths
+            ArrayList<String> paths = new ArrayList<>();
+            for (PhotoRecord p : item.photos) {
+                paths.add(p.filePath);
+            }
+            intent.putStringArrayListExtra("photo_paths", paths);
+
+            startActivity(intent);
         });
     }
 }

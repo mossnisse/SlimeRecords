@@ -20,6 +20,14 @@
         android:minLines="3"
         android:gravity="top"/>
 
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_photo_gallery"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="12dp"
+        android:orientation="horizontal" />
+
     <Button
         android:id="@+id/btn_take_photo_detail"
         android:layout_width="match_parent"

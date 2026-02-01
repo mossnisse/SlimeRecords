@@ -3,6 +3,7 @@ package nisse.whatsmysocken;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -12,7 +13,8 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
 import androidx.preference.PreferenceManager;
-
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import java.io.File;
 import java.io.IOException;
 import java.text.DecimalFormat;
@@ -27,28 +29,54 @@ public class LocationDetailActivity extends AppCompatActivity {
     private EditText noteInput;
     private String currentPhotoPath;
     private List<String> tempPhotoPaths = new ArrayList<>();
+    private PhotoAdapter photoAdapter;
+    private RecyclerView rvGallery;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_location_detail);
 
+        // Initialize Views
         noteInput = findViewById(R.id.detail_note_input);
+        Button btnSave = findViewById(R.id.btn_save_detail);
+        Button btnCancel = findViewById(R.id.btn_cancel_detail);
+        Button btnPhoto = findViewById(R.id.btn_take_photo_detail);
+
         lat = getIntent().getDoubleExtra("lat", 0);
         lon = getIntent().getDoubleExtra("lon", 0);
         isNew = getIntent().getBooleanExtra("is_new", false);
 
         if (!isNew) {
-            // Logic for viewing existing location would go here
-            locationId = getIntent().getLongExtra("location_id", -1);
-            noteInput.setText(getIntent().getStringExtra("note"));
+            btnSave.setVisibility(View.GONE);
+            btnPhoto.setVisibility(View.GONE);
+            btnCancel.setText("Back"); // This should work now!
+
+            String existingNote = getIntent().getStringExtra("note");
+            noteInput.setText(existingNote);
+            noteInput.setEnabled(false);
         }
 
         displayFormattedCoordinates();
+        // Use the variables instead of finding them again
+        btnSave.setOnClickListener(v -> saveAndExit());
+        btnCancel.setOnClickListener(v -> finish());
+        btnPhoto.setOnClickListener(v -> dispatchTakePictureIntent());
 
-        findViewById(R.id.btn_save_detail).setOnClickListener(v -> saveAndExit());
-        findViewById(R.id.btn_cancel_detail).setOnClickListener(v -> finish());
-        findViewById(R.id.btn_take_photo_detail).setOnClickListener(v -> dispatchTakePictureIntent());
+        rvGallery = findViewById(R.id.rv_photo_gallery);
+
+        // Set up horizontal layout
+        rvGallery.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+
+        if (!isNew) {
+            // Mode: VIEWING
+            tempPhotoPaths = getIntent().getStringArrayListExtra("photo_paths");
+            if (tempPhotoPaths == null) tempPhotoPaths = new ArrayList<>();
+        }
+
+        // Initialize adapter with our list (either empty or passed from history)
+        photoAdapter = new PhotoAdapter(tempPhotoPaths);
+        rvGallery.setAdapter(photoAdapter);
     }
 
     private void saveAndExit() {
@@ -119,10 +147,10 @@ public class LocationDetailActivity extends AppCompatActivity {
     private final ActivityResultLauncher<Uri> takePictureLauncher =
             registerForActivityResult(new ActivityResultContracts.TakePicture(), success -> {
                 if (success) {
-                    // Add the path to our list for saving to the DB later
                     tempPhotoPaths.add(currentPhotoPath);
+                    photoAdapter.notifyItemInserted(tempPhotoPaths.size() - 1);
+                    rvGallery.scrollToPosition(tempPhotoPaths.size() - 1);
 
-                    // Optional: Update the button text to show how many photos are "pending"
                     Button btnPhoto = findViewById(R.id.btn_take_photo_detail);
                     btnPhoto.setText("Add Photo (" + tempPhotoPaths.size() + ")");
                 }
