@@ -37,6 +37,8 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".LocationDetailActivity" />
+
         <activity
             android:name=".MySettingsActivity"
             android:label="Settings"
