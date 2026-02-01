@@ -40,6 +40,12 @@
         <activity android:name=".LocationDetailActivity" />
 
         <activity
+            android:name=".FullScreenPhotoActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:configChanges="orientation|screenSize"
+            android:exported="false" />
+
+        <activity
             android:name=".MySettingsActivity"
             android:label="Settings"
             android:exported="false"

@@ -11,9 +11,16 @@ import java.util.List;
 
 public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.PhotoViewHolder> {
     private List<String> photoPaths;
+    private OnPhotoListener listener;
 
-    public PhotoAdapter(List<String> photoPaths) {
+    public interface OnPhotoListener {
+        void onPhotoClick(String path);
+        void onPhotoLongClick(int position);
+    }
+
+    public PhotoAdapter(List<String> photoPaths, OnPhotoListener listener) {
         this.photoPaths = photoPaths;
+        this.listener = listener;
     }
 
     @NonNull
@@ -26,10 +33,20 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.PhotoViewHol
     @Override
     public void onBindViewHolder(@NonNull PhotoViewHolder holder, int position) {
         String path = photoPaths.get(position);
-        Glide.with(holder.itemView.getContext())
-                .load(path)
-                .centerCrop()
-                .into(holder.ivGalleryPhoto);
+        Glide.with(holder.itemView.getContext()).load(path).centerCrop().into(holder.ivGalleryPhoto);
+
+        holder.itemView.setOnClickListener(v -> listener.onPhotoClick(path));
+        holder.itemView.setOnLongClickListener(v -> {
+            if (listener != null) {
+                // Use getAdapterPosition() instead of the 'position' variable
+                int currentPos = holder.getAdapterPosition();
+                if (currentPos != RecyclerView.NO_POSITION) {
+                    listener.onPhotoLongClick(currentPos);
+                }
+                return true;
+            }
+            return false;
+        });
     }
 
     @Override

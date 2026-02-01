@@ -1,5 +1,7 @@
 package nisse.whatsmysocken;
 
+import android.app.AlertDialog;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
@@ -75,7 +77,45 @@ public class LocationDetailActivity extends AppCompatActivity {
         }
 
         // Initialize adapter with our list (either empty or passed from history)
-        photoAdapter = new PhotoAdapter(tempPhotoPaths);
+        photoAdapter = new PhotoAdapter(tempPhotoPaths, new PhotoAdapter.OnPhotoListener() {
+            @Override
+            public void onPhotoClick(String path) {
+                Intent intent = new Intent(LocationDetailActivity.this, FullScreenPhotoActivity.class);
+                intent.putExtra("path", path);
+                startActivity(intent);
+            }
+
+            @Override
+            public void onPhotoLongClick(int position) {
+                String pathToDelete = tempPhotoPaths.get(position);
+
+                new AlertDialog.Builder(LocationDetailActivity.this)
+                        .setTitle("Remove Photo")
+                        .setMessage("Do you want to remove this photo from this location?")
+                        .setPositiveButton("Remove", (dialog, which) -> {
+
+                            // 1. Update the UI list immediately
+                            tempPhotoPaths.remove(position);
+                            photoAdapter.notifyItemRemoved(position);
+
+                            // 2. If it's a saved location, delete from Database
+                            if (!isNew) {
+                                new Thread(() -> {
+                                    AppDatabase.getInstance(getApplicationContext())
+                                            .locationDao().deletePhotoByPath(pathToDelete);
+                                }).start();
+                            }
+
+                            // 3. Update the button text if it's visible
+                            Button btnPhoto = findViewById(R.id.btn_take_photo_detail);
+                            if (btnPhoto.getVisibility() == View.VISIBLE) {
+                                btnPhoto.setText("Add Photo (" + tempPhotoPaths.size() + ")");
+                            }
+                        })
+                        .setNegativeButton("Cancel", null)
+                        .show();
+            }
+        });
         rvGallery.setAdapter(photoAdapter);
     }
 
