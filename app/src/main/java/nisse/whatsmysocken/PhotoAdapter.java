@@ -10,8 +10,8 @@ import com.bumptech.glide.Glide;
 import java.util.List;
 
 public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.PhotoViewHolder> {
-    private List<String> photoPaths;
-    private OnPhotoListener listener;
+    private final List<String> photoPaths;
+    private final OnPhotoListener listener;
 
     public interface OnPhotoListener {
         void onPhotoClick(String path);

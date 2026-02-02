@@ -8,13 +8,12 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import com.bumptech.glide.Glide;
 
 public class LocationAdapter extends RecyclerView.Adapter<LocationAdapter.LocationViewHolder> {
-
-    private List<LocationWithPhotos> locationList = new ArrayList<>();
+    private final List<LocationWithPhotos> locationList = new ArrayList<>();
     private OnItemLongClickListener longClickListener;
     private OnItemClickListener clickListener;
 
@@ -51,36 +50,43 @@ public class LocationAdapter extends RecyclerView.Adapter<LocationAdapter.Locati
     public void onBindViewHolder(@NonNull LocationViewHolder holder, int position) {
         LocationWithPhotos current = locationList.get(position);
 
-        // Bind Location Data
+        // FIX 1: Explicitly use Locale.US to avoid decimal point/comma bugs
         holder.tvNote.setText(current.location.note.isEmpty() ? "No Note" : current.location.note);
-        holder.tvCoords.setText(String.format("Lat: %.4f, Lon: %.4f",
-                current.location.latitude, current.location.longitude));
+        holder.tvCoords.setText(String.format(java.util.Locale.US, "Lat: %.4f, Lon: %.4f (±%.0fm)",
+                current.location.latitude,
+                current.location.longitude,
+                current.location.accuracy));
+        holder.tvDate.setText(current.location.localTime);
 
-        // Bind the Date
-        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.getDefault());
-        String dateString = sdf.format(new java.util.Date(current.location.timestamp));
-        holder.tvDate.setText(dateString);
+        if (current.photos != null && !current.photos.isEmpty()) {
+            String photoPath = current.photos.get(0).filePath;
+            holder.ivThumbnail.setVisibility(View.VISIBLE);
 
-        // Handle regular click
+            // FIX 2: Modern thumbnail loading (sizeMultiplier)
+            Glide.with(holder.itemView.getContext())
+                    .load(photoPath)
+                    .centerCrop()
+                    .placeholder(android.R.drawable.ic_menu_report_image)
+                    .error(android.R.drawable.stat_notify_error)
+                    .override(200, 200)
+                    .thumbnail(Glide.with(holder.itemView.getContext())
+                            .load(photoPath)
+                            .sizeMultiplier(0.1f)) // This replaces thumbnail(0.1f)
+                    .into(holder.ivThumbnail);
+        } else {
+            Glide.with(holder.itemView.getContext()).clear(holder.ivThumbnail);
+            holder.ivThumbnail.setVisibility(View.GONE);
+        }
+
+        // Click Listeners
         holder.itemView.setOnClickListener(v -> {
             if (clickListener != null) clickListener.onItemClick(current);
         });
 
-        // Handle Photos (Show the first one as a thumbnail if it exists)
-        if (current.photos != null && !current.photos.isEmpty()) {
-            File imgFile = new File(current.photos.get(0).filePath);
-            if (imgFile.exists()) {
-                // In a real app, use Glide or Picasso here to avoid UI lag!
-                holder.ivThumbnail.setImageURI(android.net.Uri.fromFile(imgFile));
-                holder.ivThumbnail.setVisibility(View.VISIBLE);
-            }
-        } else {
-            holder.ivThumbnail.setVisibility(View.GONE);
-        }
         holder.itemView.setOnLongClickListener(v -> {
             if (longClickListener != null) {
                 longClickListener.onItemLongClick(current.location);
-                return true; // true means we "consumed" the click
+                return true;
             }
             return false;
         });
@@ -92,7 +98,7 @@ public class LocationAdapter extends RecyclerView.Adapter<LocationAdapter.Locati
     }
 
     static class LocationViewHolder extends RecyclerView.ViewHolder {
-        TextView tvNote, tvCoords, tvDate;;
+        TextView tvNote, tvCoords, tvDate;
         ImageView ivThumbnail;
 
         public LocationViewHolder(@NonNull View itemView) {

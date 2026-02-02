@@ -7,16 +7,19 @@ import androidx.room.PrimaryKey;
 public class LocationRecord {
     @PrimaryKey(autoGenerate = true)
     public long id;
-
     public double latitude;
     public double longitude;
     public long timestamp;
+    public float accuracy; // Added this
+    public String localTime;
     public String note;
 
-    public LocationRecord(double latitude, double longitude, long timestamp, String note) {
+    public LocationRecord(double latitude, double longitude, long timestamp, float accuracy, String localTime, String note) {
         this.latitude = latitude;
         this.longitude = longitude;
         this.timestamp = timestamp;
+        this.accuracy = accuracy;
+        this.localTime = localTime;
         this.note = note;
     }
 }

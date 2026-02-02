@@ -26,7 +26,7 @@ import java.util.List;
 
 public class LocationDetailActivity extends AppCompatActivity {
     private double lat, lon;
-    private long locationId = -1;
+    //private float accuracy;
     private boolean isNew;
     private EditText noteInput;
     private String currentPhotoPath;
@@ -52,7 +52,7 @@ public class LocationDetailActivity extends AppCompatActivity {
         if (!isNew) {
             btnSave.setVisibility(View.GONE);
             btnPhoto.setVisibility(View.GONE);
-            btnCancel.setText("Back"); // This should work now!
+            btnCancel.setText("Back");
 
             String existingNote = getIntent().getStringExtra("note");
             noteInput.setText(existingNote);
@@ -121,9 +121,18 @@ public class LocationDetailActivity extends AppCompatActivity {
 
     private void saveAndExit() {
         String note = noteInput.getText().toString();
+        float accuracy = getIntent().getFloatExtra("acc", 0);
+        // Get raw Unix time
+        long unixTime = System.currentTimeMillis();
+        // Get formatted Local Time
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        String localTimeStr = now.format(formatter);
+
         new Thread(() -> {
             AppDatabase db = AppDatabase.getInstance(getApplicationContext());
-            LocationRecord record = new LocationRecord(lat, lon, System.currentTimeMillis(), note);
+
+            LocationRecord record = new LocationRecord(lat, lon, unixTime, accuracy, localTimeStr, note);
             long id = db.locationDao().insertLocation(record);
 
             for (String path : tempPhotoPaths) {

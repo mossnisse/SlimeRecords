@@ -54,6 +54,7 @@ public class HistoryActivity extends AppCompatActivity {
             intent.putExtra("lat", item.location.latitude);
             intent.putExtra("lon", item.location.longitude);
             intent.putExtra("note", item.location.note);
+            intent.putExtra("acc", item.location.accuracy);
             intent.putExtra("is_new", false); // Important: tells detail screen NOT to save a new record
 
             // If you want to show photos in DetailActivity, pass the paths

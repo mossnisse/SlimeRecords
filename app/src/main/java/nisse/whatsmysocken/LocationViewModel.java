@@ -8,7 +8,7 @@ import java.util.List;
 
 public class LocationViewModel extends AndroidViewModel {
     // Change the type to LocationWithPhotos
-    private LiveData<List<LocationWithPhotos>> allLocations;
+    private final LiveData<List<LocationWithPhotos>> allLocations;
 
     public LocationViewModel(@NonNull Application application) {
         super(application);
