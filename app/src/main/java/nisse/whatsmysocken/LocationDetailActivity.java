@@ -33,7 +33,7 @@ public class LocationDetailActivity extends AppCompatActivity {
     private List<String> tempPhotoPaths = new ArrayList<>();
     private PhotoAdapter photoAdapter;
     private RecyclerView rvGallery;
-
+    private boolean isSaved = false;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -91,25 +91,19 @@ public class LocationDetailActivity extends AppCompatActivity {
 
                 new AlertDialog.Builder(LocationDetailActivity.this)
                         .setTitle("Remove Photo")
-                        .setMessage("Do you want to remove this photo from this location?")
+                        .setMessage("Delete this photo from storage?")
                         .setPositiveButton("Remove", (dialog, which) -> {
+                            // 1. Delete physical file
+                            FileUtils.deleteFileAtPath(pathToDelete);
 
-                            // 1. Update the UI list immediately
+                            // 2. Update UI
                             tempPhotoPaths.remove(position);
                             photoAdapter.notifyItemRemoved(position);
 
-                            // 2. If it's a saved location, delete from Database
+                            // 3. Update DB if not a new location
                             if (!isNew) {
-                                new Thread(() -> {
-                                    AppDatabase.getInstance(getApplicationContext())
-                                            .locationDao().deletePhotoByPath(pathToDelete);
-                                }).start();
-                            }
-
-                            // 3. Update the button text if it's visible
-                            Button btnPhoto = findViewById(R.id.btn_take_photo_detail);
-                            if (btnPhoto.getVisibility() == View.VISIBLE) {
-                                btnPhoto.setText("Add Photo (" + tempPhotoPaths.size() + ")");
+                                new Thread(() -> AppDatabase.getInstance(getApplicationContext())
+                                        .locationDao().deletePhotoByPath(pathToDelete)).start();
                             }
                         })
                         .setNegativeButton("Cancel", null)
@@ -144,6 +138,8 @@ public class LocationDetailActivity extends AppCompatActivity {
                 finish(); // Go back to previous screen
             });
         }).start();
+        isSaved = true; // Mark as saved!
+        finish();
     }
 
     private void displayFormattedCoordinates() {
@@ -239,5 +235,15 @@ public class LocationDetailActivity extends AppCompatActivity {
         // Save the path to the class-level variable
         currentPhotoPath = image.getAbsolutePath();
         return image;
+    }
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // If we are exiting and never hit the "Save" button
+        if (isFinishing() && isNew && !isSaved) {
+            for (String path : tempPhotoPaths) {
+                FileUtils.deleteFileAtPath(path);
+            }
+        }
     }
 }

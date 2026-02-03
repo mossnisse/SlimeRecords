@@ -1,4 +1,4 @@
-package nisse.watsmysocken;
+package nisse.whatsmysocken;
 
 import android.content.Context;
 

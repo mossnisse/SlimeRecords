@@ -21,8 +21,8 @@ public class LocationViewModel extends AndroidViewModel {
     }
 
     public void delete(LocationRecord location) {
-        new Thread(() -> {
-            AppDatabase.getInstance(getApplication()).locationDao().delete(location);
-        }).start();
+        new Thread(() ->
+            AppDatabase.getInstance(getApplication()).locationDao().delete(location)
+        ).start();
     }
 }

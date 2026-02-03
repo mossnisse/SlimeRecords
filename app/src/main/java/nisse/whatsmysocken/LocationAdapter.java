@@ -25,7 +25,7 @@ public class LocationAdapter extends RecyclerView.Adapter<LocationAdapter.Locati
         this.clickListener = listener;
     }
     public interface OnItemLongClickListener {
-        void onItemLongClick(LocationRecord location);
+        void onItemLongClick(LocationWithPhotos item);
     }
     public void setOnItemLongClickListener(OnItemLongClickListener listener) {
         this.longClickListener = listener;
@@ -85,7 +85,7 @@ public class LocationAdapter extends RecyclerView.Adapter<LocationAdapter.Locati
 
         holder.itemView.setOnLongClickListener(v -> {
             if (longClickListener != null) {
-                longClickListener.onItemLongClick(current.location);
+                longClickListener.onItemLongClick(current); // 'current' is LocationWithPhotos
                 return true;
             }
             return false;

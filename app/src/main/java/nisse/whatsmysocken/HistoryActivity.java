@@ -35,15 +35,22 @@ public class HistoryActivity extends AppCompatActivity {
             }
         });
 
-        adapter.setOnItemLongClickListener(location -> {
+        adapter.setOnItemLongClickListener(item -> { // 'item' is LocationWithPhotos
             new AlertDialog.Builder(this)
                     .setTitle("Delete Location")
-                    .setMessage("Are you sure you want to delete this recording?")
-                    .setPositiveButton("Delete", (dialog, which) -> {
-                        viewModel.delete(location);
-                        // No need to manually refresh; LiveData will see the change
-                        // and update the list automatically!
-                    })
+                    .setMessage("Are you sure? This will also delete all associated photos.")
+                    .setPositiveButton("Delete", (dialog, which) ->
+                        new Thread(() -> {
+                            // 1. Delete all physical files first
+                            if (item.photos != null) {
+                                for (PhotoRecord photo : item.photos) {
+                                    FileUtils.deleteFileAtPath(photo.filePath);
+                                }
+                            }
+                            // 2. Delete from database
+                            viewModel.delete(item.location);
+                        }).start()
+                    )
                     .setNegativeButton("Cancel", null)
                     .show();
         });
