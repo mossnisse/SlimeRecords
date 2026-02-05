@@ -36,6 +36,7 @@ dependencies {
     implementation("androidx.preference:preference-ktx:1.2.1")
     implementation("com.github.bumptech.glide:glide:4.16.0")
     implementation ("com.github.chrisbanes:PhotoView:2.3.0")
+    implementation ("com.google.android.gms:play-services-location:21.0.1")
 
     // Room components
     val roomVersion = "2.6.1"

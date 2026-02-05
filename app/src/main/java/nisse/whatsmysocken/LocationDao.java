@@ -20,6 +20,8 @@ public interface LocationDao {
     void insertPhoto(PhotoRecord photo);
     @Delete
     void delete(LocationRecord record);
-    @Query("DELETE FROM PhotoRecord WHERE filePath = :path")
+    @Query("DELETE FROM photo_table WHERE filePath = :path")
     void deletePhotoByPath(String path);
+    @Transaction @Query("SELECT * FROM location_table WHERE id = :id LIMIT 1")
+    LiveData<LocationWithPhotos> getLocationById(long id);
 }

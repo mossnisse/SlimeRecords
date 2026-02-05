@@ -35,22 +35,13 @@ public class HistoryActivity extends AppCompatActivity {
             }
         });
 
-        adapter.setOnItemLongClickListener(item -> { // 'item' is LocationWithPhotos
+        adapter.setOnItemLongClickListener(item -> {
             new AlertDialog.Builder(this)
                     .setTitle("Delete Location")
                     .setMessage("Are you sure? This will also delete all associated photos.")
-                    .setPositiveButton("Delete", (dialog, which) ->
-                        new Thread(() -> {
-                            // 1. Delete all physical files first
-                            if (item.photos != null) {
-                                for (PhotoRecord photo : item.photos) {
-                                    FileUtils.deleteFileAtPath(photo.filePath);
-                                }
-                            }
-                            // 2. Delete from database
-                            viewModel.delete(item.location);
-                        }).start()
-                    )
+                    .setPositiveButton("Delete", (dialog, which) -> {
+                        viewModel.deleteLocationWithPhotos(item);
+                    })
                     .setNegativeButton("Cancel", null)
                     .show();
         });
@@ -58,18 +49,22 @@ public class HistoryActivity extends AppCompatActivity {
         adapter.setOnItemClickListener(item -> {
             Intent intent = new Intent(this, LocationDetailActivity.class);
             // Pass the data we already have
+            /*
             intent.putExtra("lat", item.location.latitude);
             intent.putExtra("lon", item.location.longitude);
             intent.putExtra("note", item.location.note);
-            intent.putExtra("acc", item.location.accuracy);
+            intent.putExtra("acc", item.location.accuracy);*/
+            intent.putExtra("location_id", item.location.id);
             intent.putExtra("is_new", false); // Important: tells detail screen NOT to save a new record
-
+            /*
             // If you want to show photos in DetailActivity, pass the paths
             ArrayList<String> paths = new ArrayList<>();
             for (PhotoRecord p : item.photos) {
                 paths.add(p.filePath);
             }
             intent.putStringArrayListExtra("photo_paths", paths);
+
+             */
 
             startActivity(intent);
         });

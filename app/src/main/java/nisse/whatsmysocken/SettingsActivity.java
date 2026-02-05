@@ -3,7 +3,7 @@ package nisse.whatsmysocken;
 import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
 
-public class MySettingsActivity extends AppCompatActivity {
+public class SettingsActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -14,7 +14,7 @@ public class MySettingsActivity extends AppCompatActivity {
         // Now you can swap in the fragment
         getSupportFragmentManager()
                 .beginTransaction()
-                .replace(R.id.settings_container, new MySettingsFragment())
+                .replace(R.id.settings_container, new SettingsFragment())
                 .commit();
 
         // Optional: Add a back button in the toolbar

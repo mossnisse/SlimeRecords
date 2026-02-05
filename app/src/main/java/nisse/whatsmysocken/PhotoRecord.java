@@ -6,6 +6,7 @@ import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
 @Entity(
+        tableName = "photo_table",
         foreignKeys = @ForeignKey(
                 entity = LocationRecord.class,
                 parentColumns = "id",

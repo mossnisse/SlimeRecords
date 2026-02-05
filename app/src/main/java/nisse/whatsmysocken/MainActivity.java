@@ -6,7 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
-import android.location.LocationListener;
+//import android.location.LocationManager;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.view.Menu;
@@ -18,18 +18,58 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 
-public class MainActivity extends AppCompatActivity implements LocationListener {
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.Priority;
+
+public class MainActivity extends AppCompatActivity  {
     private LocationManager locationManager;
+    private FusedLocationProviderClient fusedClient;
+    private LocationRequest locationRequest;
+    private LocationCallback locationCallback;
     private static final int PERMISSION_ID = 42;
     private boolean isSearching = false;
     private Location currentBestLocation;
     private Button button;
     private TextView ctextview;
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        fusedClient = LocationServices.getFusedLocationProviderClient(this);
+
+        locationRequest = new LocationRequest.Builder(
+                Priority.PRIORITY_HIGH_ACCURACY,     // desired interval
+                1000                                 // interval in ms
+        )
+                .setMinUpdateIntervalMillis(500)             // fastest interval
+                .setMinUpdateDistanceMeters(1)               // min distance
+                .build();
+
+        locationCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(LocationResult result) {
+                if (result == null) return;
+
+                Location location = result.getLastLocation();
+                if (location == null) return;
+
+                // Keep the best accuracy
+                if (currentBestLocation == null ||
+                        location.getAccuracy() < currentBestLocation.getAccuracy()) {
+
+                    currentBestLocation = location;
+                    int acc = (int) Math.ceil(location.getAccuracy());
+                    ctextview.setText("Accuracy: " + acc + "m\nKeep waiting for better precision or press STOP to save.");
+                }
+            }
+        };
 
         // Initialize UI
         button = findViewById(R.id.check_button);
@@ -49,20 +89,31 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
     }
 
     private void startLocationSearch() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
             checkLocationPermission();
             return;
         }
 
+        if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+            new AlertDialog.Builder(this)
+                    .setTitle("GPS Disabled")
+                    .setMessage("Please enable GPS to get an more precise location.")
+                    .setPositiveButton("OK", null)
+                    .show();
+            return;
+        }
+
         isSearching = true;
-        currentBestLocation = null; // Clear previous results
+        currentBestLocation = null;
         button.setText("STOP");
         ctextview.setText("Waiting for satellites...");
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 1.0f, this);
+
+        fusedClient.requestLocationUpdates(locationRequest, locationCallback, getMainLooper());
     }
 
     private void stopLocationUpdates(boolean shouldTransition) {
-        locationManager.removeUpdates(this);
+        fusedClient.removeLocationUpdates(locationCallback);
         isSearching = false;
         button.setText("Find Location");
 
@@ -83,15 +134,6 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
         ctextview.setText(""); // Clear text after moving to next screen
     }
-
-    @Override
-    public void onLocationChanged(@NonNull Location location) {
-        currentBestLocation = location;
-        int acc = (int) Math.ceil(location.getAccuracy());
-        ctextview.setText("Accuracy: " + acc + "m\nKeep waiting for better precision or press STOP to save.");
-    }
-
-    // --- Permissions Logic ---
 
     private void checkLocationPermission() {
         if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_FINE_LOCATION)) {
@@ -136,7 +178,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
         if (id == R.id.action_settings) {
-            startActivity(new Intent(this, MySettingsActivity.class));
+            startActivity(new Intent(this, SettingsActivity.class));
             return true;
         } else if (id == R.id.saved_locations) {
             startActivity(new Intent(this, HistoryActivity.class));

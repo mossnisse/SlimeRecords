@@ -14,6 +14,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -26,7 +27,7 @@ import java.util.List;
 
 public class LocationDetailActivity extends AppCompatActivity {
     private double lat, lon;
-    //private float accuracy;
+    private float accuracy;
     private boolean isNew;
     private EditText noteInput;
     private String currentPhotoPath;
@@ -45,8 +46,6 @@ public class LocationDetailActivity extends AppCompatActivity {
         Button btnCancel = findViewById(R.id.btn_cancel_detail);
         Button btnPhoto = findViewById(R.id.btn_take_photo_detail);
 
-        lat = getIntent().getDoubleExtra("lat", 0);
-        lon = getIntent().getDoubleExtra("lon", 0);
         isNew = getIntent().getBooleanExtra("is_new", false);
 
         if (!isNew) {
@@ -54,13 +53,30 @@ public class LocationDetailActivity extends AppCompatActivity {
             btnPhoto.setVisibility(View.GONE);
             btnCancel.setText("Back");
 
-            String existingNote = getIntent().getStringExtra("note");
-            noteInput.setText(existingNote);
-            noteInput.setEnabled(false);
+            long id = getIntent().getLongExtra("location_id", -1);
+
+            LocationViewModel vm = new ViewModelProvider(this).get(LocationViewModel.class);
+            vm.getLocationWithPhotos(id).observe(this, item -> {
+                if (item == null) return;
+                lat = item.location.latitude;
+                lon = item.location.longitude;
+                accuracy = item.location.accuracy;
+                noteInput.setText(item.location.note);
+                noteInput.setEnabled(false);
+                tempPhotoPaths.clear();
+                for (PhotoRecord p : item.photos) {
+                    tempPhotoPaths.add(p.filePath);
+                }
+                photoAdapter.notifyDataSetChanged();
+                displayFormattedCoordinates();
+            });
+        } else {
+            lat = getIntent().getDoubleExtra("lat", 0);
+            lon = getIntent().getDoubleExtra("lon", 0);
+            accuracy = getIntent().getFloatExtra("acc", 0);
+            displayFormattedCoordinates();
         }
 
-        displayFormattedCoordinates();
-        // Use the variables instead of finding them again
         btnSave.setOnClickListener(v -> saveAndExit());
         btnCancel.setOnClickListener(v -> finish());
         btnPhoto.setOnClickListener(v -> dispatchTakePictureIntent());
@@ -69,12 +85,6 @@ public class LocationDetailActivity extends AppCompatActivity {
 
         // Set up horizontal layout
         rvGallery.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-
-        if (!isNew) {
-            // Mode: VIEWING
-            tempPhotoPaths = getIntent().getStringArrayListExtra("photo_paths");
-            if (tempPhotoPaths == null) tempPhotoPaths = new ArrayList<>();
-        }
 
         // Initialize adapter with our list (either empty or passed from history)
         photoAdapter = new PhotoAdapter(tempPhotoPaths, new PhotoAdapter.OnPhotoListener() {
@@ -135,16 +145,14 @@ public class LocationDetailActivity extends AppCompatActivity {
 
             runOnUiThread(() -> {
                 Toast.makeText(this, "Saved!", Toast.LENGTH_SHORT).show();
+                isSaved = true; // Mark as saved!
                 finish(); // Go back to previous screen
             });
         }).start();
-        isSaved = true; // Mark as saved!
-        finish();
     }
 
     private void displayFormattedCoordinates() {
         TextView tvCoords = findViewById(R.id.tv_detail_coords);
-        float accuracy = getIntent().getFloatExtra("acc", 0);
 
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         boolean showWgs84 = prefs.getBoolean("show_wgs84", true);
@@ -183,7 +191,6 @@ public class LocationDetailActivity extends AppCompatActivity {
         if (showDate) {
             sb.append("Date: ").append(LocalDate.now().toString()).append("\n");
         }
-
         tvCoords.setText(sb.toString());
     }
 

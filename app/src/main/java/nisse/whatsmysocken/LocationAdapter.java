@@ -129,9 +129,33 @@ public class LocationAdapter extends RecyclerView.Adapter<LocationAdapter.Locati
             return oldList.get(oldPos).location.id == newList.get(newPos).location.id;
         }
 
-        @Override
-        public boolean areContentsTheSame(int oldPos, int newPos) {
-            return oldList.get(oldPos).equals(newList.get(newPos));
+        @Override public boolean areContentsTheSame(int oldPos, int newPos) {
+            LocationWithPhotos oldItem = oldList.get(oldPos);
+            LocationWithPhotos newItem = newList.get(newPos); // Compare LocationRecord fields
+            LocationRecord o = oldItem.location;
+            LocationRecord n = newItem.location;
+            if (Double.compare(o.latitude, n.latitude) != 0) return false;
+            if (Double.compare(o.longitude, n.longitude) != 0) return false;
+            if (Float.compare(o.accuracy, n.accuracy) != 0) return false;
+            if (o.timestamp != n.timestamp) return false;
+            if (!safeEquals(o.note, n.note)) return false;
+            if (!safeEquals(o.localTime, n.localTime)) return false;
+            // Compare photo list sizes
+            if (oldItem.photos == null && newItem.photos != null) return false;
+            if (oldItem.photos != null && newItem.photos == null) return false;
+            if (oldItem.photos != null) {
+                if (oldItem.photos.size() != newItem.photos.size()) return false;
+                // Compare each photo path
+                for (int i = 0; i < oldItem.photos.size(); i++) {
+                    String oldPath = oldItem.photos.get(i).filePath;
+                    String newPath = newItem.photos.get(i).filePath;
+                    if (!safeEquals(oldPath, newPath)) return false;
+                }
+            }
+            return true;
+        }
+        private boolean safeEquals(String a, String b) {
+            return (a == null && b == null) || (a != null && a.equals(b));
         }
     }
 }
