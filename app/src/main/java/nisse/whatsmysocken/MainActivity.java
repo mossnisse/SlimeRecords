@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.location.Location;
 //import android.location.LocationManager;
@@ -18,12 +19,17 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 
+import com.google.android.gms.common.api.ResolvableApiException;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.LocationSettingsRequest;
+import com.google.android.gms.location.LocationSettingsResponse;
 import com.google.android.gms.location.Priority;
+import com.google.android.gms.location.SettingsClient;
+import com.google.android.gms.tasks.Task;
 
 public class MainActivity extends AppCompatActivity  {
     private LocationManager locationManager;
@@ -54,7 +60,7 @@ public class MainActivity extends AppCompatActivity  {
 
         locationCallback = new LocationCallback() {
             @Override
-            public void onLocationResult(LocationResult result) {
+            public void onLocationResult(@NonNull LocationResult result) {
                 if (result == null) return;
 
                 Location location = result.getLastLocation();
@@ -89,11 +95,14 @@ public class MainActivity extends AppCompatActivity  {
     }
 
     private void startLocationSearch() {
+        // Check Permissions
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
             checkLocationPermission();
             return;
         }
+        // Check Device Settings (GPS, Scanning, etc.)
+        checkLocationSettings();
 
         if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             new AlertDialog.Builder(this)
@@ -101,15 +110,31 @@ public class MainActivity extends AppCompatActivity  {
                     .setMessage("Please enable GPS to get an more precise location.")
                     .setPositiveButton("OK", null)
                     .show();
-            return;
         }
+    }
 
+    // Separate the actual "start" logic into its own method
+    private void startLocationUpdates() {
         isSearching = true;
         currentBestLocation = null;
         button.setText("STOP");
         ctextview.setText("Waiting for satellites...");
-
+        // Safe to call because we checked permissions in startLocationSearch
         fusedClient.requestLocationUpdates(locationRequest, locationCallback, getMainLooper());
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 1001) {
+            if (resultCode == RESULT_OK) {
+                // User agreed to turn on GPS!
+                startLocationUpdates();
+            } else {
+                // User said no
+                ctextview.setText("Location services are required for high accuracy.");
+            }
+        }
     }
 
     private void stopLocationUpdates(boolean shouldTransition) {
@@ -185,5 +210,32 @@ public class MainActivity extends AppCompatActivity  {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void checkLocationSettings() {
+        // Create a settings request using your existing locationRequest
+        LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder()
+                .addLocationRequest(locationRequest);
+
+        SettingsClient client = LocationServices.getSettingsClient(this);
+        Task<LocationSettingsResponse> task = client.checkLocationSettings(builder.build());
+
+        task.addOnSuccessListener(this, locationSettingsResponse -> {
+            // All settings are satisfied! We can start updates.
+            startLocationUpdates();
+        });
+
+        task.addOnFailureListener(this, e -> {
+            if (e instanceof ResolvableApiException) {
+                // Settings are NOT satisfied, but we can show the user a dialog to fix it.
+                try {
+                    ResolvableApiException resolvable = (ResolvableApiException) e;
+                    // This will show the system dialog (the "OK" button that turns on GPS)
+                    resolvable.startResolutionForResult(MainActivity.this, 1001);
+                } catch (IntentSender.SendIntentException sendEx) {
+                    // Ignore the error.
+                }
+            }
+        });
     }
 }

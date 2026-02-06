@@ -31,7 +31,7 @@ public class LocationDetailActivity extends AppCompatActivity {
     private boolean isNew;
     private EditText noteInput;
     private String currentPhotoPath;
-    private List<String> tempPhotoPaths = new ArrayList<>();
+    private final List<String> tempPhotoPaths = new ArrayList<>();
     private PhotoAdapter photoAdapter;
     private RecyclerView rvGallery;
     private boolean isSaved = false;
@@ -103,14 +103,13 @@ public class LocationDetailActivity extends AppCompatActivity {
                         .setTitle("Remove Photo")
                         .setMessage("Delete this photo from storage?")
                         .setPositiveButton("Remove", (dialog, which) -> {
-                            // 1. Delete physical file
                             FileUtils.deleteFileAtPath(pathToDelete);
 
-                            // 2. Update UI
+                            // Update UI
                             tempPhotoPaths.remove(position);
                             photoAdapter.notifyItemRemoved(position);
 
-                            // 3. Update DB if not a new location
+                            // Update DB if not a new location
                             if (!isNew) {
                                 new Thread(() -> AppDatabase.getInstance(getApplicationContext())
                                         .locationDao().deletePhotoByPath(pathToDelete)).start();
@@ -124,33 +123,28 @@ public class LocationDetailActivity extends AppCompatActivity {
     }
 
     private void saveAndExit() {
+        // Gather data from UI
         String note = noteInput.getText().toString();
-        float accuracy = getIntent().getFloatExtra("acc", 0);
-        // Get raw Unix time
         long unixTime = System.currentTimeMillis();
-        // Get formatted Local Time
-        java.time.LocalDateTime now = java.time.LocalDateTime.now();
-        java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        String localTimeStr = now.format(formatter);
+        String localTimeStr = java.time.LocalDateTime.now()
+                .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
-        new Thread(() -> {
-            AppDatabase db = AppDatabase.getInstance(getApplicationContext());
+        LocationRecord record = new LocationRecord(lat, lon, unixTime, accuracy, localTimeStr, note);
 
-            LocationRecord record = new LocationRecord(lat, lon, unixTime, accuracy, localTimeStr, note);
-            long id = db.locationDao().insertLocation(record);
+        // Tell the ViewModel to handle the threading and saving
+        LocationViewModel viewModel = new ViewModelProvider(this).get(LocationViewModel.class);
 
-            for (String path : tempPhotoPaths) {
-                db.locationDao().insertPhoto(new PhotoRecord(id, path));
-            }
-
-            runOnUiThread(() -> {
+        // Observe the "finished" state
+        viewModel.getSaveOperationFinished().observe(this, finished -> {
+            if (finished) {
                 Toast.makeText(this, "Saved!", Toast.LENGTH_SHORT).show();
-                isSaved = true; // Mark as saved!
-                finish(); // Go back to previous screen
-            });
-        }).start();
-    }
+                isSaved = true;
+                finish();
+            }
+        });
 
+        viewModel.saveLocationWithPhotos(record, tempPhotoPaths);
+    }
     private void displayFormattedCoordinates() {
         TextView tvCoords = findViewById(R.id.tv_detail_coords);
 

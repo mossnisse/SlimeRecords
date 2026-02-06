@@ -12,7 +12,7 @@ public class LocationRecord {
     public long timestamp;
     public float accuracy; // Added this
     public String localTime;
-    public String note = "";
+    public String note;
 
     public LocationRecord(double latitude, double longitude, long timestamp, float accuracy, String localTime, String note) {
         this.latitude = latitude;

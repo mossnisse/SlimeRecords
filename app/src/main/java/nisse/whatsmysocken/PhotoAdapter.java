@@ -38,8 +38,8 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.PhotoViewHol
         holder.itemView.setOnClickListener(v -> listener.onPhotoClick(path));
         holder.itemView.setOnLongClickListener(v -> {
             if (listener != null) {
-                // Use getAdapterPosition() instead of the 'position' variable
-                int currentPos = holder.getAdapterPosition();
+                int currentPos = holder.getBindingAdapterPosition();
+
                 if (currentPos != RecyclerView.NO_POSITION) {
                     listener.onPhotoLongClick(currentPos);
                 }
