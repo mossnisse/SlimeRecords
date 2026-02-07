@@ -69,4 +69,12 @@ public class LocationViewModel extends AndroidViewModel {
             locationDao.delete(item.location);
         });
     }
+
+    /**
+     * Returns a LiveData list of all locations and their photos.
+     * This is used by the ExportActivity to get the full dataset.
+     */
+    public LiveData<List<LocationWithPhotos>> getAllDataForExport() {
+        return locationDao.getAllLocationsForExport();
+    }
 }

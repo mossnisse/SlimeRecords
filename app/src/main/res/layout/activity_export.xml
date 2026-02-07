@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:gravity="center_horizontal">
+
+    <TextView
+        android:id="@+id/tv_export_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Preparing data..."
+        android:textSize="18sp"
+        android:layout_marginTop="20dp" />
+
+    <ProgressBar
+        android:id="@+id/export_progress"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:visibility="gone" />
+
+    <Button
+        android:id="@+id/btn_start_usb_export"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="30dp"
+        android:text="Export to USB (Downloads Folder)" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="This will create a .zip file containing a CSV and all photos."
+        android:textSize="12sp"
+        android:textAlignment="center" />
+</LinearLayout>

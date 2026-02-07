@@ -8,4 +8,9 @@
         android:id="@+id/saved_locations"
         android:title="Saved Locations"
         app:showAsAction="never" />
+    <item
+        android:id="@+id/action_export"
+        android:title="Export"
+        android:icon="@android:drawable/ic_menu_save"
+        app:showAsAction="never" />
 </menu>

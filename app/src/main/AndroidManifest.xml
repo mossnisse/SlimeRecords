@@ -57,6 +57,12 @@
             android:exported="false"
             android:parentActivityName=".MainActivity">
         </activity>
+        <activity
+            android:name=".ExportActivity"
+            android:exported="false"
+            android:label="Export Data"
+            android:parentActivityName=".MainActivity">
+        </activity>
 
     </application>
 </manifest>

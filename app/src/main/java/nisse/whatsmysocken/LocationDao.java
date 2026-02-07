@@ -41,4 +41,9 @@ public abstract class LocationDao {
     public abstract void deletePhotoByPath(String path);
     @Transaction @Query("SELECT * FROM location_table WHERE id = :id LIMIT 1")
     public abstract LiveData<LocationWithPhotos> getLocationById(long id);
+
+    // used for exporting the data
+    @Transaction
+    @Query("SELECT * FROM location_table ORDER BY timestamp DESC")
+    public abstract LiveData<List<LocationWithPhotos>> getAllLocationsForExport();
 }
