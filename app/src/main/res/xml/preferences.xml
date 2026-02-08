@@ -31,6 +31,19 @@
             app:title="Date"
             app:summary="Show date in the ISO format"
             app:defaultValue="true" />
+
+        <CheckBoxPreference
+            app:key="show_province"
+            app:title="Province / landskap"
+            app:summary="Look up landskap + lapmark from coordinate"
+            app:defaultValue="true" />
+
+        <CheckBoxPreference
+            app:key="show_district"
+            app:title="District / socken"
+            app:summary="Look up socken with the borders from 1935"
+            app:defaultValue="true" />
+
     </PreferenceCategory>
 
 </PreferenceScreen>

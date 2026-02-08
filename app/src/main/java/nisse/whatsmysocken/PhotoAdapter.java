@@ -33,7 +33,11 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.PhotoViewHol
     @Override
     public void onBindViewHolder(@NonNull PhotoViewHolder holder, int position) {
         String path = photoPaths.get(position);
-        Glide.with(holder.itemView.getContext()).load(path).centerCrop().into(holder.ivGalleryPhoto);
+        Glide.with(holder.itemView.getContext())
+                .load(path)
+                .placeholder(android.R.drawable.ic_menu_gallery) // Generic icon while loading
+                .centerCrop()
+                .into(holder.ivGalleryPhoto);
 
         holder.itemView.setOnClickListener(v -> listener.onPhotoClick(path));
         holder.itemView.setOnLongClickListener(v -> {

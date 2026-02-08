@@ -15,6 +15,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import io.reactivex.rxjava3.core.Flowable;
+import nisse.whatsmysocken.data.AppDatabase;
+import nisse.whatsmysocken.data.LocationDao;
+import nisse.whatsmysocken.data.LocationRecord;
+import nisse.whatsmysocken.data.PhotoRecord;
 
 public class LocationViewModel extends AndroidViewModel {
     private final LocationDao locationDao;
@@ -59,6 +63,13 @@ public class LocationViewModel extends AndroidViewModel {
         });
     }
 
+    public void updateLocation(LocationRecord record) {
+        executor.execute(() -> {
+            locationDao.updateLocation(record);
+            // If you want to trigger a finish in the UI:
+            saveOperationFinished.postValue(true);
+        });
+    }
     public void deleteLocationWithPhotos(LocationWithPhotos item) {
         executor.execute(() -> {
             if (item.photos != null) {
@@ -69,12 +80,14 @@ public class LocationViewModel extends AndroidViewModel {
             locationDao.delete(item.location);
         });
     }
-
-    /**
-     * Returns a LiveData list of all locations and their photos.
-     * This is used by the ExportActivity to get the full dataset.
-     */
     public LiveData<List<LocationWithPhotos>> getAllDataForExport() {
         return locationDao.getAllLocationsForExport();
+    }
+
+    // Inside LocationViewModel.java
+    public void deletePhotoByPath(String path) {
+        executor.execute(() -> {
+            locationDao.deletePhotoByPath(path);
+        });
     }
 }

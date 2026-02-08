@@ -16,9 +16,12 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+
+import nisse.whatsmysocken.data.PhotoRecord;
 
 public class ExportActivity extends AppCompatActivity {
     private List<LocationWithPhotos> dataToExport;
@@ -85,17 +88,25 @@ public class ExportActivity extends AppCompatActivity {
         try (OutputStream os = getContentResolver().openOutputStream(uri);
              ZipOutputStream zos = new ZipOutputStream(os)) {
 
-            // 1. Add CSV
+            // Add the CSV file
             ZipEntry csvEntry = new ZipEntry("data.csv");
             zos.putNextEntry(csvEntry);
-            zos.write(FileUtils.generateCsv(dataToExport).getBytes());
+            zos.write(FileUtils.generateCsv(dataToExport).getBytes(StandardCharsets.UTF_8));
             zos.closeEntry();
 
-            // 2. Add Photos
+            // add Photos
+            boolean folderCreated = false;
             for (LocationWithPhotos item : dataToExport) {
                 for (PhotoRecord photo : item.photos) {
                     File file = new File(photo.filePath);
                     if (file.exists()) {
+                        // Optional: Create photos folder entry once
+                        if (!folderCreated) {
+                            zos.putNextEntry(new ZipEntry("photos/"));
+                            zos.closeEntry();
+                            folderCreated = true;
+                        }
+
                         ZipEntry entry = new ZipEntry("photos/" + file.getName());
                         zos.putNextEntry(entry);
                         copyFile(file, zos);

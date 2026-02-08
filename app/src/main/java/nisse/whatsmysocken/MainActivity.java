@@ -30,7 +30,6 @@ public class MainActivity extends AppCompatActivity {
     private FusedLocationProviderClient fusedClient;
     private LocationRequest locationRequest;
     private LocationCallback locationCallback;
-
     private boolean isSearching = false;
     private Location currentBestLocation;
     private Button button;
