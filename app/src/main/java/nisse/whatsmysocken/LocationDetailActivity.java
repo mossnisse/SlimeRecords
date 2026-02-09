@@ -153,38 +153,68 @@ public class LocationDetailActivity extends AppCompatActivity {
         sb.append("Accuracy: ").append((int) Math.ceil(accuracy)).append("m\n");
 
         DecimalFormat dc = new DecimalFormat("0.00000");
-        if (prefs.getBoolean("show_wgs84", true)) sb.append("WGS84: ").append(dc.format(lat)).append(", ").append(dc.format(lon)).append("\n");
+        if (prefs.getBoolean("show_wgs84", true)) {
+            sb.append("WGS84: ").append(dc.format(lat)).append(", ").append(dc.format(lon)).append("\n");
+        }
 
         Coordinates here = new Coordinates(lat, lon);
+
         if (prefs.getBoolean("show_rt90", true)) {
             Coordinates rt90 = here.convertToRT90FromWGS84();
             sb.append("RT90: ").append((int)Math.round(rt90.getNorth())).append(", ").append((int)Math.round(rt90.getEast())).append("\n");
         }
+
         Coordinates sweref = here.convertToSweref99TMFromWGS84();
         if (prefs.getBoolean("show_sweref", false)) {
-            //Coordinates sweref = here.convertToSweref99TMFromWGS84();
             sb.append("SWEREF99tm: ").append((int)Math.round(sweref.getNorth())).append(", ").append((int)Math.round(sweref.getEast())).append("\n");
         }
-        if (prefs.getBoolean("show_rubin", true)) sb.append("RUBIN: ").append(here.convertToRT90FromWGS84().getRUBINfromRT90()).append("\n");
-        if (prefs.getBoolean("show_date", true)) sb.append("Date: ").append(LocalDate.now().toString()).append("\n");
-        tvCoords.setText(sb.toString());
 
-        Executors.newSingleThreadExecutor().execute(() -> {
-            // Use getApplicationContext() to avoid memory leaks in threads
+        if (prefs.getBoolean("show_rubin", true)) {
+            sb.append("RUBIN: ").append(here.convertToRT90FromWGS84().getRUBINfromRT90()).append("\n");
+        }
+
+        if (prefs.getBoolean("show_date", true)) {
+            sb.append("Date: ").append(LocalDate.now().toString()).append("\n");
+        }
+
+        // --- Spatial Lookup Logic ---
+        boolean showProv = prefs.getBoolean("show_province", true);
+        boolean showDist = prefs.getBoolean("show_district", true);
+
+        if (showProv || showDist) {
+            // Show placeholders so the user knows a lookup is happening
+            if (showProv) sb.append("Province: Loading...\n");
+            if (showDist) sb.append("District: Loading...\n");
+            tvCoords.setText(sb.toString());
+
             int n = (int)Math.round(sweref.getNorth());
             int e = (int)Math.round(sweref.getEast());
-            SpatialResolver resolver = new SpatialResolver(getApplicationContext());
 
-            String province = resolver.getProvinceName(n, e);
-            String socken = resolver.getSockenName(n, e);
+            Executors.newSingleThreadExecutor().execute(() -> {
+                SpatialResolver resolver = new SpatialResolver(getApplicationContext());
 
-            // 4. Jump back to the UI thread to update the view
-            runOnUiThread(() -> {
-                sb.append("Province: ").append(province).append("\n");
-                sb.append("District: ").append(socken).append("\n");
-                tvCoords.setText(sb.toString());
+                // Only perform the specific lookups requested
+                String provinceResult = showProv ? resolver.getProvinceName(n, e) : null;
+                String districtResult = showDist ? resolver.getSockenName(n, e) : null;
+
+                runOnUiThread(() -> {
+                    // Re-build string or replace the placeholders
+                    // Note: Re-building ensures we don't duplicate strings if the GPS updates fast
+                    StringBuilder updatedSb = new StringBuilder(sb.toString());
+
+                    // We use replace logic or simply clear and rebuild for accuracy
+                    // For simplicity here, let's just update the final text
+                    String finalMsg = sb.toString()
+                            .replace("Province: Loading...", "Province: " + provinceResult)
+                            .replace("District: Loading...", "District: " + districtResult);
+
+                    tvCoords.setText(finalMsg);
+                });
             });
-        });
+        } else {
+            // If both are off, just set the text as-is
+            tvCoords.setText(sb.toString());
+        }
     }
 
     private final ActivityResultLauncher<Uri> takePictureLauncher = registerForActivityResult(new ActivityResultContracts.TakePicture(), success -> {

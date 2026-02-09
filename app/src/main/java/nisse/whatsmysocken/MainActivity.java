@@ -35,8 +35,6 @@ public class MainActivity extends AppCompatActivity {
     private Button button;
     private TextView ctextview;
 
-    // --- Modern Result Launchers ---
-
     // Handles the Location Permission request
     private final ActivityResultLauncher<String> requestPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {

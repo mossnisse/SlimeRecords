@@ -1,10 +1,6 @@
 package nisse.whatsmysocken;
 
-import android.content.ContentValues;
-import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
-import android.provider.MediaStore;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ProgressBar;
@@ -12,120 +8,79 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
+import io.reactivex.rxjava3.disposables.CompositeDisposable;
 import java.util.List;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
-
-import nisse.whatsmysocken.data.PhotoRecord;
 
 public class ExportActivity extends AppCompatActivity {
     private List<LocationWithPhotos> dataToExport;
     private Button btnExport;
     private ProgressBar progressBar;
     private TextView tvStatus;
+    private LocationViewModel viewModel;
+    private final CompositeDisposable disposables = new CompositeDisposable();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_export);
 
-        tvStatus = findViewById(R.id.tv_export_status);
-        btnExport = findViewById(R.id.btn_start_usb_export);
-        progressBar = findViewById(R.id.export_progress);
+        initViews();
+        viewModel = new ViewModelProvider(this).get(LocationViewModel.class);
 
-        LocationViewModel viewModel = new ViewModelProvider(this).get(LocationViewModel.class);
-
-        // Fetch all data immediately so it's ready
+        // 1. Observe the data to be exported
         viewModel.getAllDataForExport().observe(this, data -> {
             this.dataToExport = data;
-            if (data != null) {
-                tvStatus.setText("Found " + data.size() + " locations to export.");
+            if (data != null && viewModel.getExportStatus().blockingFirst() == LocationViewModel.ExportState.IDLE) {
+                tvStatus.setText(getString(R.string.export_ready_format, data.size()));
             }
         });
 
-        btnExport.setOnClickListener(v -> startZipExport());
-    }
+        // 2. Observe the Export Status (The critical part for stability)
+        disposables.add(viewModel.getExportStatus()
+                .observeOn(io.reactivex.rxjava3.android.schedulers.AndroidSchedulers.mainThread())
+                .subscribe(this::updateUiForState));
 
-    private void startZipExport() {
-        if (dataToExport == null || dataToExport.isEmpty()) return;
-
-        btnExport.setEnabled(false);
-        progressBar.setVisibility(View.VISIBLE);
-        tvStatus.setText("Zipping files... please wait.");
-
-        // We use a background thread for the ZIP operation
-        new Thread(() -> {
-            boolean success = performZip();
-            runOnUiThread(() -> {
-                progressBar.setVisibility(View.GONE);
-                btnExport.setEnabled(true);
-                if (success) {
-                    tvStatus.setText("Export Complete! Check your 'Downloads' folder.");
-                    Toast.makeText(this, "Success!", Toast.LENGTH_SHORT).show();
-                } else {
-                    tvStatus.setText("Export Failed.");
-                }
-            });
-        }).start();
-    }
-
-    private boolean performZip() {
-        String zipName = "WhatsMySocken_" + System.currentTimeMillis() + ".zip";
-
-        ContentValues values = new ContentValues();
-        values.put(MediaStore.MediaColumns.DISPLAY_NAME, zipName);
-        values.put(MediaStore.MediaColumns.MIME_TYPE, "application/zip");
-        values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
-
-        Uri uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
-        if (uri == null) return false;
-
-        try (OutputStream os = getContentResolver().openOutputStream(uri);
-             ZipOutputStream zos = new ZipOutputStream(os)) {
-
-            // Add the CSV file
-            ZipEntry csvEntry = new ZipEntry("data.csv");
-            zos.putNextEntry(csvEntry);
-            zos.write(FileUtils.generateCsv(dataToExport).getBytes(StandardCharsets.UTF_8));
-            zos.closeEntry();
-
-            // add Photos
-            boolean folderCreated = false;
-            for (LocationWithPhotos item : dataToExport) {
-                for (PhotoRecord photo : item.photos) {
-                    File file = new File(photo.filePath);
-                    if (file.exists()) {
-                        // Optional: Create photos folder entry once
-                        if (!folderCreated) {
-                            zos.putNextEntry(new ZipEntry("photos/"));
-                            zos.closeEntry();
-                            folderCreated = true;
-                        }
-
-                        ZipEntry entry = new ZipEntry("photos/" + file.getName());
-                        zos.putNextEntry(entry);
-                        copyFile(file, zos);
-                        zos.closeEntry();
-                    }
-                }
+        btnExport.setOnClickListener(v -> {
+            if (dataToExport != null && !dataToExport.isEmpty()) {
+                viewModel.startExport(getApplicationContext(), dataToExport);
             }
-            return true;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
+        });
+    }
+
+    private void updateUiForState(LocationViewModel.ExportState state) {
+        switch (state) {
+            case IDLE:
+                btnExport.setEnabled(true);
+                progressBar.setVisibility(View.GONE);
+                break;
+            case LOADING:
+                btnExport.setEnabled(false);
+                progressBar.setVisibility(View.VISIBLE);
+                tvStatus.setText("Zipping files... you can leave this screen.");
+                break;
+            case SUCCESS:
+                btnExport.setEnabled(true);
+                progressBar.setVisibility(View.GONE);
+                tvStatus.setText("Export Complete! Check 'Downloads'.");
+                Toast.makeText(this, "Success!", Toast.LENGTH_SHORT).show();
+                break;
+            case ERROR:
+                btnExport.setEnabled(true);
+                progressBar.setVisibility(View.GONE);
+                tvStatus.setText("Export Failed.");
+                break;
         }
     }
 
-    private void copyFile(File file, OutputStream out) throws IOException {
-        try (FileInputStream in = new FileInputStream(file)) {
-            byte[] buf = new byte[8192];
-            int len;
-            while ((len = in.read(buf)) > 0) out.write(buf, 0, len);
-        }
+    private void initViews() {
+        tvStatus = findViewById(R.id.tv_export_status);
+        btnExport = findViewById(R.id.btn_start_usb_export);
+        progressBar = findViewById(R.id.export_progress);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        disposables.clear(); // Prevent memory leaks
     }
 }
