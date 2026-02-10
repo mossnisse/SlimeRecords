@@ -18,10 +18,10 @@ import java.util.Map;
 * check the QGIS folder and the script to export the .csv and .bin files that is used
  */
 public class SpatialResolver implements AutoCloseable {
+    private static volatile SpatialResolver instance;
     private final SpatialDao spatialDao;
     private final Context context;
 
-    // Cached resources
     private FileChannel provinceChannel;
     private FileChannel districtChannel;
     private FileInputStream provinceStream;
@@ -29,10 +29,22 @@ public class SpatialResolver implements AutoCloseable {
     private long provinceBaseOffset;
     private long districtBaseOffset;
 
-    public SpatialResolver(Context context) {
+    // Private constructor
+    private SpatialResolver(Context context) {
         this.context = context.getApplicationContext();
         this.spatialDao = AppDatabase.getInstance(this.context).spatialDao();
         initChannels();
+    }
+
+    public static SpatialResolver getInstance(Context context) {
+        if (instance == null) {
+            synchronized (SpatialResolver.class) {
+                if (instance == null) {
+                    instance = new SpatialResolver(context);
+                }
+            }
+        }
+        return instance;
     }
 
     private void initChannels() {
@@ -145,7 +157,9 @@ public class SpatialResolver implements AutoCloseable {
         try {
             if (provinceStream != null) provinceStream.close();
             if (districtStream != null) districtStream.close();
-            // Closing the stream closes the channel
+            provinceChannel = null;
+            districtChannel = null;
+            instance = null; // Clear instance on close
         } catch (IOException e) {
             Log.e("SpatialResolver", "Error closing channels", e);
         }

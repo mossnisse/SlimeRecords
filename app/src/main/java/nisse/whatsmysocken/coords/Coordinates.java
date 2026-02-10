@@ -1,4 +1,4 @@
-package nisse.whatsmysocken;
+package nisse.whatsmysocken.coords;
 
 public class Coordinates {
     private Double north, east;

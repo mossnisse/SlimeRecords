@@ -16,6 +16,7 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.lifecycle.ViewModelProvider;
 import com.google.android.gms.common.api.ResolvableApiException;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
@@ -24,148 +25,15 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.Priority;
-import com.google.android.gms.tasks.Task;
 
 public class MainActivity extends AppCompatActivity {
     private FusedLocationProviderClient fusedClient;
     private LocationRequest locationRequest;
     private LocationCallback locationCallback;
-    private boolean isSearching = false;
-    private Location currentBestLocation;
+    private LocationViewModel viewModel;
     private Button button;
     private TextView ctextview;
-
-    // Handles the Location Permission request
-    private final ActivityResultLauncher<String> requestPermissionLauncher =
-            registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
-                if (isGranted) {
-                    checkLocationSettings();
-                } else {
-                    ctextview.setText("Permission denied. Cannot search for location.");
-                }
-            });
-
-    // Handles the "Turn on GPS" system dialog result
-    private final ActivityResultLauncher<IntentSenderRequest> settingsLauncher =
-            registerForActivityResult(new ActivityResultContracts.StartIntentSenderForResult(), result -> {
-                if (result.getResultCode() == RESULT_OK) {
-                    startLocationUpdates();
-                } else {
-                    ctextview.setText("Location services are required for high accuracy.");
-                }
-            });
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-        fusedClient = LocationServices.getFusedLocationProviderClient(this);
-
-        locationRequest = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000)
-                .setMinUpdateIntervalMillis(500)
-                .setMinUpdateDistanceMeters(1)
-                .build();
-
-        locationCallback = new LocationCallback() {
-            @Override
-            public void onLocationResult(@NonNull LocationResult result) {
-                Location location = result.getLastLocation();
-                if (location == null) return;
-
-                if (currentBestLocation == null || location.getAccuracy() < currentBestLocation.getAccuracy()) {
-                    currentBestLocation = location;
-                    int acc = (int) Math.ceil(location.getAccuracy());
-                    ctextview.setText("Accuracy: " + acc + "m\nKeep waiting for better precision or press STOP to save.");
-                }
-            }
-        };
-
-        button = findViewById(R.id.check_button);
-        ctextview = findViewById(R.id.ctextview);
-        setSupportActionBar(findViewById(R.id.my_toolbar));
-
-        button.setOnClickListener(view -> {
-            if (isSearching) stopLocationUpdates(true);
-            else startLocationSearch();
-        });
-    }
-
-    private void startLocationSearch() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED) {
-            checkLocationSettings();
-        } else {
-            handlePermissionRationale();
-        }
-    }
-
-    private void handlePermissionRationale() {
-        if (shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION)) {
-            new AlertDialog.Builder(this)
-                    .setTitle("Location Needed")
-                    .setMessage("This app needs location access to find your 'socken'.")
-                    .setPositiveButton("OK", (d, id) -> requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION))
-                    .show();
-        } else {
-            requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION);
-        }
-    }
-
-    private void checkLocationSettings() {
-        LocationSettingsRequest request = new LocationSettingsRequest.Builder()
-                .addLocationRequest(locationRequest).build();
-
-        Task<com.google.android.gms.location.LocationSettingsResponse> task =
-                LocationServices.getSettingsClient(this).checkLocationSettings(request);
-
-        task.addOnSuccessListener(this, response -> startLocationUpdates());
-
-        task.addOnFailureListener(this, e -> {
-            if (e instanceof ResolvableApiException) {
-                try {
-                    ResolvableApiException resolvable = (ResolvableApiException) e;
-                    IntentSenderRequest isr = new IntentSenderRequest.Builder(resolvable.getResolution()).build();
-                    settingsLauncher.launch(isr);
-                } catch (Exception sendEx) {
-                    // Ignore
-                }
-            }
-        });
-    }
-
-    private void startLocationUpdates() {
-        isSearching = true;
-        currentBestLocation = null;
-        button.setText("STOP");
-        ctextview.setText("Waiting for satellites...");
-        // API 29+ still requires the check, but we know it's granted by now
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            fusedClient.requestLocationUpdates(locationRequest, locationCallback, getMainLooper());
-        }
-    }
-
-    private void stopLocationUpdates(boolean shouldTransition) {
-        fusedClient.removeLocationUpdates(locationCallback);
-        isSearching = false;
-        button.setText("Find Location");
-
-        if (shouldTransition && currentBestLocation != null) {
-            Intent intent = new Intent(this, LocationDetailActivity.class);
-            intent.putExtra("lat", currentBestLocation.getLatitude());
-            intent.putExtra("lon", currentBestLocation.getLongitude());
-            intent.putExtra("acc", currentBestLocation.getAccuracy());
-            intent.putExtra("is_new", true);
-            startActivity(intent);
-        }
-        ctextview.setText("");
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        if (isSearching) stopLocationUpdates(false);
-    }
+    private boolean isSearching = false; // Fixed: Added missing variable
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -183,6 +51,176 @@ public class MainActivity extends AppCompatActivity {
         } else if (id == R.id.action_export) {
             startActivity(new Intent(this, ExportActivity.class));
         }
-        return true;
+        return super.onOptionsItemSelected(item);
+    }
+
+    // Handles the result of the "Allow Location" permission dialog
+    private final ActivityResultLauncher<String> requestPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
+                if (isGranted) {
+                    checkLocationSettings();
+                } else {
+                    ctextview.setText("Permission denied. Cannot search.");
+                }
+            });
+
+    // Handles the result of the "Turn on GPS" system dialog
+    private final ActivityResultLauncher<IntentSenderRequest> settingsLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartIntentSenderForResult(), result -> {
+                if (result.getResultCode() == RESULT_OK) {
+                    startLocationUpdates();
+                } else {
+                    ctextview.setText("Location services must be enabled.");
+                }
+            });
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        // Initialize ViewModel first
+        viewModel = new ViewModelProvider(this).get(LocationViewModel.class);
+
+        initViews();
+        setupLocationLogic();
+    }
+
+    private void initViews() {
+        button = findViewById(R.id.check_button);
+        ctextview = findViewById(R.id.ctextview);
+        setSupportActionBar(findViewById(R.id.my_toolbar));
+
+        button.setOnClickListener(v -> {
+            if (isSearching) stopLocationUpdates(true);
+            else startLocationSearch();
+        });
+    }
+
+    private void updateDbUiState() {
+        // Always enable the button. We only need the DB in the Detail/History screens.
+        button.setEnabled(true);
+        if (!isSearching) {
+            ctextview.setText("Ready to search.");
+            button.setText("Find Location");
+        }
+    }
+
+    private void startLocationSearch() {
+        // 1. Check if we have permission
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED) {
+            checkLocationSettings();
+        } else {
+            handlePermissionRationale();
+        }
+    }
+
+    private void handlePermissionRationale() {
+        if (shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION)) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Location Needed")
+                    .setMessage("This app needs location access to find your 'socken' and coordinates.")
+                    .setPositiveButton("OK", (d, id) ->
+                        requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                    )
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        } else {
+            // Direct request
+            requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION);
+        }
+    }
+
+    private void checkLocationSettings() {
+        LocationSettingsRequest request = new LocationSettingsRequest.Builder()
+                .addLocationRequest(locationRequest)
+                .build();
+
+        LocationServices.getSettingsClient(this)
+                .checkLocationSettings(request)
+                .addOnSuccessListener(this, response -> {
+                    // GPS is already ON
+                    startLocationUpdates();
+                })
+                .addOnFailureListener(this, e -> {
+                    if (e instanceof ResolvableApiException) {
+                        try {
+                            // GPS is OFF, show the system dialog to turn it on
+                            ResolvableApiException resolvable = (ResolvableApiException) e;
+                            IntentSenderRequest isr = new IntentSenderRequest.Builder(resolvable.getResolution()).build();
+                            settingsLauncher.launch(isr);
+                        } catch (Exception sendEx) {
+                            ctextview.setText("Error opening location settings.");
+                        }
+                    } else {
+                        ctextview.setText("Location settings are not satisfied on this device.");
+                    }
+                });
+    }
+
+    private void startLocationUpdates() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) return;
+        isSearching = true;
+        viewModel.setCurrentBestLocation(null);
+        button.setText("STOP");
+        ctextview.setText("Acquiring GPS signal...");
+        fusedClient.requestLocationUpdates(locationRequest, locationCallback, getMainLooper());
+    }
+
+    private void setupLocationLogic() {
+        fusedClient = LocationServices.getFusedLocationProviderClient(this);
+        locationRequest = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000)
+                .setMinUpdateIntervalMillis(500)
+                .build();
+
+        locationCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(@NonNull LocationResult result) {
+                Location location = result.getLastLocation();
+                if (location == null) return;
+
+                if (viewModel.getCurrentBestLocation() == null ||
+                        location.getAccuracy() < viewModel.getCurrentBestLocation().getAccuracy()) {
+                    viewModel.setCurrentBestLocation(location);
+                    updateUI(location);
+                }
+            }
+        };
+    }
+
+    private void updateUI(Location location) {
+        int acc = (int) Math.ceil(location.getAccuracy());
+        ctextview.setText("Accuracy: " + acc + "m\nPress STOP when precision is sufficient.");
+    }
+
+    private void stopLocationUpdates(boolean shouldTransition) {
+        fusedClient.removeLocationUpdates(locationCallback);
+        isSearching = false;
+
+        // This resets the button enabled state and default text
+        updateDbUiState();
+
+        Location best = viewModel.getCurrentBestLocation();
+
+        if (shouldTransition && best != null) {
+            Intent intent = new Intent(this, LocationDetailActivity.class);
+            intent.putExtra("lat", best.getLatitude());
+            intent.putExtra("lon", best.getLongitude());
+            intent.putExtra("acc", best.getAccuracy());
+            intent.putExtra("is_new", true);
+            startActivity(intent);
+        } else if (shouldTransition) { // shouldTransition is true but best is null
+            ctextview.setText("No location acquired. Try again.");
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // Prevent battery drain if the user leaves the app during a search
+        if (isSearching) {
+            stopLocationUpdates(false);
+        }
     }
 }

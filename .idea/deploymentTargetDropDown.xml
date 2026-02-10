@@ -3,6 +3,9 @@
   <component name="deploymentTargetDropDown">
     <value>
       <entry key="SpatialResolverTest">
+        <State />
+      </entry>
+      <entry key="app">
         <State>
           <runningDeviceTargetSelectedWithDropDown>
             <Target>
@@ -15,11 +18,8 @@
               </deviceKey>
             </Target>
           </runningDeviceTargetSelectedWithDropDown>
-          <timeTargetWasSelectedWithDropDown value="2026-02-09T20:46:52.379754Z" />
+          <timeTargetWasSelectedWithDropDown value="2026-02-10T14:31:00.574272100Z" />
         </State>
-      </entry>
-      <entry key="app">
-        <State />
       </entry>
     </value>
   </component>

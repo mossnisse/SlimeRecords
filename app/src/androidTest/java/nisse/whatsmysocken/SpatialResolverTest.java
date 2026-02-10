@@ -7,6 +7,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import static org.junit.Assert.assertEquals;
 import android.content.Context;
+import android.content.SharedPreferences;
+
 import androidx.test.core.app.ApplicationProvider; // Needs androidx.test:core
 import nisse.whatsmysocken.data.AppDatabase;
 import nisse.whatsmysocken.data.SpatialResolver;
@@ -42,15 +44,26 @@ public class SpatialResolverTest {
     @Before
     public void setup() throws InterruptedException {
         Context context = ApplicationProvider.getApplicationContext();
-        AppDatabase db = AppDatabase.getInstance(context);
-        resolver = new SpatialResolver(context);
 
-        // Give the background thread time to seed the database
+        // Instead of AppDatabase.getInstance(context), which uses the real file:
+        // Room.inMemoryDatabaseBuilder(context, AppDatabase.class).build();
+        // However, since your SpatialResolver calls getInstance() internally,
+        // the easiest way to fix the "Stuck" issue is to ensure seedData
+        // is actually finished.
+
+        AppDatabase db = AppDatabase.getInstance(context);
+
+        // Wait for the seeding to finish in the background
         int timeout = 0;
-        while (db.spatialDao().getProvinceCount() == 0 && timeout < 50) {
+        while (timeout < 50) {
+            SharedPreferences prefs = context.getSharedPreferences("db_prefs", Context.MODE_PRIVATE);
+            if (prefs.getBoolean("spatial_data_seeded_v5", false)) break;
+
             Thread.sleep(200);
             timeout++;
         }
+
+        resolver = new SpatialResolver(context);
     }
 
     // The actual test

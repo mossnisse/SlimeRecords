@@ -24,8 +24,8 @@ import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
-
+import nisse.whatsmysocken.coords.Coordinates;
+import nisse.whatsmysocken.data.AppDatabase;
 import nisse.whatsmysocken.data.LocationRecord;
 import nisse.whatsmysocken.data.PhotoRecord;
 import nisse.whatsmysocken.data.SpatialResolver;
@@ -95,7 +95,42 @@ public class LocationDetailActivity extends AppCompatActivity {
         lat = getIntent().getDoubleExtra("lat", 0);
         lon = getIntent().getDoubleExtra("lon", 0);
         accuracy = getIntent().getFloatExtra("acc", 0);
-        displayFormattedCoordinates();
+
+        // Initial display with "Loading..." text
+        displayFormattedCoordinates("Loading...", "Loading...");
+
+        // Wait for DB, then trigger lookup
+        waitForDbAndResolve();
+    }
+
+    private void waitForDbAndResolve() {
+        // We remove previous observers to prevent multiple lookups firing
+        viewModel.getDatabaseReadyStatus().removeObservers(this);
+
+        viewModel.getDatabaseReadyStatus().observe(this, isReady -> {
+            // Only run if DB is ready AND we have actual coordinates (not 0,0)
+            if (Boolean.TRUE.equals(isReady) && (lat != 0 || lon != 0)) {
+                performSpatialLookup();
+            }
+        });
+    }
+
+    private void performSpatialLookup() {
+        Coordinates here = new Coordinates(lat, lon);
+        Coordinates sweref = here.convertToSweref99TMFromWGS84();
+        int n = (int)Math.round(sweref.getNorth());
+        int e = (int)Math.round(sweref.getEast());
+
+        AppDatabase.getDbExecutor().execute(() -> {
+            // Simple, clean singleton access
+            SpatialResolver resolver = SpatialResolver.getInstance(getApplicationContext());
+            String prov = resolver.getProvinceName(n, e);
+            String dist = resolver.getSockenName(n, e);
+
+            runOnUiThread(() ->
+                displayFormattedCoordinates(prov, dist)
+            );
+        });
     }
 
     private void setupExistingLocation() {
@@ -104,8 +139,10 @@ public class LocationDetailActivity extends AppCompatActivity {
         ((Button)findViewById(R.id.btn_cancel_detail)).setText("Back");
         findViewById(R.id.btn_take_photo_detail).setVisibility(View.GONE);
 
+        // This only observes the record from the DB
         viewModel.getLocationWithPhotos(id).observe(this, item -> {
             if (item == null) return;
+
             currentRecord = item.location;
             lat = currentRecord.latitude;
             lon = currentRecord.longitude;
@@ -115,7 +152,13 @@ public class LocationDetailActivity extends AppCompatActivity {
             tempPhotoPaths.clear();
             for (PhotoRecord p : item.photos) tempPhotoPaths.add(p.filePath);
             photoAdapter.notifyDataSetChanged();
-            displayFormattedCoordinates();
+
+            // First, show the text with placeholders
+            displayFormattedCoordinates("Loading...", "Loading...");
+
+            // ONLY trigger the lookup if we haven't resolved it yet
+            // or every time the coordinates change.
+            waitForDbAndResolve();
         });
     }
 
@@ -145,10 +188,9 @@ public class LocationDetailActivity extends AppCompatActivity {
                 .setNegativeButton("Cancel", null).show();
     }
 
-    private void displayFormattedCoordinates() {
+    private void displayFormattedCoordinates(String province, String district) {
         TextView tvCoords = findViewById(R.id.tv_detail_coords);
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-
         StringBuilder sb = new StringBuilder();
         sb.append("Accuracy: ").append((int) Math.ceil(accuracy)).append("m\n");
 
@@ -178,43 +220,15 @@ public class LocationDetailActivity extends AppCompatActivity {
         }
 
         // --- Spatial Lookup Logic ---
-        boolean showProv = prefs.getBoolean("show_province", true);
-        boolean showDist = prefs.getBoolean("show_district", true);
-
-        if (showProv || showDist) {
-            // Show placeholders so the user knows a lookup is happening
-            if (showProv) sb.append("Province: Loading...\n");
-            if (showDist) sb.append("District: Loading...\n");
-            tvCoords.setText(sb.toString());
-
-            int n = (int)Math.round(sweref.getNorth());
-            int e = (int)Math.round(sweref.getEast());
-
-            Executors.newSingleThreadExecutor().execute(() -> {
-                SpatialResolver resolver = new SpatialResolver(getApplicationContext());
-
-                // Only perform the specific lookups requested
-                String provinceResult = showProv ? resolver.getProvinceName(n, e) : null;
-                String districtResult = showDist ? resolver.getSockenName(n, e) : null;
-
-                runOnUiThread(() -> {
-                    // Re-build string or replace the placeholders
-                    // Note: Re-building ensures we don't duplicate strings if the GPS updates fast
-                    StringBuilder updatedSb = new StringBuilder(sb.toString());
-
-                    // We use replace logic or simply clear and rebuild for accuracy
-                    // For simplicity here, let's just update the final text
-                    String finalMsg = sb.toString()
-                            .replace("Province: Loading...", "Province: " + provinceResult)
-                            .replace("District: Loading...", "District: " + districtResult);
-
-                    tvCoords.setText(finalMsg);
-                });
-            });
-        } else {
-            // If both are off, just set the text as-is
-            tvCoords.setText(sb.toString());
+        if (prefs.getBoolean("show_province", true)) {
+            sb.append("Province: ").append(province != null ? province : "Not found").append("\n");
         }
+
+        if (prefs.getBoolean("show_district", true)) {
+            sb.append("District: ").append(district != null ? district : "Not found").append("\n");
+        }
+
+        tvCoords.setText(sb.toString());
     }
 
     private final ActivityResultLauncher<Uri> takePictureLauncher = registerForActivityResult(new ActivityResultContracts.TakePicture(), success -> {

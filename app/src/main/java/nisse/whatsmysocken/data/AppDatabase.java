@@ -27,17 +27,26 @@ public abstract class AppDatabase extends RoomDatabase {
 
     public abstract LocationDao locationDao();
     public abstract SpatialDao spatialDao();
-
     private static volatile AppDatabase instance;
     private static final String DB_NAME = "location_database";
+    private final MutableLiveData<Boolean> isReady = new MutableLiveData<>(false);
+    // enkel, idempotent seeding
+    private static final ExecutorService dbExecutor = Executors.newSingleThreadExecutor();
     private static final String PREFS_NAME = "db_prefs";
     private static final String KEY_SPATIAL_SEEDED = "spatial_data_seeded_v5";
 
-    // Reusable executor for database write operations
-    private static final ExecutorService dbExecutor = Executors.newSingleThreadExecutor();
-    private static final MutableLiveData<Boolean> isReady = new MutableLiveData<>(false);
+    public LiveData<Boolean> getIsReady(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        boolean seeded = prefs.getBoolean(KEY_SPATIAL_SEEDED, false);
 
-    public static LiveData<Boolean> getIsReady() {
+        // Explicitly set the value if it's already true on disk.
+        // Use postValue to ensure it's thread-safe.
+        if (seeded) {
+            isReady.postValue(true);
+        } else {
+            // If not seeded, trigger seeding just in case it's not running
+            seedData(context);
+        }
         return isReady;
     }
 
@@ -52,18 +61,16 @@ public abstract class AppDatabase extends RoomDatabase {
                                 @Override
                                 public void onCreate(@NonNull SupportSQLiteDatabase db) {
                                     super.onCreate(db);
-                                    // First install: Seed immediately
                                     seedData(context.getApplicationContext());
                                 }
 
                                 @Override
                                 public void onOpen(@NonNull SupportSQLiteDatabase db) {
                                     super.onOpen(db);
-                                    // Migration scenario: onCreate isn't called, so we check here
+                                    // If it's already seeded, seedData just posts 'true'.
                                     seedData(context.getApplicationContext());
                                 }
                             })
-                            .fallbackToDestructiveMigration()
                             .build();
                 }
             }
@@ -71,49 +78,30 @@ public abstract class AppDatabase extends RoomDatabase {
         return instance;
     }
 
-    /**
-     * Robust Seeding Method
-     * 1. Checks SharedPreferences (Fastest)
-     * 2. Checks DB Count (Double-check)
-     * 3. Runs in Transaction (Atomic Safety)
-     */
     private static void seedData(Context context) {
         dbExecutor.execute(() -> {
-            // 1. Fast Check: Avoid touching the DB if we know we are done
             SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
             if (prefs.getBoolean(KEY_SPATIAL_SEEDED, false)) {
-                isReady.postValue(true);
+                instance.isReady.postValue(true);
                 return;
             }
 
-            AppDatabase db = getInstance(context);
+            AppDatabase db = instance;
+
             try {
                 db.runInTransaction(() -> {
-                    // 2. Safety Check: Ensure DB is actually empty inside the transaction lock
-                    if (db.spatialDao().getProvinceCount() > 0) {
-                        Log.d("DB", "Data already exists. Marking as seeded.");
-                        prefs.edit().putBoolean(KEY_SPATIAL_SEEDED, true).apply();
-                        return;
-                    }
-
-                    Log.d("DB", "Starting Spatial Data Import...");
-                    long startTime = System.currentTimeMillis();
-
                     try {
                         importAllData(context, db);
-                        // Only set this flag if importAllData throws no exceptions
-                        prefs.edit().putBoolean(KEY_SPATIAL_SEEDED, true).apply();
-                        Log.d("DB", "Import completed in " + (System.currentTimeMillis() - startTime) + "ms");
                     } catch (Exception e) {
-                        // Throwing exception here rolls back the transaction automatically
                         throw new RuntimeException("Import failed", e);
                     }
                     prefs.edit().putBoolean(KEY_SPATIAL_SEEDED, true).apply();
-                    isReady.postValue(true); // DATA IS FINALLY READY
                 });
+
+                db.isReady.postValue(true);
+
             } catch (Exception e) {
-                Log.e("DB", "Seeding failed. Transaction rolled back.", e);
-                // Note: We do NOT set the SharedPref flag here, so it tries again next launch.
+                Log.e("DB", "Seeding failed. Will retry next launch.", e);
             }
         });
     }
@@ -201,4 +189,8 @@ public abstract class AppDatabase extends RoomDatabase {
             database.execSQL("CREATE INDEX IF NOT EXISTS `index_district_geometries_parentId` ON `district_geometries` (`parentId`)");
         }
     };
+
+    public static ExecutorService getDbExecutor(){
+         return dbExecutor;
+    }
 }

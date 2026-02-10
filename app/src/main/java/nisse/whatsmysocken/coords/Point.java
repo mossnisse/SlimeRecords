@@ -1,4 +1,4 @@
-package nisse.whatsmysocken;
+package nisse.whatsmysocken.coords;
 
 public class Point {
     private int x, y;

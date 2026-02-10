@@ -42,7 +42,7 @@ public class ExportActivity extends AppCompatActivity {
 
         btnExport.setOnClickListener(v -> {
             if (dataToExport != null && !dataToExport.isEmpty()) {
-                viewModel.startExport(getApplicationContext(), dataToExport);
+                viewModel.startExport(dataToExport);
             }
         });
     }
