@@ -30,7 +30,6 @@ public abstract class AppDatabase extends RoomDatabase {
     private static volatile AppDatabase instance;
     private static final String DB_NAME = "location_database";
     private final MutableLiveData<Boolean> isReady = new MutableLiveData<>(false);
-    // enkel, idempotent seeding
     private static final ExecutorService dbExecutor = Executors.newSingleThreadExecutor();
     private static final String PREFS_NAME = "db_prefs";
     private static final String KEY_SPATIAL_SEEDED = "spatial_data_seeded_v5";

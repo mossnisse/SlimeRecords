@@ -20,25 +20,39 @@ public class FileUtils {
     public static String generateCsv(List<LocationWithPhotos> data) {
         StringBuilder sb = new StringBuilder();
 
-        // CSV Header
-        sb.append("ID,Latitude,Longitude,Accuracy,Time,Note,Photos\n");
+        // Updated Header: Changed "Photos" to "Photo_Filenames"
+        sb.append("ID,Latitude,Longitude,Accuracy,Time,Note,Photo_Filenames\n");
 
         for (LocationWithPhotos item : data) {
-            sb.append(item.location.id).append(",");
-            sb.append(item.location.latitude).append(",");
-            sb.append(item.location.longitude).append(",");
-            sb.append(item.location.accuracy).append(",");
-
-            // Time is usually safe, but quotes don't hurt
-            sb.append("\"").append(item.location.localTime).append("\",");
-
-            // Handle the Note with standard CSV escaping
             String note = item.location.note != null ? item.location.note : "";
             String escapedNote = note.replace("\"", "\"\"");
-            sb.append("\"").append(escapedNote).append("\",");
 
-            sb.append(item.photos != null ? item.photos.size() : 0);
-            sb.append("\n");
+            // --- New Logic to Extract Filenames ---
+            String filenames = "";
+            if (item.photos != null && !item.photos.isEmpty()) {
+                StringBuilder nameBuilder = new StringBuilder();
+                for (int i = 0; i < item.photos.size(); i++) {
+                    File f = new File(item.photos.get(i).filePath);
+                    nameBuilder.append(f.getName());
+                    // Add a semicolon separator between names, but not after the last one
+                    if (i < item.photos.size() - 1) {
+                        nameBuilder.append("|");
+                    }
+                }
+                filenames = nameBuilder.toString();
+            }
+
+            // Use Locale.US to ensure decimal dots
+            String line = String.format(java.util.Locale.US, "%d,%f,%f,%f,\"%s\",\"%s\",\"%s\"\n",
+                    item.location.id,
+                    item.location.latitude,
+                    item.location.longitude,
+                    item.location.accuracy,
+                    item.location.localTime,
+                    escapedNote,
+                    filenames // Now inserting the string of names instead of the count
+            );
+            sb.append(line);
         }
         return sb.toString();
     }

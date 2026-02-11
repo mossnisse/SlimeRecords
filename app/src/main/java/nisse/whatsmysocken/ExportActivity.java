@@ -8,16 +8,18 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
 import io.reactivex.rxjava3.disposables.CompositeDisposable;
-import java.util.List;
 
 public class ExportActivity extends AppCompatActivity {
-    private List<LocationWithPhotos> dataToExport;
     private Button btnExport;
     private ProgressBar progressBar;
     private TextView tvStatus;
     private LocationViewModel viewModel;
     private final CompositeDisposable disposables = new CompositeDisposable();
+
+    // Local variable to hold the count for display logic
+    private int currentLocationCount = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,47 +29,49 @@ public class ExportActivity extends AppCompatActivity {
         initViews();
         viewModel = new ViewModelProvider(this).get(LocationViewModel.class);
 
-        // 1. Observe the data to be exported
-        viewModel.getAllDataForExport().observe(this, data -> {
-            this.dataToExport = data;
-            if (data != null && viewModel.getExportStatus().blockingFirst() == LocationViewModel.ExportState.IDLE) {
-                tvStatus.setText(getString(R.string.export_ready_format, data.size()));
+        // 1. Observe the Location Count (Updates automatically)
+        viewModel.getLocationCount().observe(this, count -> {
+            this.currentLocationCount = (count != null) ? count : 0;
+            // Only update text if NOT loading
+            if (!viewModel.isExporting()) {
+                tvStatus.setText(getString(R.string.export_ready_format, currentLocationCount));
             }
         });
 
-        // 2. Observe the Export Status (The critical part for stability)
+        // 2. Observe the Export Status
         disposables.add(viewModel.getExportStatus()
-                .observeOn(io.reactivex.rxjava3.android.schedulers.AndroidSchedulers.mainThread())
+                .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(this::updateUiForState));
 
+        // 3. Start Export
         btnExport.setOnClickListener(v -> {
-            if (dataToExport != null && !dataToExport.isEmpty()) {
-                viewModel.startExport(dataToExport);
+            if (currentLocationCount > 0) {
+                viewModel.startExport();
+            } else {
+                Toast.makeText(this, "No data to export", Toast.LENGTH_SHORT).show();
             }
         });
     }
 
     private void updateUiForState(LocationViewModel.ExportState state) {
+        boolean isLoading = (state == LocationViewModel.ExportState.LOADING);
+
+        btnExport.setEnabled(!isLoading);
+        progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
+
         switch (state) {
             case IDLE:
-                btnExport.setEnabled(true);
-                progressBar.setVisibility(View.GONE);
+                tvStatus.setText(getString(R.string.export_ready_format, currentLocationCount));
                 break;
             case LOADING:
-                btnExport.setEnabled(false);
-                progressBar.setVisibility(View.VISIBLE);
                 tvStatus.setText("Zipping files... you can leave this screen.");
                 break;
             case SUCCESS:
-                btnExport.setEnabled(true);
-                progressBar.setVisibility(View.GONE);
                 tvStatus.setText("Export Complete! Check 'Downloads'.");
                 Toast.makeText(this, "Success!", Toast.LENGTH_SHORT).show();
                 break;
             case ERROR:
-                btnExport.setEnabled(true);
-                progressBar.setVisibility(View.GONE);
-                tvStatus.setText("Export Failed.");
+                tvStatus.setText("Export Failed. Please try again.");
                 break;
         }
     }
@@ -81,6 +85,6 @@ public class ExportActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        disposables.clear(); // Prevent memory leaks
+        disposables.clear();
     }
 }

@@ -72,6 +72,21 @@ public class LocationDetailActivity extends AppCompatActivity {
         findViewById(R.id.btn_cancel_detail).setOnClickListener(v -> finish());
         findViewById(R.id.btn_take_photo_detail).setOnClickListener(v -> dispatchTakePictureIntent());
 
+        findViewById(R.id.btn_open_map).setOnClickListener(v -> openLantmaterietMap());
+
+        Button btnMap = findViewById(R.id.btn_open_map);
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+
+        // Check if the setting is enabled (default to true)
+        boolean showMapLink = prefs.getBoolean("show_map_link", true);
+
+        if (showMapLink) {
+            btnMap.setVisibility(View.VISIBLE);
+            btnMap.setOnClickListener(v -> openLantmaterietMap());
+        } else {
+            btnMap.setVisibility(View.GONE);
+        }
+
         RecyclerView rvGallery = findViewById(R.id.rv_photo_gallery);
         rvGallery.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
 
@@ -124,8 +139,8 @@ public class LocationDetailActivity extends AppCompatActivity {
         AppDatabase.getDbExecutor().execute(() -> {
             // Simple, clean singleton access
             SpatialResolver resolver = SpatialResolver.getInstance(getApplicationContext());
-            String prov = resolver.getProvinceName(n, e);
-            String dist = resolver.getSockenName(n, e);
+            String prov = resolver.getRegionName(n, e, false);
+            String dist = resolver.getRegionName(n, e, true);
 
             runOnUiThread(() ->
                 displayFormattedCoordinates(prov, dist)
@@ -254,6 +269,39 @@ public class LocationDetailActivity extends AppCompatActivity {
         File image = File.createTempFile("JPEG_" + timeStamp + "_", ".jpg", getExternalFilesDir(android.os.Environment.DIRECTORY_PICTURES));
         currentPhotoPath = image.getAbsolutePath();
         return image;
+    }
+
+    private void openLantmaterietMap() {
+        // Get the text from the EditText
+        String noteText = noteInput.getText().toString().trim();
+
+        // Fallback if the note is empty so the marker isn't "Untitled"
+        if (noteText.isEmpty()) {
+            noteText = "Saved Location";
+        } else if (noteText.length() > 10) {
+            noteText = noteText.substring(0, 10) + "...";
+        }
+
+        // URL Encode the text (replaces spaces with %20, etc.)
+        String encodedNote;
+        try {
+            encodedNote = java.net.URLEncoder.encode(noteText, "UTF-8");
+        } catch (java.io.UnsupportedEncodingException e) {
+            encodedNote = "Location"; // Fallback
+        }
+
+        Coordinates here = new Coordinates(lat, lon);
+        Coordinates sweref = here.convertToSweref99TMFromWGS84();
+
+        // Add the %s for the name parameter
+        String url = String.format(java.util.Locale.US,
+                "https://minkarta.lantmateriet.se/plats/3006/v2.0/?e=%d&n=%d&z=11&mapprofile=karta&name=%s",
+                (int) sweref.getEast(),
+                (int) sweref.getNorth(),
+                encodedNote);
+
+        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+        startActivity(intent);
     }
 
     @Override

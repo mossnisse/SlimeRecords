@@ -9,24 +9,20 @@ import androidx.room.Query;
 import androidx.room.Transaction;
 import androidx.room.Update;
 import java.util.List;
-
 import nisse.whatsmysocken.LocationWithPhotos;
 
 @Dao
 public abstract class LocationDao {
 
     @Insert
-    public abstract long insertLocation(LocationRecord location); // Returns the new ID
+    public abstract long insertLocation(LocationRecord location);
 
     @Insert
     public abstract void insertPhoto(PhotoRecord photo);
 
     @Transaction
     public void insertLocationWithPhotos(LocationRecord location, List<String> photoPaths) {
-        // Insert the location and get the generated ID
         long locationId = insertLocation(location);
-
-        // Map the paths to PhotoRecords and insert them
         for (String path : photoPaths) {
             insertPhoto(new PhotoRecord(locationId, path));
         }
@@ -44,11 +40,19 @@ public abstract class LocationDao {
 
     @Query("DELETE FROM photo_table WHERE filePath = :path")
     public abstract void deletePhotoByPath(String path);
-    @Transaction @Query("SELECT * FROM location_table WHERE id = :id LIMIT 1")
+
+    @Transaction
+    @Query("SELECT * FROM location_table WHERE id = :id LIMIT 1")
     public abstract LiveData<LocationWithPhotos> getLocationById(long id);
 
-    // used for exporting the data
+    // --- EXPORT METHODS ---
+
+    // Synchronous List (Background Thread use only)
     @Transaction
     @Query("SELECT * FROM location_table ORDER BY timestamp DESC")
-    public abstract LiveData<List<LocationWithPhotos>> getAllLocationsForExport();
+    public abstract List<LocationWithPhotos> getAllLocationsForExport();
+
+    // Live Count (UI use)
+    @Query("SELECT COUNT(*) FROM location_table")
+    public abstract LiveData<Integer> getLocationCount();
 }

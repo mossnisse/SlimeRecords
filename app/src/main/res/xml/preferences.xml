@@ -44,6 +44,12 @@
             app:summary="Look up socken with the borders from 1935"
             app:defaultValue="true" />
 
+        <CheckBoxPreference
+            app:key="show_map_link"
+            app:title="map button"
+            app:summary="Button that links to lantmäteriets Min Karta with an marker at the locality"
+            app:defaultValue="true" />
+
     </PreferenceCategory>
 
 </PreferenceScreen>

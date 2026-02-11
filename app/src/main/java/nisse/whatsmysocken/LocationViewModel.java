@@ -27,6 +27,7 @@ import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
 import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.core.Single;
+import io.reactivex.rxjava3.disposables.CompositeDisposable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.reactivex.rxjava3.subjects.BehaviorSubject;
 import nisse.whatsmysocken.data.AppDatabase;
@@ -36,16 +37,15 @@ import nisse.whatsmysocken.data.PhotoRecord;
 
 public class LocationViewModel extends AndroidViewModel {
     private final LocationDao locationDao;
-    //private final AppDatabase db;
     private final LiveData<Boolean> isDbReady;
-
     private android.location.Location currentBestLocation;
     private final MutableLiveData<Boolean> saveOperationFinished = new MutableLiveData<>(false);
-
     public final Flowable<PagingData<LocationWithPhotos>> historyFlow;
-    private final BehaviorSubject<ExportState> exportStatus = BehaviorSubject.createDefault(ExportState.IDLE);
 
+    // Export State Management
+    private final BehaviorSubject<ExportState> exportStatus = BehaviorSubject.createDefault(ExportState.IDLE);
     public enum ExportState { IDLE, LOADING, SUCCESS, ERROR }
+    private final CompositeDisposable disposables = new CompositeDisposable();
 
     public LocationViewModel(@NonNull Application application) {
         super(application);
@@ -60,7 +60,7 @@ public class LocationViewModel extends AndroidViewModel {
         historyFlow = PagingRx.getFlowable(pager);
     }
 
-    // --- Location Records & History ---
+    // --- Standard Database Ops ---
     public void saveLocationWithPhotos(LocationRecord record, List<String> photoPaths) {
         AppDatabase.getDbExecutor().execute(() -> {
             locationDao.insertLocationWithPhotos(record, photoPaths);
@@ -78,9 +78,7 @@ public class LocationViewModel extends AndroidViewModel {
     }
 
     public void deletePhotoByPath(String path) {
-        AppDatabase.getDbExecutor().execute(() ->
-            locationDao.deletePhotoByPath(path)
-        );
+        AppDatabase.getDbExecutor().execute(() -> locationDao.deletePhotoByPath(path));
     }
 
     public void updateLocation(LocationRecord record) {
@@ -91,17 +89,37 @@ public class LocationViewModel extends AndroidViewModel {
     }
 
     // --- Export Logic ---
-    public void startExport(List<LocationWithPhotos> data) {
-        if (exportStatus.getValue() == ExportState.LOADING) return;
+
+    public boolean isExporting() {
+        return exportStatus.getValue() == ExportState.LOADING;
+    }
+
+    // New: Helper for the Activity to show "Found X files"
+    public LiveData<Integer> getLocationCount() {
+        return locationDao.getLocationCount();
+    }
+
+    public void startExport() {
+        if (isExporting()) return;
         exportStatus.onNext(ExportState.LOADING);
 
-        Single.fromCallable(() -> performZipLogic(data))
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(
-                        success -> exportStatus.onNext(success ? ExportState.SUCCESS : ExportState.ERROR),
-                        throwable -> exportStatus.onNext(ExportState.ERROR)
-                );
+        disposables.add(
+                Single.fromCallable(() -> {
+                            // 1. Fetch data synchronously on background thread
+                            List<LocationWithPhotos> data = locationDao.getAllLocationsForExport();
+                            // 2. Perform Zip
+                            return performZipLogic(data);
+                        })
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe(
+                                success -> exportStatus.onNext(success ? ExportState.SUCCESS : ExportState.ERROR),
+                                throwable -> {
+                                    Log.e("Export", "Error", throwable);
+                                    exportStatus.onNext(ExportState.ERROR);
+                                }
+                        )
+        );
     }
 
     private boolean performZipLogic(List<LocationWithPhotos> data) {
@@ -120,24 +138,19 @@ public class LocationViewModel extends AndroidViewModel {
         try (OutputStream os = context.getContentResolver().openOutputStream(uri);
              ZipOutputStream zos = new ZipOutputStream(os)) {
 
-            ZipEntry csvEntry = new ZipEntry("data.csv");
-            zos.putNextEntry(csvEntry);
+            // Write CSV
+            zos.putNextEntry(new ZipEntry("data.csv"));
             zos.write(FileUtils.generateCsv(data).getBytes(StandardCharsets.UTF_8));
             zos.closeEntry();
 
-            boolean folderCreated = false;
+            // Write Photos
             for (LocationWithPhotos item : data) {
                 if (item.photos == null) continue;
                 for (PhotoRecord photo : item.photos) {
                     File file = new File(photo.filePath);
                     if (file.exists()) {
-                        if (!folderCreated) {
-                            zos.putNextEntry(new ZipEntry("photos/"));
-                            zos.closeEntry();
-                            folderCreated = true;
-                        }
-                        ZipEntry entry = new ZipEntry("photos/" + file.getName());
-                        zos.putNextEntry(entry);
+                        // "photos/" prefix automatically handles the folder
+                        zos.putNextEntry(new ZipEntry("photos/" + file.getName()));
                         copyFile(file, zos);
                         zos.closeEntry();
                     }
@@ -161,6 +174,7 @@ public class LocationViewModel extends AndroidViewModel {
     @Override
     protected void onCleared() {
         super.onCleared();
+        disposables.clear();
     }
 
     // Getters
@@ -170,5 +184,4 @@ public class LocationViewModel extends AndroidViewModel {
     public void setCurrentBestLocation(android.location.Location loc) { this.currentBestLocation = loc; }
     public Observable<ExportState> getExportStatus() { return exportStatus; }
     public LiveData<Boolean> getDatabaseReadyStatus() { return isDbReady; }
-    public LiveData<List<LocationWithPhotos>> getAllDataForExport() { return locationDao.getAllLocationsForExport(); }
 }

@@ -65,35 +65,23 @@ public class SpatialResolver implements AutoCloseable {
         }
     }
 
-    public String getProvinceName(int n, int e) {
-        if (provinceChannel == null) return "Data Error";
+    public String getRegionName(int n, int e, boolean isDistrict) {
+        FileChannel channel = isDistrict ? districtChannel : provinceChannel;
+        long offset = isDistrict ? districtBaseOffset : provinceBaseOffset;
 
-        List<ProvinceGeometryEntity> candidates = spatialDao.findProvinceCandidates(n, e);
-        if (candidates.isEmpty()) return "Outside Province";
+        if (channel == null) return "Data Error";
 
-        try {
-            int id = resolveId(n, e, candidates, provinceChannel, provinceBaseOffset);
-            if (id == -1) return "Outside Provinces";
+        List<? extends BaseGeometry> candidates = isDistrict ?
+                spatialDao.findDistrictCandidates(n, e) : spatialDao.findProvinceCandidates(n, e);
 
-            ProvinceEntity p = spatialDao.getProvinceById(id);
-            return p != null ? p.name : "Unknown Province";
-        } catch (IOException ex) {
-            return "Error reading data";
-        }
-    }
-
-    public String getSockenName(int n, int e) {
-        if (districtChannel == null) return "Data Error";
-
-        List<DistrictGeometryEntity> candidates = spatialDao.findDistrictCandidates(n, e);
-        if (candidates.isEmpty()) return "Outside Districts";
+        if (candidates.isEmpty()) return "Outside Area";
 
         try {
-            int id = resolveId(n, e, candidates, districtChannel, districtBaseOffset);
-            if (id == -1) return "Outside Districts";
+            int id = resolveId(n, e, candidates, channel, offset);
+            if (id == -1) return "Not Found";
 
-            DistrictEntity d = spatialDao.getDistrictById(id);
-            return d != null ? d.name : "Unknown District";
+            return isDistrict ?
+                    spatialDao.getDistrictById(id).name : spatialDao.getProvinceById(id).name;
         } catch (IOException ex) {
             return "Error reading data";
         }
