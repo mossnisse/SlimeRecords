@@ -9,7 +9,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import java.util.Arrays;
 import java.util.Collection;
-import nisse.whatsmysocken.data.AppDatabase;
+
 import nisse.whatsmysocken.data.SpatialResolver;
 
 @RunWith(Parameterized.class)

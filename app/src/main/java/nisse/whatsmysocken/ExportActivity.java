@@ -29,7 +29,7 @@ public class ExportActivity extends AppCompatActivity {
         initViews();
         viewModel = new ViewModelProvider(this).get(LocationViewModel.class);
 
-        // 1. Observe the Location Count (Updates automatically)
+        // Observe the Location Count (Updates automatically)
         viewModel.getLocationCount().observe(this, count -> {
             this.currentLocationCount = (count != null) ? count : 0;
             // Only update text if NOT loading
@@ -38,12 +38,12 @@ public class ExportActivity extends AppCompatActivity {
             }
         });
 
-        // 2. Observe the Export Status
+        // Observe the Export Status
         disposables.add(viewModel.getExportStatus()
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(this::updateUiForState));
 
-        // 3. Start Export
+        // Start Export
         btnExport.setOnClickListener(v -> {
             if (currentLocationCount > 0) {
                 viewModel.startExport();

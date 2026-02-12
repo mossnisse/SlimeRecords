@@ -30,17 +30,20 @@ import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.disposables.CompositeDisposable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.reactivex.rxjava3.subjects.BehaviorSubject;
-import nisse.whatsmysocken.data.AppDatabase;
+import nisse.whatsmysocken.coords.Coordinates;
 import nisse.whatsmysocken.data.LocationDao;
 import nisse.whatsmysocken.data.LocationRecord;
 import nisse.whatsmysocken.data.PhotoRecord;
+import nisse.whatsmysocken.data.SpatialResolver;
+import nisse.whatsmysocken.data.UserDatabase;
 
 public class LocationViewModel extends AndroidViewModel {
     private final LocationDao locationDao;
     private android.location.Location currentBestLocation;
     private final MutableLiveData<Boolean> saveOperationFinished = new MutableLiveData<>(false);
     public final Flowable<PagingData<LocationWithPhotos>> historyFlow;
-
+    private final MutableLiveData<String> provinceResult = new MutableLiveData<>();
+    private final MutableLiveData<String> districtResult = new MutableLiveData<>();
     // Export State Management
     private final BehaviorSubject<ExportState> exportStatus = BehaviorSubject.createDefault(ExportState.IDLE);
     public enum ExportState { IDLE, LOADING, SUCCESS, ERROR }
@@ -48,8 +51,7 @@ public class LocationViewModel extends AndroidViewModel {
 
     public LocationViewModel(@NonNull Application application) {
         super(application);
-        AppDatabase userDb = AppDatabase.getUserDatabase(application);
-        this.locationDao = AppDatabase.getUserDatabase(application).locationDao();
+        locationDao = UserDatabase.getInstance(application).locationDao();
 
         Pager<Integer, LocationWithPhotos> pager = new Pager<>(
                 new PagingConfig(20, 5, false),
@@ -60,31 +62,61 @@ public class LocationViewModel extends AndroidViewModel {
 
     // --- Standard Database Ops ---
     public void saveLocationWithPhotos(LocationRecord record, List<String> photoPaths) {
-        AppDatabase.getDbExecutor().execute(() -> {
+        UserDatabase.getDbExecutor().execute(() -> {
             locationDao.insertLocationWithPhotos(record, photoPaths);
             saveOperationFinished.postValue(true);
         });
     }
 
     public void deleteLocationWithPhotos(LocationWithPhotos item) {
-        AppDatabase.getDbExecutor().execute(() -> {
+        UserDatabase.getDbExecutor().execute(() -> {
             if (item.photos != null) {
-                for (PhotoRecord p : item.photos) FileUtils.deleteFileAtPath(p.filePath);
+                for (PhotoRecord p : item.photos) {
+                    FileUtils.deleteFileAtPath(p.filePath);
+                }
             }
-            locationDao.delete(item.location);
+            locationDao.deleteLocationAndPhotos(item.location, item.photos);
         });
     }
 
     public void deletePhotoByPath(String path) {
-        AppDatabase.getDbExecutor().execute(() -> locationDao.deletePhotoByPath(path));
+        UserDatabase.getDbExecutor().execute(() -> locationDao.deletePhotoByPath(path));
     }
 
     public void updateLocation(LocationRecord record) {
-        AppDatabase.getDbExecutor().execute(() -> {
+        UserDatabase.getDbExecutor().execute(() -> {
             locationDao.updateLocation(record);
             saveOperationFinished.postValue(true);
         });
     }
+
+    public LiveData<String> getProvinceResult() { return provinceResult; }
+    public LiveData<String> getDistrictResult() { return districtResult; }
+
+    public void fetchProvinceName(double lat, double lon) {
+        UserDatabase.getDbExecutor().execute(() -> {
+            int[] coords = convertToSweref(lat, lon);
+            String name = SpatialResolver.getInstance(getApplication())
+                    .getRegionName(coords[0], coords[1], false);
+            provinceResult.postValue(name);
+        });
+    }
+
+    public void fetchDistrictName(double lat, double lon) {
+        UserDatabase.getDbExecutor().execute(() -> {
+            int[] coords = convertToSweref(lat, lon);
+            String name = SpatialResolver.getInstance(getApplication())
+                    .getRegionName(coords[0], coords[1], true);
+            districtResult.postValue(name);
+        });
+    }
+
+    // Helper to avoid repeating conversion math
+    private int[] convertToSweref(double lat, double lon) {
+        Coordinates sweref = new Coordinates(lat, lon).convertToSweref99TMFromWGS84();
+        return new int[]{(int)Math.round(sweref.getNorth()), (int)Math.round(sweref.getEast())};
+    }
+
 
     // --- Export Logic ---
 

@@ -25,10 +25,8 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import nisse.whatsmysocken.coords.Coordinates;
-import nisse.whatsmysocken.data.AppDatabase;
 import nisse.whatsmysocken.data.LocationRecord;
 import nisse.whatsmysocken.data.PhotoRecord;
-import nisse.whatsmysocken.data.SpatialResolver;
 
 public class LocationDetailActivity extends AppCompatActivity {
     private double lat, lon;
@@ -40,6 +38,8 @@ public class LocationDetailActivity extends AppCompatActivity {
     private PhotoAdapter photoAdapter;
     private LocationRecord currentRecord;
     private LocationViewModel viewModel;
+    private String currentProvince = "Loading...";
+    private String currentDistrict = "Loading...";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +48,7 @@ public class LocationDetailActivity extends AppCompatActivity {
 
         viewModel = new ViewModelProvider(this).get(LocationViewModel.class);
         initUI();
+        setupObservers(); // Logic moved here for clarity
 
         isNew = getIntent().getBooleanExtra("is_new", false);
         if (isNew) {
@@ -55,8 +56,10 @@ public class LocationDetailActivity extends AppCompatActivity {
         } else {
             setupExistingLocation();
         }
+    }
 
-        // Single observer for both Save and Update completion
+    private void setupObservers() {
+        // Observe Save/Update status
         viewModel.getSaveOperationFinished().observe(this, finished -> {
             if (Boolean.TRUE.equals(finished)) {
                 Toast.makeText(this, isNew ? "Saved!" : "Updated!", Toast.LENGTH_SHORT).show();
@@ -64,8 +67,18 @@ public class LocationDetailActivity extends AppCompatActivity {
                 finish();
             }
         });
-    }
 
+        // Observe Spatial Results independently
+        viewModel.getProvinceResult().observe(this, name -> {
+            currentProvince = name;
+            refreshCoordinateDisplay();
+        });
+
+        viewModel.getDistrictResult().observe(this, name -> {
+            currentDistrict = name;
+            refreshCoordinateDisplay();
+        });
+    }
     private void initUI() {
         noteInput = findViewById(R.id.detail_note_input);
         findViewById(R.id.btn_save_detail).setOnClickListener(v -> onCommitClicked());
@@ -111,29 +124,8 @@ public class LocationDetailActivity extends AppCompatActivity {
         lon = getIntent().getDoubleExtra("lon", 0);
         accuracy = getIntent().getFloatExtra("acc", 0);
 
-        // Initial display with "Loading..." text
-        displayFormattedCoordinates("Loading...", "Loading...");
-
-        // Wait for DB, then trigger lookup
-        performSpatialLookup();
-    }
-
-    private void performSpatialLookup() {
-        Coordinates here = new Coordinates(lat, lon);
-        Coordinates sweref = here.convertToSweref99TMFromWGS84();
-        int n = (int)Math.round(sweref.getNorth());
-        int e = (int)Math.round(sweref.getEast());
-
-        AppDatabase.getDbExecutor().execute(() -> {
-            // Simple, clean singleton access
-            SpatialResolver resolver = SpatialResolver.getInstance(getApplicationContext());
-            String prov = resolver.getRegionName(n, e, false);
-            String dist = resolver.getRegionName(n, e, true);
-
-            runOnUiThread(() ->
-                displayFormattedCoordinates(prov, dist)
-            );
-        });
+        triggerSpatialLookups();
+        refreshCoordinateDisplay();
     }
 
     private void setupExistingLocation() {
@@ -142,7 +134,6 @@ public class LocationDetailActivity extends AppCompatActivity {
         ((Button)findViewById(R.id.btn_cancel_detail)).setText("Back");
         findViewById(R.id.btn_take_photo_detail).setVisibility(View.GONE);
 
-        // This only observes the record from the DB
         viewModel.getLocationWithPhotos(id).observe(this, item -> {
             if (item == null) return;
 
@@ -156,13 +147,25 @@ public class LocationDetailActivity extends AppCompatActivity {
             for (PhotoRecord p : item.photos) tempPhotoPaths.add(p.filePath);
             photoAdapter.notifyDataSetChanged();
 
-            // First, show the text with placeholders
-            displayFormattedCoordinates("Loading...", "Loading...");
-
-            // ONLY trigger the lookup if we haven't resolved it yet
-            // or every time the coordinates change.
-            performSpatialLookup();
+            triggerSpatialLookups();
+            refreshCoordinateDisplay();
         });
+    }
+
+    private void triggerSpatialLookups() {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+
+        if (prefs.getBoolean("show_province", true)) {
+            viewModel.fetchProvinceName(lat, lon);
+        } else {
+            currentProvince = null; // Setting to null hides it in display logic
+        }
+
+        if (prefs.getBoolean("show_district", true)) {
+            viewModel.fetchDistrictName(lat, lon);
+        } else {
+            currentDistrict = null;
+        }
     }
 
     private void onCommitClicked() {
@@ -175,6 +178,10 @@ public class LocationDetailActivity extends AppCompatActivity {
             currentRecord.note = note;
             viewModel.updateLocation(currentRecord);
         }
+    }
+
+    private void refreshCoordinateDisplay() {
+        displayFormattedCoordinates(currentProvince, currentDistrict);
     }
 
     private void confirmPhotoDeletion(int position) {

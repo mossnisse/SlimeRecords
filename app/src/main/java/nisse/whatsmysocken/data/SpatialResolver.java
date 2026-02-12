@@ -13,26 +13,26 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Handles spatial lookups by combining Room database candidate searches
- * with binary ray-casting checks against coordinate files in assets.
+ * Handles spatial lookups using Room for candidates and binary ray-casting for precision.
+ * Updated to use lazy-loading for file channels to respect user settings.
  */
 public class SpatialResolver implements AutoCloseable {
     private static volatile SpatialResolver instance;
     private final SpatialDao spatialDao;
     private final Context context;
 
+    // Separate objects for lazy loading
     private FileChannel provinceChannel;
     private FileChannel districtChannel;
-    private FileInputStream provinceStream;
-    private FileInputStream districtStream;
     private long provinceBaseOffset;
     private long districtBaseOffset;
+    private FileInputStream provinceStream;
+    private FileInputStream districtStream;
 
     private SpatialResolver(Context context) {
         this.context = context.getApplicationContext();
-        // POINT TO THE SPATIAL DB INSTANCE
-        spatialDao = AppDatabase.getSpatialDatabase(this.context).spatialDao();
-        initChannels();
+        // Pointing to the new dedicated SpatialDatabase
+        spatialDao = SpatialDatabase.getInstance(this.context).spatialDao();
     }
 
     public static SpatialResolver getInstance(Context context) {
@@ -46,36 +46,41 @@ public class SpatialResolver implements AutoCloseable {
         return instance;
     }
 
-    private void initChannels() {
-        try {
-            // Filenames must match your QGIS Python script exactly
-            AssetFileDescriptor pAfd = context.getAssets().openFd("province_coords.bin");
-            provinceStream = pAfd.createInputStream();
-            provinceChannel = provinceStream.getChannel();
-            provinceBaseOffset = pAfd.getStartOffset();
-
-            AssetFileDescriptor dAfd = context.getAssets().openFd("district_coords.bin");
-            districtStream = dAfd.createInputStream();
-            districtChannel = districtStream.getChannel();
-            districtBaseOffset = dAfd.getStartOffset();
-        } catch (IOException e) {
-            Log.e("SpatialResolver", "Failed to initialize spatial channels from assets", e);
+    /**
+     * Lazily initialize the specific file channel only when needed.
+     */
+    private synchronized FileChannel getChannel(boolean isDistrict) throws IOException {
+        if (isDistrict) {
+            // Check if null OR closed
+            if (districtChannel == null || !districtChannel.isOpen()) {
+                AssetFileDescriptor afd = context.getAssets().openFd("district_coords.bin");
+                districtStream = afd.createInputStream();
+                districtChannel = districtStream.getChannel();
+                districtBaseOffset = afd.getStartOffset();
+            }
+            return districtChannel;
+        } else {
+            if (provinceChannel == null || !provinceChannel.isOpen()) {
+                AssetFileDescriptor afd = context.getAssets().openFd("province_coords.bin");
+                provinceStream = afd.createInputStream();
+                provinceChannel = provinceStream.getChannel();
+                provinceBaseOffset = afd.getStartOffset();
+            }
+            return provinceChannel;
         }
     }
 
     public String getRegionName(int n, int e, boolean isDistrict) {
-        FileChannel channel = isDistrict ? districtChannel : provinceChannel;
-        long baseOffset = isDistrict ? districtBaseOffset : provinceBaseOffset;
-
-        if (channel == null) return "Data Error";
-
-        // Query Room for bounding-box candidates
-        List<? extends BaseGeometry> candidates = isDistrict ?
-                spatialDao.findDistrictCandidates(n, e) : spatialDao.findProvinceCandidates(n, e);
-
-        if (candidates.isEmpty()) return isDistrict ? "Outside Districts" : "Not Found";
-
         try {
+            FileChannel channel = getChannel(isDistrict);
+            long baseOffset = isDistrict ? districtBaseOffset : provinceBaseOffset;
+
+            // Query Room for bounding-box candidates
+            List<? extends BaseGeometry> candidates = isDistrict ?
+                    spatialDao.findDistrictCandidates(n, e) : spatialDao.findProvinceCandidates(n, e);
+
+            if (candidates.isEmpty()) return isDistrict ? "Outside Districts" : "Not Found";
+
             int id = resolveId(n, e, candidates, channel, baseOffset);
             if (id == -1) return isDistrict ? "Outside Districts" : "Not Found";
 
@@ -87,7 +92,7 @@ public class SpatialResolver implements AutoCloseable {
                 return (p != null) ? p.name : "Unknown Province";
             }
         } catch (IOException ex) {
-            Log.e("SpatialResolver", "Binary read error", ex);
+            Log.e("SpatialResolver", "Binary read error for " + (isDistrict ? "districts" : "provinces"), ex);
             return "Read Error";
         }
     }
@@ -100,7 +105,6 @@ public class SpatialResolver implements AutoCloseable {
             intersectionCounts.put(geom.parentId, intersectionCounts.getOrDefault(geom.parentId, 0) + count);
         }
 
-        // Even-Odd Rule
         for (Map.Entry<Integer, Integer> entry : intersectionCounts.entrySet()) {
             if (entry.getValue() % 2 != 0) return entry.getKey();
         }
@@ -111,38 +115,50 @@ public class SpatialResolver implements AutoCloseable {
         int intersections = 0;
         long startPos = baseOffset + geom.byteOffset;
 
-        // Each vertex is two 32-bit ints (8 bytes)
-        ByteBuffer buffer = ByteBuffer.allocate(geom.vertexCount * 8);
+        ByteBuffer buffer = ByteBuffer.allocateDirect(geom.vertexCount * 8);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
         fc.read(buffer, startPos);
         buffer.flip();
 
-        int[] vN = new int[geom.vertexCount];
-        int[] vE = new int[geom.vertexCount];
+        // Get last vertex (j)
+        int jIdx = (geom.vertexCount - 1) * 8;
+        int vNj = buffer.getInt(jIdx);
+        int vEj = buffer.getInt(jIdx + 4);
 
         for (int i = 0; i < geom.vertexCount; i++) {
-            vN[i] = buffer.getInt(); // Y coordinate from script
-            vE[i] = buffer.getInt(); // X coordinate from script
-        }
+            // Get current vertex (i)
+            int vNi = buffer.getInt();
+            int vEi = buffer.getInt();
 
-        // Ray Casting algorithm
-        for (int i = 0, j = geom.vertexCount - 1; i < geom.vertexCount; j = i++) {
-            if (((vN[i] > n) != (vN[j] > n)) &&
-                    (e < (long)(vE[j] - vE[i]) * (n - vN[i]) / (vN[j] - vN[i]) + vE[i])) {
+            // Ray Casting logic using the direct values
+            if (((vNi > n) != (vNj > n)) &&
+                    (e < (long)(vEj - vEi) * (n - vNi) / (vNj - vNi) + vEi)) {
                 intersections++;
             }
+
+            // Current i becomes the next j
+            vNj = vNi;
+            vEj = vEi;
         }
         return intersections;
     }
 
     @Override
     public void close() {
-        try {
-            if (provinceStream != null) provinceStream.close();
-            if (districtStream != null) districtStream.close();
-            instance = null;
-        } catch (IOException e) {
-            Log.e("SpatialResolver", "Error closing channels", e);
+        synchronized (SpatialResolver.class) {
+            try {
+                if (provinceChannel != null) provinceChannel.close();
+                if (districtChannel != null) districtChannel.close();
+                if (provinceStream != null) provinceStream.close();
+                if (districtStream != null) districtStream.close();
+            } catch (IOException e) {
+                Log.e("SpatialResolver", "Error closing", e);
+            } finally {
+                // Nulling these out forces getChannel to re-init next time
+                provinceChannel = null;
+                districtChannel = null;
+                instance = null;
+            }
         }
     }
 }

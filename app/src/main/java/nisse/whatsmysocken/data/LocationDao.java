@@ -45,6 +45,10 @@ public abstract class LocationDao {
     @Query("SELECT * FROM location_table WHERE id = :id LIMIT 1")
     public abstract LiveData<LocationWithPhotos> getLocationById(long id);
 
+    @Transaction
+    @Delete
+    public abstract void deleteLocationAndPhotos(LocationRecord location, List<PhotoRecord> photos);
+
     // --- EXPORT METHODS ---
 
     // Synchronous List (Background Thread use only)

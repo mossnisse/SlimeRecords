@@ -23,7 +23,8 @@ public class LocationAdapter extends PagingDataAdapter<LocationWithPhotos, Locat
                 @Override
                 public boolean areContentsTheSame(@NonNull LocationWithPhotos oldItem, @NonNull LocationWithPhotos newItem) {
                     return oldItem.location.note.equals(newItem.location.note) &&
-                            oldItem.location.timestamp == newItem.location.timestamp;
+                            oldItem.location.timestamp == newItem.location.timestamp &&
+                            oldItem.photos.size() == newItem.photos.size();
                 }
             };
 
@@ -67,10 +68,8 @@ public class LocationAdapter extends PagingDataAdapter<LocationWithPhotos, Locat
                         .centerCrop()
                         .into(holder.ivThumbnail);
             } else {
-                // 1. GONE removes the view and its space from the layout
                 holder.ivThumbnail.setVisibility(View.GONE);
 
-                // 2. Clear Glide to ensure old images aren't recycled
                 // from previous rows in the list
                 Glide.with(holder.itemView.getContext()).clear(holder.ivThumbnail);
             }
@@ -94,7 +93,7 @@ public class LocationAdapter extends PagingDataAdapter<LocationWithPhotos, Locat
 
     // --- ViewHolder ---
     static class LocationViewHolder extends RecyclerView.ViewHolder {
-        // 4. Define the views from location_item.xml
+        // Define the views from location_item.xml
         TextView tvNote;
         TextView tvCoords;
         TextView tvDate;
@@ -102,7 +101,7 @@ public class LocationAdapter extends PagingDataAdapter<LocationWithPhotos, Locat
 
         public LocationViewHolder(@NonNull View itemView) {
             super(itemView);
-            // 5. Connect them to the IDs in the XML
+            // Connect them to the IDs in the XML
             tvNote = itemView.findViewById(R.id.tv_note);
             tvCoords = itemView.findViewById(R.id.tv_coords);
             tvDate = itemView.findViewById(R.id.tv_date);
