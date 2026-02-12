@@ -1,39 +1,37 @@
 package nisse.whatsmysocken;
+
+import static org.junit.Assert.assertEquals;
+import android.content.Context;
+import androidx.test.core.app.ApplicationProvider;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import java.util.Arrays;
 import java.util.Collection;
-import static org.junit.Assert.assertEquals;
-import android.content.Context;
-import android.content.SharedPreferences;
-
-import androidx.test.core.app.ApplicationProvider; // Needs androidx.test:core
 import nisse.whatsmysocken.data.AppDatabase;
 import nisse.whatsmysocken.data.SpatialResolver;
 
 @RunWith(Parameterized.class)
 public class SpatialResolverTest {
+
     private final int n, e;
     private final String expectedProv, expectedDist;
     private SpatialResolver resolver;
 
-    // Define the data set
     @Parameterized.Parameters(name = "{index}: Testing {2}, {3}")
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][] {
-                { 7086319, 761487, "Västerbotten", "Umeå" }, // North
-                { 6590809, 687592, "Uppland", "Östra Ryd" },        // City
-                { 6564300, 485300, "Närke", "Kvistbro" },            // This will still run!
-                { 6555192, 485792, "Närke", "Edsberg" },   // enclave in Kvistbro socken
-                { 6520280, 375710, "Dalsland", "Outside Districts" }, // Vänern outside any socken
-                { 6316591, 696810, "Gotland", "Vamlingbo"}, // messy geometry
-                { 6657987, 633084, "Uppland", "Skuttunge"} // hole in an enclave
+                { 7086319, 761487, "Västerbotten", "Umeå" },
+                { 6590809, 687592, "Uppland", "Östra Ryd" },
+                { 6564300, 485300, "Närke", "Kvistbro" },
+                { 6555192, 485792, "Närke", "Edsberg" },
+                { 6520280, 375710, "Dalsland", "Outside Districts" },
+                { 6316591, 696810, "Gotland", "Vamlingbo"},
+                { 6657987, 633084, "Uppland", "Skuttunge"}
         });
     }
 
-    // Constructor receives the data
     public SpatialResolverTest(int n, int e, String prov, String dist) {
         this.n = n;
         this.e = e;
@@ -42,37 +40,23 @@ public class SpatialResolverTest {
     }
 
     @Before
-    public void setup() throws InterruptedException {
+    public void setup() {
         Context context = ApplicationProvider.getApplicationContext();
 
-        // Instead of AppDatabase.getInstance(context), which uses the real file:
-        // Room.inMemoryDatabaseBuilder(context, AppDatabase.class).build();
-        // However, since your SpatialResolver calls getInstance() internally,
-        // the easiest way to fix the "Stuck" issue is to ensure seedData
-        // is actually finished.
+        // 1. Force Room to copy the asset database by making a dummy call
+        // This replaces your old 'while' loop and SharedPreferences check.
+        AppDatabase.getSpatialDatabase(context).getOpenHelper().getReadableDatabase();
 
-        AppDatabase db = AppDatabase.getInstance(context);
-
-        // Wait for the seeding to finish in the background
-        int timeout = 0;
-        while (timeout < 50) {
-            SharedPreferences prefs = context.getSharedPreferences("db_prefs", Context.MODE_PRIVATE);
-            if (prefs.getBoolean("spatial_data_seeded_v5", false)) break;
-
-            Thread.sleep(200);
-            timeout++;
-        }
-
-        resolver = new SpatialResolver(context);
+        // 2. Initialize the resolver (which internally opens the FileChannels)
+        resolver = SpatialResolver.getInstance(context);
     }
 
-    // The actual test
     @Test
     public void runSpatialTest() {
-        String actualProv = resolver.getProvinceName(n, e);
-        String actualDist = resolver.getSockenName(n, e);
+        // Use the new single-method approach from your SpatialResolver rewrite
+        String actualProv = resolver.getRegionName(n, e, false); // false = Province
+        String actualDist = resolver.getRegionName(n, e, true);  // true = District
 
-        // Adding the actual values to the failure message makes it easier to debug
         assertEquals("Province mismatch at [" + n + ", " + e + "]", expectedProv, actualProv);
         assertEquals("District mismatch at [" + n + ", " + e + "]", expectedDist, actualDist);
     }

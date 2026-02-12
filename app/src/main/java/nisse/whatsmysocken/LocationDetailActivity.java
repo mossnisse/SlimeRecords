@@ -115,19 +115,7 @@ public class LocationDetailActivity extends AppCompatActivity {
         displayFormattedCoordinates("Loading...", "Loading...");
 
         // Wait for DB, then trigger lookup
-        waitForDbAndResolve();
-    }
-
-    private void waitForDbAndResolve() {
-        // We remove previous observers to prevent multiple lookups firing
-        viewModel.getDatabaseReadyStatus().removeObservers(this);
-
-        viewModel.getDatabaseReadyStatus().observe(this, isReady -> {
-            // Only run if DB is ready AND we have actual coordinates (not 0,0)
-            if (Boolean.TRUE.equals(isReady) && (lat != 0 || lon != 0)) {
-                performSpatialLookup();
-            }
-        });
+        performSpatialLookup();
     }
 
     private void performSpatialLookup() {
@@ -173,7 +161,7 @@ public class LocationDetailActivity extends AppCompatActivity {
 
             // ONLY trigger the lookup if we haven't resolved it yet
             // or every time the coordinates change.
-            waitForDbAndResolve();
+            performSpatialLookup();
         });
     }
 

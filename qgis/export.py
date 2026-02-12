@@ -1,65 +1,92 @@
 import struct
 import os
+import sqlite3
 from qgis.core import QgsProject
-
-# script to export data from polygon files to the whats  my socken app
-# the coordinates should be a system that works with 32 bit integers as most transverse mercator do 
-# run check geometry and fix errors as self intersections
-
 
 # --- SETTINGS ---
 EXPORT_FOLDER = "C:/SockenExport/"
-NAME_ATTRIBUTE = "name"  # Change to 'NAMN' or similar for Socken layer
-ID_ATTRIBUTE = "fid"
-FILE_PREFIX = "district"      # This will define your CSV names (e.g. province_districts.csv)
+DB_NAME = "spatial_lookup.db"
 
-# Ensure folder exists
+# Configuration for the two layers
+LAYERS_CONFIG = [
+    {
+        "layer_name": "landskap", 
+        "table_prefix": "province", 
+        "bin_name": "province_coords.bin",
+        "name_attr": "FlProvins",
+        "id_attr": "fid"
+    },
+    {
+        "layer_name": "Socknar", 
+        "table_prefix": "district", 
+        "bin_name": "district_coords.bin",
+        "name_attr": "name",
+        "id_attr": "fid"
+    }
+]
+
 if not os.path.exists(EXPORT_FOLDER): 
     os.makedirs(EXPORT_FOLDER)
 
-# Define file paths
-binary_path = os.path.join(EXPORT_FOLDER, f"{FILE_PREFIX}_coords.bin")
-geom_csv_path = os.path.join(EXPORT_FOLDER, f"{FILE_PREFIX}_geometries.csv")
-dist_csv_path = os.path.join(EXPORT_FOLDER, f"{FILE_PREFIX}_metadata.csv")
+db_path = os.path.join(EXPORT_FOLDER, DB_NAME)
 
-layer = iface.activeLayer()
+# Connect to the DB
+conn = sqlite3.connect(db_path)
+cursor = conn.cursor()
 
-if not layer:
-    print("Error: No layer selected!")
-else:
+# 1. Setup Database Schema
+for config in LAYERS_CONFIG:
+    p = config["table_prefix"]
+    cursor.execute(f"DROP TABLE IF EXISTS {p}s")
+    cursor.execute(f"DROP TABLE IF EXISTS {p}_geometries")
+    
+    cursor.execute(f"CREATE TABLE {p}s (id INTEGER PRIMARY KEY NOT NULL, name TEXT)")
+    
+    # Matching Room's exact schema requirements:
+    cursor.execute(f"CREATE TABLE {p}_geometries ("
+                   f"uid INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                   f"parentId INTEGER NOT NULL, "
+                   f"minN INTEGER NOT NULL, minE INTEGER NOT NULL, "
+                   f"maxN INTEGER NOT NULL, maxE INTEGER NOT NULL, "
+                   f"byteOffset INTEGER NOT NULL, vertexCount INTEGER NOT NULL, "
+                   f"FOREIGN KEY(parentId) REFERENCES {p}s(id) ON UPDATE NO ACTION ON DELETE CASCADE)")
+
+# 2. Process Layers
+for config in LAYERS_CONFIG:
+    prefix = config["table_prefix"]
+    binary_path = os.path.join(EXPORT_FOLDER, config["bin_name"])
+    
+    # Find layer by name in QGIS
+    layers = QgsProject.instance().mapLayersByName(config["layer_name"])
+    if not layers:
+        print(f"Error: Layer '{config['layer_name']}' not found. Skipping.")
+        continue
+    
+    layer = layers[0]
     processed_ids = set()
     byte_offset = 0
 
-    # Open all files using 'with' for safety
-    with open(binary_path, "wb") as bin_file, \
-         open(geom_csv_path, "w", encoding="utf-8") as geom_csv, \
-         open(dist_csv_path, "w", encoding="utf-8") as dist_csv:
+    print(f"Starting export for: {config['layer_name']}...")
 
-        # Headers
-        geom_csv.write("id,minN,minE,maxN,maxE,byteOffset,vertexCount\n")
-        dist_csv.write("id,name\n")
-
+    with open(binary_path, "wb") as bin_file:
         for feature in layer.getFeatures():
-            # 1. Metadata handling
-            d_id = feature[ID_ATTRIBUTE]
-            if d_id not in processed_ids:
-                # Clean name of quotes to avoid CSV breaking
-                raw_name = str(feature[NAME_ATTRIBUTE])
-                clean_name = raw_name.replace('"', '""')
-                dist_csv.write(f'{d_id},"{clean_name}"\n')
-                processed_ids.add(d_id)
+            f_id = feature[config["id_attr"]]
+            
+            # Insert Metadata if not already seen
+            if f_id not in processed_ids:
+                cursor.execute(f"INSERT INTO {prefix}s (id, name) VALUES (?, ?)", 
+                               (f_id, str(feature[config["name_attr"]])))
+                processed_ids.add(f_id)
 
-            # 2. Geometry handling
             geom = feature.geometry()
             if geom.isEmpty(): continue
 
-            # Standardize to a list of polygons
+            # Standardize polygons
             polygons = geom.asMultiPolygon() if geom.isMultipart() else [geom.asPolygon()]
 
             for poly in polygons:
                 for ring in poly:
-                    vertex_count = len(ring)
-                    if vertex_count == 0: continue
+                    if len(ring) == 0: continue
                     
                     # Bounding Box calculation
                     min_n = int(min(p.y() for p in ring))
@@ -67,13 +94,19 @@ else:
                     min_e = int(min(p.x() for p in ring))
                     max_e = int(max(p.x() for p in ring))
 
-                    # Write index entry
-                    geom_csv.write(f"{d_id},{min_n},{min_e},{max_n},{max_e},{byte_offset},{vertex_count}\n")
+                    # Insert Geometry Index
+                    cursor.execute(f"INSERT INTO {prefix}_geometries "
+                                   f"(parentId, minN, minE, maxN, maxE, byteOffset, vertexCount) "
+                                   f"VALUES (?, ?, ?, ?, ?, ?, ?)", 
+                                   (f_id, min_n, min_e, max_n, max_e, byte_offset, len(ring)))
 
-                    # 3. Write Binary Coordinates
+                    # Write Binary Coordinates
                     for point in ring:
-                        # 'i' is 32-bit signed int. Sweref99 fits perfectly.
                         bin_file.write(struct.pack("ii", int(round(point.y())), int(round(point.x()))))
                         byte_offset += 8
 
-    print(f"Successfully exported {len(processed_ids)} features to {EXPORT_FOLDER}")
+    print(f"Finished {prefix}. Binary saved to {config['bin_name']}")
+
+conn.commit()
+conn.close()
+print(f"\nSUCCESS: Combined database created at {db_path}")

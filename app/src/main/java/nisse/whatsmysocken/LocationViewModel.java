@@ -37,7 +37,6 @@ import nisse.whatsmysocken.data.PhotoRecord;
 
 public class LocationViewModel extends AndroidViewModel {
     private final LocationDao locationDao;
-    private final LiveData<Boolean> isDbReady;
     private android.location.Location currentBestLocation;
     private final MutableLiveData<Boolean> saveOperationFinished = new MutableLiveData<>(false);
     public final Flowable<PagingData<LocationWithPhotos>> historyFlow;
@@ -49,9 +48,8 @@ public class LocationViewModel extends AndroidViewModel {
 
     public LocationViewModel(@NonNull Application application) {
         super(application);
-        AppDatabase db = AppDatabase.getInstance(application);
-        this.locationDao = db.locationDao();
-        this.isDbReady = db.getIsReady(application);
+        AppDatabase userDb = AppDatabase.getUserDatabase(application);
+        this.locationDao = AppDatabase.getUserDatabase(application).locationDao();
 
         Pager<Integer, LocationWithPhotos> pager = new Pager<>(
                 new PagingConfig(20, 5, false),
@@ -183,5 +181,4 @@ public class LocationViewModel extends AndroidViewModel {
     public android.location.Location getCurrentBestLocation() { return currentBestLocation; }
     public void setCurrentBestLocation(android.location.Location loc) { this.currentBestLocation = loc; }
     public Observable<ExportState> getExportStatus() { return exportStatus; }
-    public LiveData<Boolean> getDatabaseReadyStatus() { return isDbReady; }
 }

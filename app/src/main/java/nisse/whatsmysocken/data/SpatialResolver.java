@@ -12,10 +12,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/*
-* a class to look up an geographical regions/polygons from an coordinate
-* the coordinate system has to be expressable  in ints
-* check the QGIS folder and the script to export the .csv and .bin files that is used
+/**
+ * Handles spatial lookups by combining Room database candidate searches
+ * with binary ray-casting checks against coordinate files in assets.
  */
 public class SpatialResolver implements AutoCloseable {
     private static volatile SpatialResolver instance;
@@ -29,10 +28,10 @@ public class SpatialResolver implements AutoCloseable {
     private long provinceBaseOffset;
     private long districtBaseOffset;
 
-    // Private constructor
     private SpatialResolver(Context context) {
         this.context = context.getApplicationContext();
-        this.spatialDao = AppDatabase.getInstance(this.context).spatialDao();
+        // POINT TO THE SPATIAL DB INSTANCE
+        spatialDao = AppDatabase.getSpatialDatabase(this.context).spatialDao();
         initChannels();
     }
 
@@ -49,64 +48,61 @@ public class SpatialResolver implements AutoCloseable {
 
     private void initChannels() {
         try {
-            // Initialize Province Channel
+            // Filenames must match your QGIS Python script exactly
             AssetFileDescriptor pAfd = context.getAssets().openFd("province_coords.bin");
             provinceStream = pAfd.createInputStream();
             provinceChannel = provinceStream.getChannel();
             provinceBaseOffset = pAfd.getStartOffset();
 
-            // Initialize District Channel
             AssetFileDescriptor dAfd = context.getAssets().openFd("district_coords.bin");
             districtStream = dAfd.createInputStream();
             districtChannel = districtStream.getChannel();
             districtBaseOffset = dAfd.getStartOffset();
         } catch (IOException e) {
-            Log.e("SpatialResolver", "Failed to initialize spatial channels", e);
+            Log.e("SpatialResolver", "Failed to initialize spatial channels from assets", e);
         }
     }
 
     public String getRegionName(int n, int e, boolean isDistrict) {
         FileChannel channel = isDistrict ? districtChannel : provinceChannel;
-        long offset = isDistrict ? districtBaseOffset : provinceBaseOffset;
+        long baseOffset = isDistrict ? districtBaseOffset : provinceBaseOffset;
 
         if (channel == null) return "Data Error";
 
+        // Query Room for bounding-box candidates
         List<? extends BaseGeometry> candidates = isDistrict ?
                 spatialDao.findDistrictCandidates(n, e) : spatialDao.findProvinceCandidates(n, e);
 
-        if (candidates.isEmpty()) return "Outside Area";
+        if (candidates.isEmpty()) return isDistrict ? "Outside Districts" : "Not Found";
 
         try {
-            int id = resolveId(n, e, candidates, channel, offset);
-            if (id == -1) return "Not Found";
+            int id = resolveId(n, e, candidates, channel, baseOffset);
+            if (id == -1) return isDistrict ? "Outside Districts" : "Not Found";
 
-            return isDistrict ?
-                    spatialDao.getDistrictById(id).name : spatialDao.getProvinceById(id).name;
+            if (isDistrict) {
+                DistrictEntity d = spatialDao.getDistrictById(id);
+                return (d != null) ? d.name : "Unknown District";
+            } else {
+                ProvinceEntity p = spatialDao.getProvinceById(id);
+                return (p != null) ? p.name : "Unknown Province";
+            }
         } catch (IOException ex) {
-            return "Error reading data";
+            Log.e("SpatialResolver", "Binary read error", ex);
+            return "Read Error";
         }
     }
 
     private <G extends BaseGeometry> int resolveId(int n, int e, List<G> candidates, FileChannel fc, long baseOffset) throws IOException {
-        // We use a Map to handle Multi-Polygons (where one ID has multiple geometry records)
         Map<Integer, Integer> intersectionCounts = new HashMap<>();
 
         for (G geom : candidates) {
             int count = countIntersections(fc, baseOffset, geom, n, e);
-
-            // Accumulate intersections for this specific parentId
-            int current = 0;
-            if (intersectionCounts.containsKey(geom.parentId)) {
-                current = intersectionCounts.get(geom.parentId);
-            }
-            intersectionCounts.put(geom.parentId, current + count);
+            intersectionCounts.put(geom.parentId, intersectionCounts.getOrDefault(geom.parentId, 0) + count);
         }
 
-        // Even-Odd Rule: If total intersections for an ID is odd, the point is INSIDE
+        // Even-Odd Rule
         for (Map.Entry<Integer, Integer> entry : intersectionCounts.entrySet()) {
-            if (entry.getValue() % 2 != 0) {
-                return entry.getKey();
-            }
+            if (entry.getValue() % 2 != 0) return entry.getKey();
         }
         return -1;
     }
@@ -115,6 +111,7 @@ public class SpatialResolver implements AutoCloseable {
         int intersections = 0;
         long startPos = baseOffset + geom.byteOffset;
 
+        // Each vertex is two 32-bit ints (8 bytes)
         ByteBuffer buffer = ByteBuffer.allocate(geom.vertexCount * 8);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
         fc.read(buffer, startPos);
@@ -123,14 +120,12 @@ public class SpatialResolver implements AutoCloseable {
         int[] vN = new int[geom.vertexCount];
         int[] vE = new int[geom.vertexCount];
 
-        // To perform the wrap-around (j=i-1), we still need the coordinates
-        // accessible. Reading them into a local stack array is faster than
-        // multiple buffer.get() calls in the loop.
         for (int i = 0; i < geom.vertexCount; i++) {
-            vN[i] = buffer.getInt();
-            vE[i] = buffer.getInt();
+            vN[i] = buffer.getInt(); // Y coordinate from script
+            vE[i] = buffer.getInt(); // X coordinate from script
         }
 
+        // Ray Casting algorithm
         for (int i = 0, j = geom.vertexCount - 1; i < geom.vertexCount; j = i++) {
             if (((vN[i] > n) != (vN[j] > n)) &&
                     (e < (long)(vE[j] - vE[i]) * (n - vN[i]) / (vN[j] - vN[i]) + vE[i])) {
@@ -145,9 +140,7 @@ public class SpatialResolver implements AutoCloseable {
         try {
             if (provinceStream != null) provinceStream.close();
             if (districtStream != null) districtStream.close();
-            provinceChannel = null;
-            districtChannel = null;
-            instance = null; // Clear instance on close
+            instance = null;
         } catch (IOException e) {
             Log.e("SpatialResolver", "Error closing channels", e);
         }
