@@ -11,6 +11,8 @@ import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide; // Import Glide
 
+import java.util.Objects;
+
 public class LocationAdapter extends PagingDataAdapter<LocationWithPhotos, LocationAdapter.LocationViewHolder> {
 
     public static final DiffUtil.ItemCallback<LocationWithPhotos> DIFF_CALLBACK =
@@ -22,7 +24,7 @@ public class LocationAdapter extends PagingDataAdapter<LocationWithPhotos, Locat
 
                 @Override
                 public boolean areContentsTheSame(@NonNull LocationWithPhotos oldItem, @NonNull LocationWithPhotos newItem) {
-                    return oldItem.location.note.equals(newItem.location.note) &&
+                    return Objects.equals(oldItem.location.note, newItem.location.note) &&
                             oldItem.location.timestamp == newItem.location.timestamp &&
                             oldItem.photos.size() == newItem.photos.size();
                 }

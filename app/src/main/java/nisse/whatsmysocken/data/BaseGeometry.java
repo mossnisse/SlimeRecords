@@ -1,7 +1,6 @@
 package nisse.whatsmysocken.data;
 
 import androidx.room.PrimaryKey;
-
 // A simple base for polygon or hole spatial data
 public abstract class BaseGeometry {
     @PrimaryKey(autoGenerate = true)

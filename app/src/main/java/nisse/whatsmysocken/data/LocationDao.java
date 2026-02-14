@@ -1,5 +1,7 @@
 package nisse.whatsmysocken.data;
 
+import android.database.Cursor;
+
 import androidx.lifecycle.LiveData;
 import androidx.paging.PagingSource;
 import androidx.room.Dao;
@@ -8,6 +10,7 @@ import androidx.room.Insert;
 import androidx.room.Query;
 import androidx.room.Transaction;
 import androidx.room.Update;
+
 import java.util.List;
 import nisse.whatsmysocken.LocationWithPhotos;
 
@@ -31,9 +34,6 @@ public abstract class LocationDao {
     @Update
     public abstract void updateLocation(LocationRecord location);
 
-    @Delete
-    public abstract void delete(LocationRecord record);
-
     @Transaction
     @Query("SELECT * FROM location_table ORDER BY timestamp DESC")
     public abstract PagingSource<Integer, LocationWithPhotos> getAllLocationsPaged();
@@ -50,13 +50,13 @@ public abstract class LocationDao {
     public abstract void deleteLocationAndPhotos(LocationRecord location, List<PhotoRecord> photos);
 
     // --- EXPORT METHODS ---
-
-    // Synchronous List (Background Thread use only)
-    @Transaction
-    @Query("SELECT * FROM location_table ORDER BY timestamp DESC")
-    public abstract List<LocationWithPhotos> getAllLocationsForExport();
-
     // Live Count (UI use)
     @Query("SELECT COUNT(*) FROM location_table")
     public abstract LiveData<Integer> getLocationCount();
+
+    @Query("SELECT * FROM location_table")
+    public abstract Cursor getAllLocationsCursor();
+
+    @Query("SELECT * FROM photo_table WHERE locationId = :locId")
+    public abstract List<PhotoRecord> getPhotosForLocationSync(long locId);
 }

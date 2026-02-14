@@ -169,7 +169,11 @@ public class LocationDetailActivity extends AppCompatActivity {
     }
 
     private void onCommitClicked() {
-        String note = noteInput.getText().toString();
+        String note = noteInput.getText().toString().trim();
+        if (note.length() > 1000) {
+            noteInput.setError("Note is too long (max 1000 characters)");
+            return;
+        }
         if (isNew) {
             String localTime = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
             LocationRecord record = new LocationRecord(lat, lon, System.currentTimeMillis(), accuracy, localTime, note);

@@ -2,14 +2,14 @@ package nisse.whatsmysocken.coords;
 
 public class Coordinates {
     private Double north, east;
-    private static double degToRad = Math.PI/180;
-    private static double radToDeg = 180/Math.PI;
-    private static double sweref99TM_false_northing = 0.0;
-    private static double sweref99TM_false_easting = 500000.0;
-    private static double sweref99TM_centralMeridian = 0.26179938779914943653855361527329; //radians
-    private static double sweref99TM_scale = 0.9996;
-    private static double sweref99TM_axis = 6378137.0; // GRS 80.
-    private static double sweref99TM_flattening = 1.0 / 298.257222101; // GRS 80.
+    private final static double degToRad = Math.PI/180;
+    private final static double radToDeg = 180/Math.PI;
+    private final static double sweref99TM_false_northing = 0.0;
+    private final static double sweref99TM_false_easting = 500000.0;
+    private final static double sweref99TM_centralMeridian = 0.26179938779914943653855361527329; //radians
+    private final static double sweref99TM_scale = 0.9996;
+    private final static double sweref99TM_axis = 6378137.0; // GRS 80.
+    private final static double sweref99TM_flattening = 1.0 / 298.257222101; // GRS 80.
 
     public Coordinates(double north, double east) {
         this.north = north;
@@ -188,8 +188,6 @@ public class Coordinates {
 
     //konverterar koordinater till WGS84 från RT90
     public Coordinates convertToWGS84FromRT90() {
-        //double x = north;
-        //double y = east;
 
         double xi = (north  + 667.711) / 6367484.87;
         double ny = (east - 1500064.274) / 6367484.87;
@@ -279,11 +277,11 @@ public class Coordinates {
 
     //function to convert lat/long degrees, min sec to decimal degrees
     public void latlong(double latdeg, double longdeg, double latmin, double longmin, double latsec, double longsec, String latdir, String longdir) {
-        if (latdir == "S")
+        if (latdir.equals("S"))
             this.north = -latdeg-latmin/60-latsec/3600;
         else
             this.north = latdeg+latmin/60+latsec/3600;
-        if (longdir == "W")
+        if (longdir.equals("W"))
             this.east =  -longdeg-longmin/60-longsec/3600;
         else
             this.east =  longdeg+longmin/60+longsec/3600;

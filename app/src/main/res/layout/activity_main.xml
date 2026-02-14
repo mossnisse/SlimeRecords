@@ -5,7 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="whatsmysocken.whatsmysocken.MainActivity">
+    tools:context="nisse.whatsmysocken.MainActivity">
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
@@ -50,13 +50,28 @@
                 android:layout_marginTop="20dp"
                 android:text="@string/get_coordinate" />
 
-            <EditText
-                android:id="@+id/note_input"
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/note_input_layout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Enter note here..."
-                android:inputType="text"
-                android:visibility="gone"/>
+                android:layout_marginTop="16dp"
+                android:visibility="gone"
+                app:counterEnabled="true"
+                app:counterMaxLength="1000"
+                app:helperText="Max 1000 characters"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/note_input"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Field Notes (Species, Substrate, etc.)"
+                    android:gravity="top"
+                    android:inputType="textMultiLine|textCapSentences"
+                    android:minLines="3"
+                    android:scrollbars="vertical" />
+
+            </com.google.android.material.textfield.TextInputLayout>
 
             <Button
                 android:id="@+id/btn_take_photo"

@@ -3,10 +3,14 @@ package nisse.whatsmysocken;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
 import io.reactivex.rxjava3.disposables.CompositeDisposable;
 
 public class HistoryActivity extends AppCompatActivity {
@@ -27,10 +31,13 @@ public class HistoryActivity extends AppCompatActivity {
         LocationViewModel viewModel = new ViewModelProvider(this).get(LocationViewModel.class);
 
         // Subscribe to the Flowable
-        mDisposable.add(viewModel.historyFlow.subscribe(pagingData -> {
-            // submitData is a suspending-like call that updates the adapter
-            adapter.submitData(getLifecycle(), pagingData);
-        }));
+        mDisposable.add(viewModel.historyFlow
+                .observeOn(AndroidSchedulers.mainThread()) // Ensure UI updates happen on main thread
+                .subscribe(pagingData ->
+                    adapter.submitData(getLifecycle(), pagingData)
+                , throwable ->
+                    Log.e("HistoryActivity", "Error loading paging data", throwable)
+                ));
 
         // Keep your listeners as they were
         adapter.setOnItemLongClickListener(item ->

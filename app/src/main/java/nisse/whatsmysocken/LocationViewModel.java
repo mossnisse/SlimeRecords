@@ -3,6 +3,7 @@ package nisse.whatsmysocken;
 import android.app.Application;
 import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
@@ -21,12 +22,12 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Locale;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
 import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.Observable;
-import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.disposables.CompositeDisposable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.reactivex.rxjava3.subjects.BehaviorSubject;
@@ -117,9 +118,7 @@ public class LocationViewModel extends AndroidViewModel {
         return new int[]{(int)Math.round(sweref.getNorth()), (int)Math.round(sweref.getEast())};
     }
 
-
     // --- Export Logic ---
-
     public boolean isExporting() {
         return exportStatus.getValue() == ExportState.LOADING;
     }
@@ -133,72 +132,136 @@ public class LocationViewModel extends AndroidViewModel {
         if (isExporting()) return;
         exportStatus.onNext(ExportState.LOADING);
 
+        String zipName = "WhatsMySocken_" + System.currentTimeMillis() + ".zip";
+        Context context = getApplication();
+
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.MediaColumns.DISPLAY_NAME, zipName);
+        values.put(MediaStore.MediaColumns.MIME_TYPE, "application/zip");
+        values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
+
         disposables.add(
-                Single.fromCallable(() -> {
-                            // 1. Fetch data synchronously on background thread
-                            List<LocationWithPhotos> data = locationDao.getAllLocationsForExport();
-                            // 2. Perform Zip
-                            return performZipLogic(data);
+                Observable.create(emitter -> {
+                            Uri uri = context.getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+                            if (uri == null) { emitter.onError(new IOException("MediaStore URI failed")); return; }
+
+                            // Using try-with-resources for the main streams
+                            try (OutputStream os = context.getContentResolver().openOutputStream(uri);
+                                 ZipOutputStream zos = new ZipOutputStream(os)) {
+
+                                // --- PHASE 1: CSV ---
+                                zos.putNextEntry(new ZipEntry("data.csv"));
+                                String header = "ID,Latitude,Longitude,Accuracy,Time,Note,Photo_Filenames\n";
+                                zos.write(header.getBytes(StandardCharsets.UTF_8));
+
+                                try (Cursor cursor = locationDao.getAllLocationsCursor()) {
+                                    if (cursor != null && cursor.moveToFirst()) {
+                                        do {
+                                            LocationRecord record = cursorToLocation(cursor);
+                                            List<PhotoRecord> photos = locationDao.getPhotosForLocationSync(record.id);
+
+                                            String filenames = "";
+                                            if (photos != null && !photos.isEmpty()) {
+                                                StringBuilder sb = new StringBuilder();
+                                                for (int i = 0; i < photos.size(); i++) {
+                                                    sb.append(new File(photos.get(i).filePath).getName());
+                                                    if (i < photos.size() - 1) sb.append("|");
+                                                }
+                                                filenames = sb.toString();
+                                            }
+
+                                            String escapedNote = record.note != null ? record.note.replace("\"", "\"\"") : "";
+                                            int wholeAccuracy = (int) Math.ceil(record.accuracy);
+
+                                            String line = String.format(Locale.US, "%d,%.6f,%.6f,%d,\"%s\",\"%s\",\"%s\"\n",
+                                                    record.id,
+                                                    record.latitude,
+                                                    record.longitude,
+                                                    wholeAccuracy, // Now a whole number
+                                                    record.localTime,
+                                                    escapedNote,
+                                                    filenames);
+
+                                            zos.write(line.getBytes(StandardCharsets.UTF_8));
+                                        } while (cursor.moveToNext());
+                                    } else {
+                                        Log.w("Export", "No data found in database to export!");
+                                    }
+                                }
+                                zos.closeEntry(); // Finish CSV
+
+                                // --- PHASE 2: PHOTOS ---
+                                try (Cursor cursor = locationDao.getAllLocationsCursor()) {
+                                    if (cursor != null && cursor.moveToFirst()) {
+                                        do {
+                                            long locId = cursor.getLong(cursor.getColumnIndexOrThrow("id"));
+                                            List<PhotoRecord> photos = locationDao.getPhotosForLocationSync(locId);
+                                            for (PhotoRecord photo : photos) {
+                                                addPhotoToZip(zos, photo);
+                                            }
+                                        } while (cursor.moveToNext());
+                                    }
+                                }
+
+                                zos.finish(); // CRITICAL: Finalizes the ZIP structure
+                                zos.flush();
+                                emitter.onNext(true);
+
+                            } catch (Exception e) {
+                                context.getContentResolver().delete(uri, null, null);
+                                emitter.onError(e);
+                            }
+                            emitter.onComplete();
                         })
                         .subscribeOn(Schedulers.io())
                         .observeOn(AndroidSchedulers.mainThread())
                         .subscribe(
-                                success -> exportStatus.onNext(success ? ExportState.SUCCESS : ExportState.ERROR),
+                                success -> {
+                                    // Tell the system a new file is available for other apps/PC to see
+                                    android.media.MediaScannerConnection.scanFile(getApplication(),
+                                            new String[]{ Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).toString() },
+                                            null, null);
+
+                                    exportStatus.onNext(ExportState.SUCCESS);
+                                },
                                 throwable -> {
-                                    Log.e("Export", "Error", throwable);
+                                    Log.e("Export", "Zip Failed", throwable);
                                     exportStatus.onNext(ExportState.ERROR);
                                 }
                         )
         );
     }
 
-    private boolean performZipLogic(List<LocationWithPhotos> data) {
-        Context context = getApplication();
-        if (data == null || data.isEmpty()) return false;
-
-        String zipName = "WhatsMySocken_" + System.currentTimeMillis() + ".zip";
-        ContentValues values = new ContentValues();
-        values.put(MediaStore.MediaColumns.DISPLAY_NAME, zipName);
-        values.put(MediaStore.MediaColumns.MIME_TYPE, "application/zip");
-        values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
-
-        Uri uri = context.getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
-        if (uri == null) return false;
-
-        try (OutputStream os = context.getContentResolver().openOutputStream(uri);
-             ZipOutputStream zos = new ZipOutputStream(os)) {
-
-            // Write CSV
-            zos.putNextEntry(new ZipEntry("data.csv"));
-            zos.write(FileUtils.generateCsv(data).getBytes(StandardCharsets.UTF_8));
-            zos.closeEntry();
-
-            // Write Photos
-            for (LocationWithPhotos item : data) {
-                if (item.photos == null) continue;
-                for (PhotoRecord photo : item.photos) {
-                    File file = new File(photo.filePath);
-                    if (file.exists()) {
-                        // "photos/" prefix automatically handles the folder
-                        zos.putNextEntry(new ZipEntry("photos/" + file.getName()));
-                        copyFile(file, zos);
-                        zos.closeEntry();
-                    }
-                }
-            }
-            return true;
-        } catch (IOException e) {
-            Log.e("ExportWorker", "Zip failed", e);
-            return false;
-        }
+    private LocationRecord cursorToLocation(Cursor cursor) {
+        LocationRecord record = new LocationRecord();
+        record.id = cursor.getLong(cursor.getColumnIndexOrThrow("id"));
+        record.latitude = cursor.getDouble(cursor.getColumnIndexOrThrow("latitude"));
+        record.longitude = cursor.getDouble(cursor.getColumnIndexOrThrow("longitude"));
+        record.timestamp = cursor.getLong(cursor.getColumnIndexOrThrow("timestamp"));
+        record.accuracy = cursor.getFloat(cursor.getColumnIndexOrThrow("accuracy"));
+        record.localTime = cursor.getString(cursor.getColumnIndexOrThrow("localTime"));
+        record.note = cursor.getString(cursor.getColumnIndexOrThrow("note"));
+        // If you added the JSON bag column, include it here:
+        // record.additionalDataJson = cursor.getString(cursor.getColumnIndexOrThrow("additionalDataJson"));
+        return record;
     }
 
-    private void copyFile(File file, OutputStream out) throws IOException {
-        try (FileInputStream in = new FileInputStream(file)) {
-            byte[] buf = new byte[8192];
-            int len;
-            while ((len = in.read(buf)) > 0) out.write(buf, 0, len);
+    private void addPhotoToZip(ZipOutputStream zos, PhotoRecord photo) throws IOException {
+        File photoFile = new File(photo.filePath);
+        if (!photoFile.exists()) return;
+
+        // Adding "photos/" prefix creates the folder inside the zip automatically
+        ZipEntry entry = new ZipEntry("photos/" + photoFile.getName());
+        zos.putNextEntry(entry);
+
+        try (FileInputStream fis = new FileInputStream(photoFile)) {
+            byte[] buffer = new byte[8192];
+            int length;
+            while ((length = fis.read(buffer)) >= 0) {
+                zos.write(buffer, 0, length);
+            }
         }
+        zos.closeEntry();
     }
 
     @Override

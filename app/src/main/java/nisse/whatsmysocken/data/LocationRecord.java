@@ -10,10 +10,13 @@ public class LocationRecord {
     public double latitude;
     public double longitude;
     public long timestamp;
-    public float accuracy; // Added this
+    public float accuracy; // Added this, change to int
     public String localTime;
     public String note;
 
+    public LocationRecord() {
+        // Empty constructor for Room/Manual mapping
+    }
     public LocationRecord(double latitude, double longitude, long timestamp, float accuracy, String localTime, String note) {
         this.latitude = latitude;
         this.longitude = longitude;

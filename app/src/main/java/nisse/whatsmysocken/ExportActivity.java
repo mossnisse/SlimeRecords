@@ -17,9 +17,8 @@ public class ExportActivity extends AppCompatActivity {
     private TextView tvStatus;
     private LocationViewModel viewModel;
     private final CompositeDisposable disposables = new CompositeDisposable();
-
-    // Local variable to hold the count for display logic
     private int currentLocationCount = 0;
+    private LocationViewModel.ExportState currentState = LocationViewModel.ExportState.IDLE;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,8 +31,9 @@ public class ExportActivity extends AppCompatActivity {
         // Observe the Location Count (Updates automatically)
         viewModel.getLocationCount().observe(this, count -> {
             this.currentLocationCount = (count != null) ? count : 0;
-            // Only update text if NOT loading
-            if (!viewModel.isExporting()) {
+
+            // Only refresh the text if the current state is IDLE
+            if (currentState == LocationViewModel.ExportState.IDLE) {
                 tvStatus.setText(getString(R.string.export_ready_format, currentLocationCount));
             }
         });
@@ -41,7 +41,10 @@ public class ExportActivity extends AppCompatActivity {
         // Observe the Export Status
         disposables.add(viewModel.getExportStatus()
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(this::updateUiForState));
+                .subscribe(state -> {
+                    this.currentState = state; // Keep track of the state locally
+                    updateUiForState(state);
+                }));
 
         // Start Export
         btnExport.setOnClickListener(v -> {
@@ -55,7 +58,6 @@ public class ExportActivity extends AppCompatActivity {
 
     private void updateUiForState(LocationViewModel.ExportState state) {
         boolean isLoading = (state == LocationViewModel.ExportState.LOADING);
-
         btnExport.setEnabled(!isLoading);
         progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
 
@@ -68,7 +70,6 @@ public class ExportActivity extends AppCompatActivity {
                 break;
             case SUCCESS:
                 tvStatus.setText("Export Complete! Check 'Downloads'.");
-                Toast.makeText(this, "Success!", Toast.LENGTH_SHORT).show();
                 break;
             case ERROR:
                 tvStatus.setText("Export Failed. Please try again.");
