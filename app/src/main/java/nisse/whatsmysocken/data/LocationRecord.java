@@ -13,6 +13,7 @@ public class LocationRecord {
     public float accuracy; // Added this, change to int
     public String localTime;
     public String note;
+    public SpeciesAttributes attributes;
 
     public LocationRecord() {
         // Empty constructor for Room/Manual mapping

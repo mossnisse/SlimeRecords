@@ -30,6 +30,10 @@ android {
     androidResources {
         noCompress.add("bin")
     }
+
+    buildFeatures {
+        viewBinding = true
+    }
 }
 
 dependencies {
@@ -62,6 +66,9 @@ dependencies {
     // RxJava
     implementation("io.reactivex.rxjava3:rxandroid:3.0.2")
     implementation("io.reactivex.rxjava3:rxjava:3.1.10") // Stable 3.1 branch
+
+    //json parsing
+    implementation("com.google.code.gson:gson:2.11.0")
 
     // Third Party
     implementation("com.github.bumptech.glide:glide:4.16.0")

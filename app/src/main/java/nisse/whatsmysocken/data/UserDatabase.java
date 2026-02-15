@@ -4,10 +4,15 @@ import android.content.Context;
 import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
+import androidx.room.TypeConverters;
+
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-@Database(entities = {LocationRecord.class, PhotoRecord.class}, version = 6, exportSchema = false)
+import nisse.whatsmysocken.Converters;
+
+@Database(entities = {LocationRecord.class, PhotoRecord.class, RecentCollector.class}, version = 7, exportSchema = false)
+@TypeConverters({Converters.class}) // Add this line
 public abstract class UserDatabase extends RoomDatabase {
 
     public abstract LocationDao locationDao();

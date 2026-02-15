@@ -35,6 +35,7 @@ import nisse.whatsmysocken.coords.Coordinates;
 import nisse.whatsmysocken.data.LocationDao;
 import nisse.whatsmysocken.data.LocationRecord;
 import nisse.whatsmysocken.data.PhotoRecord;
+import nisse.whatsmysocken.data.RecentCollector;
 import nisse.whatsmysocken.data.SpatialResolver;
 import nisse.whatsmysocken.data.UserDatabase;
 
@@ -62,6 +63,7 @@ public class LocationViewModel extends AndroidViewModel {
     }
 
     // --- Standard Database Ops ---
+
     public void saveLocationWithPhotos(LocationRecord record, List<String> photoPaths) {
         UserDatabase.getDbExecutor().execute(() -> {
             locationDao.insertLocationWithPhotos(record, photoPaths);
@@ -116,6 +118,17 @@ public class LocationViewModel extends AndroidViewModel {
     private int[] convertToSweref(double lat, double lon) {
         Coordinates sweref = new Coordinates(lat, lon).convertToSweref99TMFromWGS84();
         return new int[]{(int)Math.round(sweref.getNorth()), (int)Math.round(sweref.getEast())};
+    }
+
+    public LiveData<List<String>> getRecentCollectors() {
+        return locationDao.getRecentCollectorNames();
+    }
+
+    public void updateRecentCollector(String name) {
+        if (name == null || name.trim().isEmpty()) return;
+        UserDatabase.getDbExecutor().execute(() -> {
+            locationDao.insertRecentCollector(new RecentCollector(name.trim(), System.currentTimeMillis()));
+        });
     }
 
     // --- Export Logic ---

@@ -7,10 +7,10 @@ import androidx.paging.PagingSource;
 import androidx.room.Dao;
 import androidx.room.Delete;
 import androidx.room.Insert;
+import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 import androidx.room.Transaction;
 import androidx.room.Update;
-
 import java.util.List;
 import nisse.whatsmysocken.LocationWithPhotos;
 
@@ -59,4 +59,10 @@ public abstract class LocationDao {
 
     @Query("SELECT * FROM photo_table WHERE locationId = :locId")
     public abstract List<PhotoRecord> getPhotosForLocationSync(long locId);
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    public abstract void insertRecentCollector(RecentCollector collector);
+
+    @Query("SELECT name FROM recent_collectors ORDER BY lastUsed DESC LIMIT 5")
+    public abstract LiveData<List<String>> getRecentCollectorNames();
 }

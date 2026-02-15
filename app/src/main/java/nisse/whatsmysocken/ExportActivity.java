@@ -2,19 +2,16 @@ package nisse.whatsmysocken;
 
 import android.os.Bundle;
 import android.view.View;
-import android.widget.Button;
-import android.widget.ProgressBar;
-import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
 import io.reactivex.rxjava3.disposables.CompositeDisposable;
+// Import the generated binding class
+import nisse.whatsmysocken.databinding.ActivityExportBinding;
 
 public class ExportActivity extends AppCompatActivity {
-    private Button btnExport;
-    private ProgressBar progressBar;
-    private TextView tvStatus;
+    private ActivityExportBinding binding;
     private LocationViewModel viewModel;
     private final CompositeDisposable disposables = new CompositeDisposable();
     private int currentLocationCount = 0;
@@ -23,31 +20,31 @@ public class ExportActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_export);
 
-        initViews();
+        // 1. Initialize Binding
+        binding = ActivityExportBinding.inflate(getLayoutInflater());
+        setContentView(binding.getRoot());
+
         viewModel = new ViewModelProvider(this).get(LocationViewModel.class);
 
-        // Observe the Location Count (Updates automatically)
+        // 2. Observe Location Count
         viewModel.getLocationCount().observe(this, count -> {
             this.currentLocationCount = (count != null) ? count : 0;
-
-            // Only refresh the text if the current state is IDLE
             if (currentState == LocationViewModel.ExportState.IDLE) {
-                tvStatus.setText(getString(R.string.export_ready_format, currentLocationCount));
+                binding.tvExportStatus.setText(getString(R.string.export_ready_format, currentLocationCount));
             }
         });
 
-        // Observe the Export Status
+        // 3. Observe Export Status
         disposables.add(viewModel.getExportStatus()
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(state -> {
-                    this.currentState = state; // Keep track of the state locally
+                    this.currentState = state;
                     updateUiForState(state);
                 }));
 
-        // Start Export
-        btnExport.setOnClickListener(v -> {
+        // 4. Set Click Listener
+        binding.btnStartUsbExport.setOnClickListener(v -> {
             if (currentLocationCount > 0) {
                 viewModel.startExport();
             } else {
@@ -58,34 +55,31 @@ public class ExportActivity extends AppCompatActivity {
 
     private void updateUiForState(LocationViewModel.ExportState state) {
         boolean isLoading = (state == LocationViewModel.ExportState.LOADING);
-        btnExport.setEnabled(!isLoading);
-        progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
+
+        // Access views directly via binding
+        binding.btnStartUsbExport.setEnabled(!isLoading);
+        binding.exportProgress.setVisibility(isLoading ? View.VISIBLE : View.GONE);
 
         switch (state) {
             case IDLE:
-                tvStatus.setText(getString(R.string.export_ready_format, currentLocationCount));
+                binding.tvExportStatus.setText(getString(R.string.export_ready_format, currentLocationCount));
                 break;
             case LOADING:
-                tvStatus.setText("Zipping files... you can leave this screen.");
+                binding.tvExportStatus.setText("Zipping files... you can leave this screen.");
                 break;
             case SUCCESS:
-                tvStatus.setText("Export Complete! Check 'Downloads'.");
+                binding.tvExportStatus.setText("Export Complete! Check 'Downloads'.");
                 break;
             case ERROR:
-                tvStatus.setText("Export Failed. Please try again.");
+                binding.tvExportStatus.setText("Export Failed. Please try again.");
                 break;
         }
-    }
-
-    private void initViews() {
-        tvStatus = findViewById(R.id.tv_export_status);
-        btnExport = findViewById(R.id.btn_start_usb_export);
-        progressBar = findViewById(R.id.export_progress);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         disposables.clear();
+        binding = null; // Clean up binding reference
     }
 }

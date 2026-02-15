@@ -8,8 +8,8 @@ import android.location.Location;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Button;
-import android.widget.TextView;
+import android.view.WindowManager;
+import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.IntentSenderRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -25,15 +25,16 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.Priority;
+import nisse.whatsmysocken.databinding.ActivityMainBinding;
 
 public class MainActivity extends AppCompatActivity {
     private FusedLocationProviderClient fusedClient;
     private LocationRequest locationRequest;
     private LocationCallback locationCallback;
     private LocationViewModel viewModel;
-    private Button checkButton;
-    private TextView ctextview;
+    private ActivityMainBinding binding;
     private boolean isSearching = false; // Fixed: Added missing variable
+    private boolean wasSearchingBeforePause = false;
 
     // Menu
     @Override
@@ -61,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
                 if (isGranted) {
                     checkLocationSettings();
                 } else {
-                    ctextview.setText("Permission denied. Cannot search.");
+                    binding.ctextview.setText("Permission denied. Cannot search.");
                 }
             });
 
@@ -70,7 +71,7 @@ public class MainActivity extends AppCompatActivity {
                 if (result.getResultCode() == RESULT_OK) {
                     startLocationUpdates();
                 } else {
-                    ctextview.setText("Location services must be enabled.");
+                    binding.ctextview.setText("Location services must be enabled.");
                 }
             });
 
@@ -109,28 +110,30 @@ public class MainActivity extends AppCompatActivity {
                             IntentSenderRequest isr = new IntentSenderRequest.Builder(resolvable.getResolution()).build();
                             settingsLauncher.launch(isr);
                         } catch (Exception sendEx) {
-                            ctextview.setText("Error opening location settings.");
+                            binding.ctextview.setText("Error opening location settings.");
                         }
                     } else {
-                        ctextview.setText("Location settings are not satisfied on this device.");
+                        binding.ctextview.setText("Location settings are not satisfied on this device.");
                     }
                 });
     }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
 
-        // Initialize ViewModel first
+        // Initialize binding
+        binding = ActivityMainBinding.inflate(getLayoutInflater());
+        setContentView(binding.getRoot());
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
         viewModel = new ViewModelProvider(this).get(LocationViewModel.class);
-        checkButton = findViewById(R.id.check_button);
-        ctextview = findViewById(R.id.ctextview);
-        setSupportActionBar(findViewById(R.id.my_toolbar));
 
-        checkButton.setOnClickListener(v -> {
+        // No more findViewById! Access views via binding.
+        setSupportActionBar(binding.myToolbar);
+
+        binding.checkButton.setOnClickListener(v -> {
             if (isSearching) stopLocationUpdates(true);
             else {
-                // Check if we have permission
                 if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                         == PackageManager.PERMISSION_GRANTED) {
                     checkLocationSettings();
@@ -139,26 +142,44 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
         setupLocationLogic();
     }
 
     @Override
-    protected void onPause() {
-        super.onPause();
-        // Prevent battery drain if the user leaves the app during a search
+    protected void onStop() {
+        super.onStop();
         if (isSearching) {
+            // SET THIS FIRST so onResume knows to restart
+            wasSearchingBeforePause = true;
             stopLocationUpdates(false);
+            Toast.makeText(this, "GPS search paused for battery safety", Toast.LENGTH_SHORT).show();
         }
     }
 
-
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // If we were searching when the user left, start again automatically
+        if (wasSearchingBeforePause) {
+            // Check permission again (standard practice as user could have revoked it)
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                    == PackageManager.PERMISSION_GRANTED) {
+                startLocationUpdates();
+            }
+            wasSearchingBeforePause = false; // Reset the flag
+        }
+    }
 
     private void startLocationUpdates() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) return;
         isSearching = true;
         viewModel.setCurrentBestLocation(null);
-        checkButton.setText("STOP");
-        ctextview.setText("Acquiring GPS signal...");
+
+        // Concise view updates
+        binding.checkButton.setText("STOP");
+        binding.ctextview.setText("Acquiring GPS signal...");
+
         fusedClient.requestLocationUpdates(locationRequest, locationCallback, getMainLooper());
     }
 
@@ -178,7 +199,7 @@ public class MainActivity extends AppCompatActivity {
                         location.getAccuracy() < viewModel.getCurrentBestLocation().getAccuracy()) {
                     viewModel.setCurrentBestLocation(location);
                     int acc = (int) Math.ceil(location.getAccuracy());
-                    ctextview.setText("Accuracy: " + acc + "m\nPress STOP when precision is sufficient.");
+                    binding.ctextview.setText("Accuracy: " + acc + "m\nPress STOP when precision is sufficient.");
                 }
             }
         };
@@ -189,10 +210,10 @@ public class MainActivity extends AppCompatActivity {
         isSearching = false;
 
         // This resets the button enabled state and default text
-        checkButton.setEnabled(true);
+        binding.checkButton.setEnabled(true);
         if (!isSearching) {
-            ctextview.setText("Ready to search.");
-            checkButton.setText("Find Location");
+            binding.ctextview.setText("Ready to search.");
+            binding.checkButton.setText("Find Location");
         }
 
         Location best = viewModel.getCurrentBestLocation();
@@ -205,7 +226,13 @@ public class MainActivity extends AppCompatActivity {
             intent.putExtra("is_new", true);
             startActivity(intent);
         } else if (shouldTransition) { // shouldTransition is true but best is null
-            ctextview.setText("No location acquired. Try again.");
+            binding.ctextview.setText("No location acquired. Try again.");
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        binding = null;
     }
 }

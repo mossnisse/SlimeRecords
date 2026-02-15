@@ -51,6 +51,48 @@
             android:title="Map Button"
             android:summary="Button that links to Lantmäteriets Min Karta"
             android:defaultValue="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="Species &amp; Collection Fields">
+
+        <CheckBoxPreference
+            android:key="show_species_field"
+            android:title="Species name"
+            android:summary="Show field for species name"
+            android:defaultValue="true" />
+
+        <CheckBoxPreference
+            android:key="show_substrate_field"
+            android:title="Substrate"
+            android:summary="Show field for the substrate"
+            android:defaultValue="true" />
+
+        <CheckBoxPreference
+            android:key="show_collector_field"
+            android:title="Collector"
+            android:summary="Show field for Collector(s) / Observer(s)"
+            android:defaultValue="true" />
+
+        <CheckBoxPreference
+            android:key="show_locality_description"
+            android:title="Locality"
+            android:summary="An text that describes where the collection/observation is done, should be written so it's possible to figure out the location from a map"
+            android:defaultValue="true" />
+
+        <CheckBoxPreference
+            android:key="show_is_collection"
+            android:title="Is collection and collection nr"
+            android:summary="show Collection nr to connect data to the physical specimen"
+            android:defaultValue="true" />
+
+        <EditTextPreference
+            android:key="last_specimen_number"
+            android:title="Next Specimen Number"
+            android:defaultValue="1"
+            android:summary="Manually set the next number to be used"
+            android:dialogTitle="Set Next Number"
+            android:selectAllOnFocus="true"
+            android:inputType="number" />
 
     </PreferenceCategory>
 
