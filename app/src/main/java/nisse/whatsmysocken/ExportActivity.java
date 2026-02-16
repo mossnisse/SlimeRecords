@@ -1,6 +1,8 @@
 package nisse.whatsmysocken;
 
+import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -21,13 +23,13 @@ public class ExportActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // 1. Initialize Binding
+        // Initialize Binding
         binding = ActivityExportBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
         viewModel = new ViewModelProvider(this).get(LocationViewModel.class);
 
-        // 2. Observe Location Count
+        // Observe Location Count
         viewModel.getLocationCount().observe(this, count -> {
             this.currentLocationCount = (count != null) ? count : 0;
             if (currentState == LocationViewModel.ExportState.IDLE) {
@@ -35,15 +37,26 @@ public class ExportActivity extends AppCompatActivity {
             }
         });
 
-        // 3. Observe Export Status
+        // Observe Export Status
         disposables.add(viewModel.getExportStatus()
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(state -> {
                     this.currentState = state;
                     updateUiForState(state);
+
+                    // Trigger sharing only when we hit SUCCESS
+                    if (state == LocationViewModel.ExportState.SUCCESS) {
+                        Uri lastUri = viewModel.getLastExportUri();
+                        if (lastUri != null) {
+                            viewModel.shareExportedZip(this, lastUri);
+                        }
+                    }
+                }, throwable -> {
+                    Log.e("Export", "Error: " + throwable.getMessage());
+                    updateUiForState(LocationViewModel.ExportState.ERROR);
                 }));
 
-        // 4. Set Click Listener
+        // Set Click Listener
         binding.btnStartUsbExport.setOnClickListener(v -> {
             if (currentLocationCount > 0) {
                 viewModel.startExport();
@@ -51,6 +64,20 @@ public class ExportActivity extends AppCompatActivity {
                 Toast.makeText(this, "No data to export", Toast.LENGTH_SHORT).show();
             }
         });
+
+        disposables.add(viewModel.getExportStatus()
+                .observeOn(AndroidSchedulers.mainThread()) // Ensure UI work happens on the main thread
+                .subscribe(state -> {
+                            if (state == LocationViewModel.ExportState.SUCCESS) {
+                                Uri lastUri = viewModel.getLastExportUri();
+                                if (lastUri != null) {
+                                    viewModel.shareExportedZip(this, lastUri);
+                                }
+                            }
+                        }, throwable ->
+                                Log.e("Export", "Error: " + throwable.getMessage())
+                )
+        );
     }
 
     private void updateUiForState(LocationViewModel.ExportState state) {

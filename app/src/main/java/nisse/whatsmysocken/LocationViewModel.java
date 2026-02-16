@@ -38,6 +38,7 @@ import nisse.whatsmysocken.data.PhotoRecord;
 import nisse.whatsmysocken.data.RecentCollector;
 import nisse.whatsmysocken.data.SpatialResolver;
 import nisse.whatsmysocken.data.UserDatabase;
+import android.content.Intent;
 
 public class LocationViewModel extends AndroidViewModel {
     private final LocationDao locationDao;
@@ -50,6 +51,7 @@ public class LocationViewModel extends AndroidViewModel {
     private final BehaviorSubject<ExportState> exportStatus = BehaviorSubject.createDefault(ExportState.IDLE);
     public enum ExportState { IDLE, LOADING, SUCCESS, ERROR }
     private final CompositeDisposable disposables = new CompositeDisposable();
+    private Uri lastExportUri;
 
     public LocationViewModel(@NonNull Application application) {
         super(application);
@@ -126,9 +128,9 @@ public class LocationViewModel extends AndroidViewModel {
 
     public void updateRecentCollector(String name) {
         if (name == null || name.trim().isEmpty()) return;
-        UserDatabase.getDbExecutor().execute(() -> {
-            locationDao.insertRecentCollector(new RecentCollector(name.trim(), System.currentTimeMillis()));
-        });
+        UserDatabase.getDbExecutor().execute(() ->
+            locationDao.insertRecentCollector(new RecentCollector(name.trim(), System.currentTimeMillis()))
+        );
     }
 
     // --- Export Logic ---
@@ -156,22 +158,34 @@ public class LocationViewModel extends AndroidViewModel {
         disposables.add(
                 Observable.create(emitter -> {
                             Uri uri = context.getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
-                            if (uri == null) { emitter.onError(new IOException("MediaStore URI failed")); return; }
+                            if (uri == null) { emitter.onError(new IOException("MediaStore failed")); return; }
 
-                            // Using try-with-resources for the main streams
                             try (OutputStream os = context.getContentResolver().openOutputStream(uri);
                                  ZipOutputStream zos = new ZipOutputStream(os)) {
 
                                 // --- PHASE 1: CSV ---
                                 zos.putNextEntry(new ZipEntry("data.csv"));
-                                String header = "ID,Latitude,Longitude,Accuracy,Time,Note,Photo_Filenames\n";
+                                String header = "ID,Latitude,Longitude,Accuracy,Time,Species,Substrate,Collector,Locality,IsSpecimen,SpecimenNr,Note,Photo_Filenames\n";
                                 zos.write(header.getBytes(StandardCharsets.UTF_8));
 
                                 try (Cursor cursor = locationDao.getAllLocationsCursor()) {
                                     if (cursor != null && cursor.moveToFirst()) {
+                                        //com.google.gson.Gson gson = new com.google.gson.Gson();
                                         do {
                                             LocationRecord record = cursorToLocation(cursor);
                                             List<PhotoRecord> photos = locationDao.getPhotosForLocationSync(record.id);
+
+                                            String species = "", substrate = "", collector = "", locality = "", specNr = "";
+                                            boolean isSpecimen = false;
+
+                                            if (record.attributes != null) {
+                                                species = record.attributes.species != null ? record.attributes.species : "";
+                                                substrate = record.attributes.substrate != null ? record.attributes.substrate : "";
+                                                collector = record.attributes.collector != null ? record.attributes.collector : "";
+                                                locality = record.attributes.localityDescription != null ? record.attributes.localityDescription : "";
+                                                isSpecimen = record.attributes.isSpecimen;
+                                                specNr = record.attributes.specimenNr != null ? record.attributes.specimenNr : "";
+                                            }
 
                                             String filenames = "";
                                             if (photos != null && !photos.isEmpty()) {
@@ -184,14 +198,21 @@ public class LocationViewModel extends AndroidViewModel {
                                             }
 
                                             String escapedNote = record.note != null ? record.note.replace("\"", "\"\"") : "";
+                                            String escapedLocality = locality.replace("\"", "\"\"");
                                             int wholeAccuracy = (int) Math.ceil(record.accuracy);
 
-                                            String line = String.format(Locale.US, "%d,%.6f,%.6f,%d,\"%s\",\"%s\",\"%s\"\n",
+                                            String line = String.format(Locale.US, "%d,%.6f,%.6f,%d,\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",%b,\"%s\",\"%s\",\"%s\"\n",
                                                     record.id,
                                                     record.latitude,
                                                     record.longitude,
-                                                    wholeAccuracy, // Now a whole number
+                                                    wholeAccuracy,
                                                     record.localTime,
+                                                    species,
+                                                    substrate,
+                                                    collector,
+                                                    escapedLocality,
+                                                    isSpecimen,
+                                                    specNr,
                                                     escapedNote,
                                                     filenames);
 
@@ -216,10 +237,16 @@ public class LocationViewModel extends AndroidViewModel {
                                     }
                                 }
 
-                                zos.finish(); // CRITICAL: Finalizes the ZIP structure
+                                zos.finish();
                                 zos.flush();
-                                emitter.onNext(true);
+                                zos.close();
 
+                                values.clear();
+                                values.put(MediaStore.MediaColumns.IS_PENDING, 0);
+                                context.getContentResolver().update(uri, values, null, null);
+
+                                // Emit ONLY the URI
+                                emitter.onNext(uri);
                             } catch (Exception e) {
                                 context.getContentResolver().delete(uri, null, null);
                                 emitter.onError(e);
@@ -229,8 +256,13 @@ public class LocationViewModel extends AndroidViewModel {
                         .subscribeOn(Schedulers.io())
                         .observeOn(AndroidSchedulers.mainThread())
                         .subscribe(
-                                success -> {
-                                    // Tell the system a new file is available for other apps/PC to see
+                                result -> {
+                                    // Save the URI so the Activity can grab it
+                                    if (result instanceof Uri) {
+                                        this.lastExportUri = (Uri) result;
+                                    }
+
+                                    // Refresh MediaScanner so file shows up on PC immediately
                                     android.media.MediaScannerConnection.scanFile(getApplication(),
                                             new String[]{ Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).toString() },
                                             null, null);
@@ -254,8 +286,13 @@ public class LocationViewModel extends AndroidViewModel {
         record.accuracy = cursor.getFloat(cursor.getColumnIndexOrThrow("accuracy"));
         record.localTime = cursor.getString(cursor.getColumnIndexOrThrow("localTime"));
         record.note = cursor.getString(cursor.getColumnIndexOrThrow("note"));
-        // If you added the JSON bag column, include it here:
-        // record.additionalDataJson = cursor.getString(cursor.getColumnIndexOrThrow("additionalDataJson"));
+
+        // NEW: Load the attributes JSON string and convert it back to an object
+        String attrJson = cursor.getString(cursor.getColumnIndexOrThrow("attributes"));
+        if (attrJson != null) {
+            record.attributes = new com.google.gson.Gson().fromJson(attrJson, nisse.whatsmysocken.data.SpeciesAttributes.class);
+        }
+
         return record;
     }
 
@@ -277,6 +314,21 @@ public class LocationViewModel extends AndroidViewModel {
         zos.closeEntry();
     }
 
+    public void shareExportedZip(Context context, Uri zipUri) {
+        Intent intent = new Intent(Intent.ACTION_SEND);
+        intent.setType("application/zip");
+        intent.putExtra(Intent.EXTRA_STREAM, zipUri);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION); // Critical for security
+
+        // Optional: Pre-fill email subject
+        intent.putExtra(Intent.EXTRA_SUBJECT, "WhatsMySocken Export: " + System.currentTimeMillis());
+
+        context.startActivity(Intent.createChooser(intent, "Share Export via..."));
+    }
+
+    public Uri getLastExportUri() {
+        return lastExportUri;
+    }
     @Override
     protected void onCleared() {
         super.onCleared();
