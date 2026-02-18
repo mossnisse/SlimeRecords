@@ -30,6 +30,7 @@ import nisse.whatsmysocken.databinding.ActivityLocationDetailBinding;
 public class LocationDetailActivity extends AppCompatActivity {
     private double lat, lon;
     private float accuracy;
+    private double altitude;
     private boolean isNew, isSaved = false;
     private ActivityLocationDetailBinding binding; // ViewBinding object
     private String currentPhotoPath;
@@ -107,6 +108,8 @@ public class LocationDetailActivity extends AppCompatActivity {
         binding.inputSpecies.setVisibility(showSpecies ? View.VISIBLE : View.GONE);
         boolean showSubstrate = prefs.getBoolean("show_substrate_field", true);
         binding.inputSubstrate.setVisibility(showSubstrate ? View.VISIBLE : View.GONE);
+        boolean showHabitat = prefs.getBoolean("show_habitat_field", true);
+        binding.inputHabitat.setVisibility(showHabitat ? View.VISIBLE : View.GONE);
         boolean showCollector = prefs.getBoolean("show_collector_field", true);
         binding.inputCollector.setVisibility(showCollector ? View.VISIBLE : View.GONE);
         boolean showLocality = prefs.getBoolean( "show_locality_description", true);
@@ -121,15 +124,7 @@ public class LocationDetailActivity extends AppCompatActivity {
             binding.tvSpecimenNr.setVisibility(isChecked ? View.VISIBLE : View.GONE);
 
             if (isNew && isChecked) {
-                // Settings store it as a String, but our code might have stored it as an Int.
-                // This helper handles both to prevent crashes.
-                String nextNrStr = "";
-                try {
-                    nextNrStr = prefs.getString("last_specimen_number", "1");
-                } catch (ClassCastException e) {
-                    // If it was saved as an int previously, convert it
-                    nextNrStr = String.valueOf(prefs.getInt("last_specimen_number", 1));
-                }
+                String nextNrStr = prefs.getString("last_specimen_number", "1");
                 binding.tvSpecimenNr.setText("No: " + nextNrStr);
             }
         });
@@ -169,6 +164,7 @@ public class LocationDetailActivity extends AppCompatActivity {
         lat = getIntent().getDoubleExtra("lat", 0);
         lon = getIntent().getDoubleExtra("lon", 0);
         accuracy = getIntent().getFloatExtra("acc", 0);
+        altitude = getIntent().getDoubleExtra("altitude", 0);
         triggerSpatialLookups();
         refreshCoordinateDisplay();
     }
@@ -186,6 +182,7 @@ public class LocationDetailActivity extends AppCompatActivity {
             lat = currentRecord.latitude;
             lon = currentRecord.longitude;
             accuracy = currentRecord.accuracy;
+            altitude = currentRecord.altitude;
 
             // Set General Note
             binding.detailNoteInput.setText(currentRecord.note);
@@ -194,6 +191,7 @@ public class LocationDetailActivity extends AppCompatActivity {
             if (currentRecord.attributes != null) {
                 binding.inputSpecies.setText(currentRecord.attributes.species);
                 binding.inputSubstrate.setText(currentRecord.attributes.substrate);
+                binding.inputHabitat.setText(currentRecord.attributes.habitat);
                 binding.inputCollector.setText(currentRecord.attributes.collector);
                 binding.inputLocality.setText(currentRecord.attributes.localityDescription);
                 binding.checkboxIsSpecimen.setChecked(currentRecord.attributes.isSpecimen);
@@ -234,6 +232,10 @@ public class LocationDetailActivity extends AppCompatActivity {
             attrs.substrate = binding.inputSubstrate.getText().toString();
         }
 
+        if (prefs.getBoolean("show_habitat_field", true)) {
+            attrs.habitat = binding.inputHabitat.getText().toString();
+        }
+
         String collector;
         boolean isCollectorVisible = PreferenceManager.getDefaultSharedPreferences(this)
                 .getBoolean("show_collector_field", true);
@@ -269,7 +271,7 @@ public class LocationDetailActivity extends AppCompatActivity {
             String localTime = java.time.LocalDateTime.now().format(
                     java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
-            LocationRecord record = new LocationRecord(lat, lon, System.currentTimeMillis(), accuracy, localTime, noteText);
+            LocationRecord record = new LocationRecord(lat, lon, altitude, System.currentTimeMillis(), accuracy, localTime, noteText);
             record.attributes = attrs;
             viewModel.saveLocationWithPhotos(record, tempPhotoPaths);
         } else if (currentRecord != null) {
@@ -305,11 +307,13 @@ public class LocationDetailActivity extends AppCompatActivity {
         StringBuilder sb = new StringBuilder();
         sb.append("Accuracy: ").append((int) Math.ceil(accuracy)).append("m\n");
 
+        if(prefs.getBoolean("show_altitude", true)) {
+            sb.append("Altitude: ").append(Math.round(altitude)).append(" m\n");
+        }
         DecimalFormat dc = new DecimalFormat("0.00000");
         if (prefs.getBoolean("show_wgs84", true)) {
             sb.append("WGS84: ").append(dc.format(lat)).append(", ").append(dc.format(lon)).append("\n");
         }
-
         Coordinates here = new Coordinates(lat, lon);
         if (prefs.getBoolean("show_rt90", true)) {
             Coordinates rt90 = here.convertToRT90FromWGS84();

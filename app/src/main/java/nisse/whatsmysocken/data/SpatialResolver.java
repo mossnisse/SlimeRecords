@@ -71,29 +71,31 @@ public class SpatialResolver implements AutoCloseable {
     }
 
     public String getRegionName(int n, int e, boolean isDistrict) {
-        try {
-            FileChannel channel = getChannel(isDistrict);
-            long baseOffset = isDistrict ? districtBaseOffset : provinceBaseOffset;
+        synchronized (this) {
+            try {
+                FileChannel channel = getChannel(isDistrict);
+                long baseOffset = isDistrict ? districtBaseOffset : provinceBaseOffset;
 
-            // Query Room for bounding-box candidates
-            List<? extends BaseGeometry> candidates = isDistrict ?
-                    spatialDao.findDistrictCandidates(n, e) : spatialDao.findProvinceCandidates(n, e);
+                // Query Room for bounding-box candidates
+                List<? extends BaseGeometry> candidates = isDistrict ?
+                        spatialDao.findDistrictCandidates(n, e) : spatialDao.findProvinceCandidates(n, e);
 
-            if (candidates.isEmpty()) return isDistrict ? "Outside Districts" : "Not Found";
+                if (candidates.isEmpty()) return isDistrict ? "Outside Districts" : "Not Found";
 
-            int id = resolveId(n, e, candidates, channel, baseOffset);
-            if (id == -1) return isDistrict ? "Outside Districts" : "Not Found";
+                int id = resolveId(n, e, candidates, channel, baseOffset);
+                if (id == -1) return isDistrict ? "Outside Districts" : "Not Found";
 
-            if (isDistrict) {
-                DistrictEntity d = spatialDao.getDistrictById(id);
-                return (d != null) ? d.name : "Unknown District";
-            } else {
-                ProvinceEntity p = spatialDao.getProvinceById(id);
-                return (p != null) ? p.name : "Unknown Province";
+                if (isDistrict) {
+                    DistrictEntity d = spatialDao.getDistrictById(id);
+                    return (d != null) ? d.name : "Unknown District";
+                } else {
+                    ProvinceEntity p = spatialDao.getProvinceById(id);
+                    return (p != null) ? p.name : "Unknown Province";
+                }
+            } catch (IOException ex) {
+                Log.e("SpatialResolver", "Binary read error for " + (isDistrict ? "districts" : "provinces"), ex);
+                return "Read Error";
             }
-        } catch (IOException ex) {
-            Log.e("SpatialResolver", "Binary read error for " + (isDistrict ? "districts" : "provinces"), ex);
-            return "Read Error";
         }
     }
 
@@ -157,7 +159,8 @@ public class SpatialResolver implements AutoCloseable {
                 // Nulling these out forces getChannel to re-init next time
                 provinceChannel = null;
                 districtChannel = null;
-                instance = null;
+                provinceStream = null;
+                districtStream = null;
             }
         }
     }

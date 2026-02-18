@@ -37,6 +37,14 @@
             android:hint="Substrate"
             android:inputType="textCapSentences" />
 
+        <EditText
+            android:id="@+id/input_habitat"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="18sp"
+            android:hint="Habitat/Biotope"
+            android:inputType="textCapSentences" />
+
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/layout_collector"

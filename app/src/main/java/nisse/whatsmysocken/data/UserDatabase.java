@@ -11,7 +11,7 @@ import java.util.concurrent.Executors;
 
 import nisse.whatsmysocken.Converters;
 
-@Database(entities = {LocationRecord.class, PhotoRecord.class, RecentCollector.class}, version = 7, exportSchema = false)
+@Database(entities = {LocationRecord.class, PhotoRecord.class, RecentCollector.class}, version = 1, exportSchema = false)
 @TypeConverters({Converters.class}) // Add this line
 public abstract class UserDatabase extends RoomDatabase {
 

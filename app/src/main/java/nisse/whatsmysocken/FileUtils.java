@@ -2,7 +2,6 @@ package nisse.whatsmysocken;
 
 import java.io.File;
 import android.util.Log;
-import java.util.List;
 
 public class FileUtils {
     public static void deleteFileAtPath(String path) {

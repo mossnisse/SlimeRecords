@@ -5,6 +5,12 @@
 
     <PreferenceCategory android:title="Coordinate Display">
         <CheckBoxPreference
+            android:key="show_altitude"
+            android:title="Altitude"
+            android:summary="Show altitude, meters above sea level"
+            android:defaultValue="true" />
+
+        <CheckBoxPreference
             android:key="show_wgs84"
             android:title="WGS84"
             android:summary="Show Latitude/Longitude"
@@ -65,6 +71,12 @@
             android:key="show_substrate_field"
             android:title="Substrate"
             android:summary="Show field for the substrate"
+            android:defaultValue="true" />
+
+        <CheckBoxPreference
+            android:key="show_habitat_field"
+            android:title="Habitat"
+            android:summary="Show field for habitat/biotope"
             android:defaultValue="true" />
 
         <CheckBoxPreference

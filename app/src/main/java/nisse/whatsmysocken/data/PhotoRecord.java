@@ -1,5 +1,6 @@
 package nisse.whatsmysocken.data;
 
+import androidx.annotation.NonNull;
 import androidx.room.Entity;
 import androidx.room.ForeignKey;
 import androidx.room.Index;
@@ -19,9 +20,10 @@ public class PhotoRecord {
     @PrimaryKey(autoGenerate = true)
     public int id;
     public long locationId; // Links to the LocationRecord
+    @NonNull
     public String filePath;
 
-    public PhotoRecord(long locationId, String filePath) {
+    public PhotoRecord(long locationId, @NonNull String filePath) {
         this.locationId = locationId;
         this.filePath = filePath;
     }

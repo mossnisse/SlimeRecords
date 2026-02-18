@@ -62,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
                 if (isGranted) {
                     checkLocationSettings();
                 } else {
-                    binding.ctextview.setText("Permission denied. Cannot search.");
+                    if (binding != null) { binding.ctextview.setText("Permission denied. Cannot search.");}
                 }
             });
 
@@ -174,7 +174,7 @@ public class MainActivity extends AppCompatActivity {
     private void startLocationUpdates() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) return;
         isSearching = true;
-        viewModel.setCurrentBestLocation(null);
+        //viewModel.setCurrentBestLocation(null);
 
         // Concise view updates
         binding.checkButton.setText("STOP");
@@ -195,9 +195,12 @@ public class MainActivity extends AppCompatActivity {
                 Location location = result.getLastLocation();
                 if (location == null) return;
 
-                if (viewModel.getCurrentBestLocation() == null ||
-                        location.getAccuracy() < viewModel.getCurrentBestLocation().getAccuracy()) {
-                    viewModel.setCurrentBestLocation(location);
+                Location bestSoFar = viewModel.getCurrentBestLocation();
+
+                // Check if this is our first location OR if the new one is more accurate
+                if (bestSoFar == null || location.getAccuracy() < bestSoFar.getAccuracy()) {
+                    viewModel.setCurrentBestLocation(location); // This is now thread-safe
+
                     int acc = (int) Math.ceil(location.getAccuracy());
                     binding.ctextview.setText("Accuracy: " + acc + "m\nPress STOP when precision is sufficient.");
                 }
@@ -223,6 +226,7 @@ public class MainActivity extends AppCompatActivity {
             intent.putExtra("lat", best.getLatitude());
             intent.putExtra("lon", best.getLongitude());
             intent.putExtra("acc", best.getAccuracy());
+            intent.putExtra("altitude", best.getAltitude());
             intent.putExtra("is_new", true);
             startActivity(intent);
         } else if (shouldTransition) { // shouldTransition is true but best is null

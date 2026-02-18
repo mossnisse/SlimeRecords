@@ -6,6 +6,7 @@ import java.util.Map;
 public class SpeciesAttributes {
     public String species;
     public String substrate;
+    public String habitat;
     public String collector;
     public String specimenNr;
     public String localityDescription;

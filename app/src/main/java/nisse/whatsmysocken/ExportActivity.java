@@ -43,14 +43,14 @@ public class ExportActivity extends AppCompatActivity {
                 .subscribe(state -> {
                     this.currentState = state;
                     updateUiForState(state);
-
+                    /*
                     // Trigger sharing only when we hit SUCCESS
                     if (state == LocationViewModel.ExportState.SUCCESS) {
                         Uri lastUri = viewModel.getLastExportUri();
                         if (lastUri != null) {
                             viewModel.shareExportedZip(this, lastUri);
                         }
-                    }
+                    }*/
                 }, throwable -> {
                     Log.e("Export", "Error: " + throwable.getMessage());
                     updateUiForState(LocationViewModel.ExportState.ERROR);
@@ -64,20 +64,6 @@ public class ExportActivity extends AppCompatActivity {
                 Toast.makeText(this, "No data to export", Toast.LENGTH_SHORT).show();
             }
         });
-
-        disposables.add(viewModel.getExportStatus()
-                .observeOn(AndroidSchedulers.mainThread()) // Ensure UI work happens on the main thread
-                .subscribe(state -> {
-                            if (state == LocationViewModel.ExportState.SUCCESS) {
-                                Uri lastUri = viewModel.getLastExportUri();
-                                if (lastUri != null) {
-                                    viewModel.shareExportedZip(this, lastUri);
-                                }
-                            }
-                        }, throwable ->
-                                Log.e("Export", "Error: " + throwable.getMessage())
-                )
-        );
     }
 
     private void updateUiForState(LocationViewModel.ExportState state) {
@@ -86,20 +72,24 @@ public class ExportActivity extends AppCompatActivity {
         // Access views directly via binding
         binding.btnStartUsbExport.setEnabled(!isLoading);
         binding.exportProgress.setVisibility(isLoading ? View.VISIBLE : View.GONE);
+        binding.btnShareExport.setVisibility(state == LocationViewModel.ExportState.SUCCESS ? View.VISIBLE : View.GONE);
 
         switch (state) {
-            case IDLE:
+            case IDLE ->
                 binding.tvExportStatus.setText(getString(R.string.export_ready_format, currentLocationCount));
-                break;
-            case LOADING:
+            case LOADING ->
                 binding.tvExportStatus.setText("Zipping files... you can leave this screen.");
-                break;
-            case SUCCESS:
+            case SUCCESS -> {
                 binding.tvExportStatus.setText("Export Complete! Check 'Downloads'.");
-                break;
-            case ERROR:
+                binding.btnShareExport.setOnClickListener(v -> {
+                    Uri lastUri = viewModel.getLastExportUri();
+                    if (lastUri != null) {
+                        viewModel.shareExportedZip(this, lastUri);
+                    }
+                });
+            }
+            case ERROR ->
                 binding.tvExportStatus.setText("Export Failed. Please try again.");
-                break;
         }
     }
 

@@ -1,7 +1,5 @@
 package nisse.whatsmysocken.data;
 
-import android.database.Cursor;
-
 import androidx.lifecycle.LiveData;
 import androidx.paging.PagingSource;
 import androidx.room.Dao;
@@ -54,15 +52,13 @@ public abstract class LocationDao {
     @Query("SELECT COUNT(*) FROM location_table")
     public abstract LiveData<Integer> getLocationCount();
 
-    @Query("SELECT * FROM location_table")
-    public abstract Cursor getAllLocationsCursor();
-
-    @Query("SELECT * FROM photo_table WHERE locationId = :locId")
-    public abstract List<PhotoRecord> getPhotosForLocationSync(long locId);
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     public abstract void insertRecentCollector(RecentCollector collector);
 
     @Query("SELECT name FROM recent_collectors ORDER BY lastUsed DESC LIMIT 5")
     public abstract LiveData<List<String>> getRecentCollectorNames();
+
+    @Transaction
+    @Query("SELECT * FROM location_table ORDER BY timestamp DESC")
+   public abstract List<LocationWithPhotos> getAllLocationsWithPhotosSync();
 }
