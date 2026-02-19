@@ -10,6 +10,8 @@ import androidx.room.Query;
 import androidx.room.Transaction;
 import androidx.room.Update;
 import java.util.List;
+
+import io.reactivex.rxjava3.core.Flowable;
 import nisse.whatsmysocken.LocationWithPhotos;
 
 @Dao
@@ -60,5 +62,7 @@ public abstract class LocationDao {
 
     @Transaction
     @Query("SELECT * FROM location_table ORDER BY timestamp DESC")
-   public abstract List<LocationWithPhotos> getAllLocationsWithPhotosSync();
+    public abstract List<LocationWithPhotos> getAllLocationsWithPhotosSync();
+    @Query("SELECT * FROM location_table WHERE attributes LIKE '%\"isSpecimen\":true%'")
+    public abstract Flowable<List<LocationRecord>> getSpecimenLocations();
 }

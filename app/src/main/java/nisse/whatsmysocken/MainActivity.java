@@ -52,6 +52,10 @@ public class MainActivity extends AppCompatActivity {
             startActivity(new Intent(this, HistoryActivity.class));
         } else if (id == R.id.action_export) {
             startActivity(new Intent(this, ExportActivity.class));
+        } else if (id == R.id.action_import) {
+            startActivity(new Intent(this, ImportActivity.class));
+        } else if (id == R.id.action_print) {
+            startActivity(new Intent(this, PrintActivity.class));
         }
         return super.onOptionsItemSelected(item);
     }

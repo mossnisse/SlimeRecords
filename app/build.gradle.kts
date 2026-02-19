@@ -62,6 +62,7 @@ dependencies {
     annotationProcessor("androidx.room:room-compiler:$roomVersion")
     implementation("androidx.room:room-paging:$roomVersion")
     implementation("androidx.room:room-common:$roomVersion")
+    implementation("androidx.room:room-rxjava3:$roomVersion")
 
     // RxJava
     implementation("io.reactivex.rxjava3:rxandroid:3.0.2")

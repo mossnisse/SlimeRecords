@@ -21,6 +21,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.zip.ZipEntry;
@@ -287,4 +288,18 @@ public class LocationViewModel extends AndroidViewModel {
     }
 
     public Observable<ExportState> getExportStatus() { return exportStatus; }
+
+    public Flowable<List<LocationWithPhotos>> getSpecimenLocationsWithPhotos() {
+        return locationDao.getSpecimenLocations()
+                .map(records -> {
+                    List<LocationWithPhotos> result = new ArrayList<>();
+                    for (LocationRecord record : records) {
+                        LocationWithPhotos item = new LocationWithPhotos();
+                        item.location = record;
+                        item.photos = new ArrayList<>(); // Initialize empty list
+                        result.add(item);
+                    }
+                    return result;
+                });
+    }
 }

@@ -58,10 +58,25 @@
             android:exported="false"
             android:parentActivityName="nisse.whatsmysocken.MainActivity">
         </activity>
+
         <activity
             android:name="nisse.whatsmysocken.ExportActivity"
             android:exported="false"
             android:label="Export Data"
+            android:parentActivityName="nisse.whatsmysocken.MainActivity">
+        </activity>
+
+        <activity
+            android:name="nisse.whatsmysocken.ImportActivity"
+            android:exported="false"
+            android:label="Import Data"
+            android:parentActivityName="nisse.whatsmysocken.MainActivity">
+        </activity>
+
+        <activity
+            android:name="nisse.whatsmysocken.PrintActivity"
+            android:exported="false"
+            android:label="Print Labels"
             android:parentActivityName="nisse.whatsmysocken.MainActivity">
         </activity>
 
