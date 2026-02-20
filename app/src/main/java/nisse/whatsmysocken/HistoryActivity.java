@@ -3,17 +3,14 @@ package nisse.whatsmysocken;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
-
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-// Note: No RxJava imports needed anymore!
-
 public class HistoryActivity extends AppCompatActivity {
     private LocationAdapter adapter;
-    private LocationViewModel viewModel;
+    private HistoryViewModel viewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,7 +25,7 @@ public class HistoryActivity extends AppCompatActivity {
         recyclerView.setAdapter(adapter);
 
         // Setup ViewModel
-        viewModel = new ViewModelProvider(this).get(LocationViewModel.class);
+        viewModel = new ViewModelProvider(this).get(HistoryViewModel.class);
 
         // Observe the Paging LiveData (Untangled)
         viewModel.historyLiveData.observe(this, pagingData ->

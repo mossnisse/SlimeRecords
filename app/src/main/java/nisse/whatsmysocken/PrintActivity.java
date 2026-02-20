@@ -14,19 +14,21 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import nisse.whatsmysocken.data.LocationRecord;
 import nisse.whatsmysocken.data.UserDatabase;
 import nisse.whatsmysocken.databinding.ActivityPrintBinding;
 
 public class PrintActivity extends AppCompatActivity {
-    private LocationViewModel viewModel;
+    private ExportViewModel exportViewModel;
+    private ActivityPrintBinding binding;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        ActivityPrintBinding binding = ActivityPrintBinding.inflate(getLayoutInflater());
+        binding = ActivityPrintBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        viewModel = new ViewModelProvider(this).get(LocationViewModel.class);
+        exportViewModel = new ViewModelProvider(this).get(ExportViewModel.class);
 
         // Standard Save
         binding.btnGenerateLabel.setOnClickListener(v -> exportSpecimenLabels(false));
@@ -38,11 +40,13 @@ public class PrintActivity extends AppCompatActivity {
     private void exportSpecimenLabels(boolean shouldShare) {
         // Since getSpecimenLocationsWithPhotos is LiveData, we can get its current value
         // or observe it once. For button clicks, we often just want the current state.
-        viewModel.getSpecimenLocationsWithPhotos().observe(this, new androidx.lifecycle.Observer<List<LocationWithPhotos>>() {
+        binding.btnGenerateLabel.setEnabled(false);
+        binding.btnShareLabel.setEnabled(false);
+        exportViewModel.getSpecimenLocations().observe(this, new androidx.lifecycle.Observer<List<LocationRecord>>() {
             @Override
-            public void onChanged(List<LocationWithPhotos> list) {
+            public void onChanged(List<LocationRecord> list) {
                 // Remove observer immediately so it only runs once per click
-                viewModel.getSpecimenLocationsWithPhotos().removeObserver(this);
+                exportViewModel.getSpecimenLocations().removeObserver(this);
 
                 if (list == null || list.isEmpty()) {
                     Toast.makeText(PrintActivity.this, "No specimens found!", Toast.LENGTH_SHORT).show();
@@ -63,6 +67,8 @@ public class PrintActivity extends AppCompatActivity {
                         } else {
                             Toast.makeText(PrintActivity.this, "Labels saved to Downloads", Toast.LENGTH_LONG).show();
                         }
+                        binding.btnGenerateLabel.setEnabled(true);
+                        binding.btnShareLabel.setEnabled(true);
                     });
                 });
             }
@@ -94,6 +100,8 @@ public class PrintActivity extends AppCompatActivity {
         Intent intent = new Intent(Intent.ACTION_SEND);
         intent.setType("text/html");
         intent.putExtra(Intent.EXTRA_STREAM, uri);
+        // Good practice: Add a subject line for email shares
+        intent.putExtra(Intent.EXTRA_SUBJECT, "Specimen Labels Export");
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         startActivity(Intent.createChooser(intent, "Share Specimen Labels"));
     }
@@ -101,6 +109,6 @@ public class PrintActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // No more disposables to clear!
+        binding = null;
     }
 }

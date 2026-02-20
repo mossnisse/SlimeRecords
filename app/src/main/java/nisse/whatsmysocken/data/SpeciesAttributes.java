@@ -2,6 +2,7 @@ package nisse.whatsmysocken.data;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class SpeciesAttributes {
     public String species;
@@ -10,8 +11,29 @@ public class SpeciesAttributes {
     public String collector;
     public String specimenNr;
     public String localityDescription;
-    public boolean isSpecimen; // true = collection/specimen, false = observation
+    public boolean isSpecimen;
 
-    // Optional: a map for any additional "unexpected" fields
     public Map<String, String> extraData = new HashMap<>();
+
+    // Standard equals implementation for DiffUtil to work correctly
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        SpeciesAttributes that = (SpeciesAttributes) o;
+        return isSpecimen == that.isSpecimen &&
+                Objects.equals(species, that.species) &&
+                Objects.equals(substrate, that.substrate) &&
+                Objects.equals(habitat, that.habitat) &&
+                Objects.equals(collector, that.collector) &&
+                Objects.equals(specimenNr, that.specimenNr) &&
+                Objects.equals(localityDescription, that.localityDescription) &&
+                Objects.equals(extraData, that.extraData);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(species, substrate, habitat, collector,
+                specimenNr, localityDescription, isSpecimen, extraData);
+    }
 }

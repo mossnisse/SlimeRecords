@@ -11,7 +11,7 @@ import nisse.whatsmysocken.databinding.ActivityExportBinding;
 
 public class ExportActivity extends AppCompatActivity {
     private ActivityExportBinding binding;
-    private LocationViewModel viewModel;
+    private ExportViewModel exportViewModel;
     private int currentLocationCount = 0;
 
     @Override
@@ -20,35 +20,36 @@ public class ExportActivity extends AppCompatActivity {
         binding = ActivityExportBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        viewModel = new ViewModelProvider(this).get(LocationViewModel.class);
+        exportViewModel = new ViewModelProvider(this).get(ExportViewModel.class);
 
-        // 1. Observe Export Status
-        viewModel.getExportStatus().observe(this, state -> {
+        // Observe Export Status
+        exportViewModel.getExportStatus().observe(this, state -> {
             if (state == null) return;
             updateUiForState(state);
         });
 
-        // 2. Observe Item Count
-        viewModel.getLocationCount().observe(this, count -> {
+        HistoryViewModel historyViewModel = new ViewModelProvider(this).get(HistoryViewModel.class);
+        // Observe Item Count
+        historyViewModel.getLocationCount().observe(this, count -> {
             this.currentLocationCount = (count != null) ? count : 0;
             // Only update status text if we are idle
-            if (viewModel.getExportStatus().getValue() == LocationViewModel.ExportState.IDLE) {
+            if (exportViewModel.getExportStatus().getValue() == ExportViewModel.ExportState.IDLE) {
                 binding.tvExportStatus.setText(getString(R.string.export_ready_format, currentLocationCount));
             }
         });
 
-        // 3. Start Export Button
+        // Start Export Button
         binding.btnStartUsbExport.setOnClickListener(v -> {
             if (currentLocationCount > 0) {
-                viewModel.startExport();
+                exportViewModel.startExport();
             } else {
                 Toast.makeText(this, "No data to export", Toast.LENGTH_SHORT).show();
             }
         });
 
-        // 4. Share Button (The logic you mentioned)
+        // Share Button (The logic you mentioned)
         binding.btnShareExport.setOnClickListener(v -> {
-            Uri zipUri = viewModel.getLastExportUri();
+            Uri zipUri = exportViewModel.getLastExportUri();
             if (zipUri != null) {
                 shareZip(zipUri);
             } else {
@@ -57,14 +58,14 @@ public class ExportActivity extends AppCompatActivity {
         });
     }
 
-    private void updateUiForState(LocationViewModel.ExportState state) {
-        boolean isLoading = (state == LocationViewModel.ExportState.LOADING);
+    private void updateUiForState(ExportViewModel.ExportState state) {
+        boolean isLoading = (state == ExportViewModel.ExportState.LOADING);
 
         binding.btnStartUsbExport.setEnabled(!isLoading);
         binding.exportProgress.setVisibility(isLoading ? View.VISIBLE : View.GONE);
 
         // Only show share button if export was successful
-        binding.btnShareExport.setVisibility(state == LocationViewModel.ExportState.SUCCESS ? View.VISIBLE : View.GONE);
+        binding.btnShareExport.setVisibility(state == ExportViewModel.ExportState.SUCCESS ? View.VISIBLE : View.GONE);
 
         switch (state) {
             case IDLE -> binding.tvExportStatus.setText(getString(R.string.export_ready_format, currentLocationCount));
@@ -74,9 +75,6 @@ public class ExportActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * The Share Logic kept in the Activity
-     */
     private void shareZip(Uri zipUri) {
         Intent intent = new Intent(Intent.ACTION_SEND);
         intent.setType("application/zip");

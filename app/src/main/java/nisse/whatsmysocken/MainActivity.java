@@ -28,7 +28,7 @@ import nisse.whatsmysocken.databinding.ActivityMainBinding;
 
 public class MainActivity extends AppCompatActivity {
     private ActivityMainBinding binding;
-    private LocationViewModel viewModel;
+    private SearchViewModel viewModel;
     private FusedLocationProviderClient fusedClient;
     private LocationRequest locationRequest;
     private LocationCallback locationCallback;
@@ -62,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        viewModel = new ViewModelProvider(this).get(LocationViewModel.class);
+        viewModel = new ViewModelProvider(this).get(SearchViewModel.class);
         setSupportActionBar(binding.myToolbar);
 
         // setupLocationLogic
@@ -105,13 +105,15 @@ public class MainActivity extends AppCompatActivity {
         // setupButton
         binding.checkButton.setOnClickListener(v -> {
             Boolean current = viewModel.getUserWantsSearching().getValue();
+            boolean isStarting = (current == null || !current);
 
-            // If user is stopping, handle transition
-            if (current != null && current) {
-                stopLocationUpdates(true);   // <-- transition logic here
+            if (isStarting) {
+                viewModel.setCurrentBestLocation(null); // Clear old results for the new search
+                binding.ctextview.setText("Initializing GPS...");
+            } else {
+                stopLocationUpdates(true);
             }
-
-            viewModel.setUserWantsSearching(current == null || !current);
+            viewModel.setUserWantsSearching(isStarting);
         });
     }
 

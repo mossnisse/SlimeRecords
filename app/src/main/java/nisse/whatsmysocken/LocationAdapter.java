@@ -9,8 +9,7 @@ import androidx.annotation.NonNull;
 import androidx.paging.PagingDataAdapter;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
-import com.bumptech.glide.Glide; // Import Glide
-
+import com.bumptech.glide.Glide;
 import java.util.Objects;
 
 public class LocationAdapter extends PagingDataAdapter<LocationWithPhotos, LocationAdapter.LocationViewHolder> {
@@ -26,6 +25,7 @@ public class LocationAdapter extends PagingDataAdapter<LocationWithPhotos, Locat
                 public boolean areContentsTheSame(@NonNull LocationWithPhotos oldItem, @NonNull LocationWithPhotos newItem) {
                     return Objects.equals(oldItem.location.note, newItem.location.note) &&
                             oldItem.location.timestamp == newItem.location.timestamp &&
+                            Objects.equals(oldItem.location.attributes, newItem.location.attributes) && // Check attributes!
                             oldItem.photos.size() == newItem.photos.size();
                 }
             };
@@ -51,8 +51,13 @@ public class LocationAdapter extends PagingDataAdapter<LocationWithPhotos, Locat
 
         if (item != null) {
             // Set Note
-            holder.tvNote.setText((item.location.note != null && !item.location.note.isEmpty())
-                    ? item.location.note : "No Note");
+            String title = "Unknown Species";
+            if (item.location.attributes != null && item.location.attributes.species != null && !item.location.attributes.species.isEmpty()) {
+                title = item.location.attributes.species;
+            } else if (item.location.note != null && !item.location.note.isEmpty()) {
+                title = item.location.note;
+            }
+            holder.tvNote.setText(title);
 
             // Set Coordinates
             holder.tvCoords.setText(String.format(java.util.Locale.US, "%.4f, %.4f",
@@ -63,16 +68,18 @@ public class LocationAdapter extends PagingDataAdapter<LocationWithPhotos, Locat
 
             // --- Handle Photo Visibility ---
             if (item.photos != null && !item.photos.isEmpty()) {
-                // Show the image and load the photo
                 holder.ivThumbnail.setVisibility(View.VISIBLE);
+
                 Glide.with(holder.itemView.getContext())
                         .load(item.photos.get(0).filePath)
+                        .placeholder(android.R.color.darker_gray)
+                        .thumbnail(Glide.with(holder.itemView.getContext())
+                                .load(item.photos.get(0).filePath)
+                                .override(100, 100)) // Force a tiny version for the thumbnail pass
                         .centerCrop()
                         .into(holder.ivThumbnail);
             } else {
                 holder.ivThumbnail.setVisibility(View.GONE);
-
-                // from previous rows in the list
                 Glide.with(holder.itemView.getContext()).clear(holder.ivThumbnail);
             }
 

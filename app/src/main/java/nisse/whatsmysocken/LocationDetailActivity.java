@@ -37,7 +37,8 @@ public class LocationDetailActivity extends AppCompatActivity {
     private final List<String> tempPhotoPaths = new ArrayList<>();
     private PhotoAdapter photoAdapter;
     private LocationRecord currentRecord;
-    private LocationViewModel viewModel;
+    private SearchViewModel searchViewModel;
+    private HistoryViewModel historyViewModel;
     private String currentProvince = "Loading...";
     private String currentDistrict = "Loading...";
     private String latestCollectorName = "";
@@ -48,7 +49,8 @@ public class LocationDetailActivity extends AppCompatActivity {
         binding = ActivityLocationDetailBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        viewModel = new ViewModelProvider(this).get(LocationViewModel.class);
+        searchViewModel = new ViewModelProvider(this).get(SearchViewModel.class);
+        historyViewModel = new ViewModelProvider(this).get(HistoryViewModel.class);
         initUI();
         setupObservers();
 
@@ -62,7 +64,7 @@ public class LocationDetailActivity extends AppCompatActivity {
 
     private void setupObservers() {
         // Corrected: observe standard LiveData
-        viewModel.getSaveOperationFinished().observe(this, finished -> {
+        historyViewModel.getOperationFinished().observe(this, finished -> {
             if (Boolean.TRUE.equals(finished)) {
                 Toast.makeText(this, isNew ? "Saved!" : "Updated!", Toast.LENGTH_SHORT).show();
                 isSaved = true;
@@ -70,18 +72,18 @@ public class LocationDetailActivity extends AppCompatActivity {
             }
         });
 
-        viewModel.getProvinceResult().observe(this, name -> {
+        searchViewModel.getProvinceResult().observe(this, name -> {
             currentProvince = name;
             refreshCoordinateDisplay();
         });
 
-        viewModel.getDistrictResult().observe(this, name -> {
+        searchViewModel.getDistrictResult().observe(this, name -> {
             currentDistrict = name;
             refreshCoordinateDisplay();
         });
 
         // Fix: Explicitly typing the list to resolve "isEmpty" errors
-        viewModel.getRecentCollectors().observe(this, (List<String> list) -> {
+        historyViewModel.getRecentCollectors().observe(this, (List<String> list) -> {
             if (list != null && !list.isEmpty()) {
                 latestCollectorName = list.get(0);
 
@@ -174,7 +176,7 @@ public class LocationDetailActivity extends AppCompatActivity {
         binding.btnCancelDetail.setText("Back");
         binding.btnTakePhotoDetail.setVisibility(View.GONE);
 
-        viewModel.getLocationWithPhotos(id).observe(this, item -> {
+        historyViewModel.getLocationWithPhotos(id).observe(this, item -> {
             if (item == null) return;
 
             currentRecord = item.location;
@@ -252,16 +254,16 @@ public class LocationDetailActivity extends AppCompatActivity {
 
             LocationRecord record = new LocationRecord(lat, lon, altitude, System.currentTimeMillis(), accuracy, localTime, noteText);
             record.attributes = attrs;
-            viewModel.saveLocationWithPhotos(record, tempPhotoPaths);
+            historyViewModel.saveLocationWithPhotos(record, tempPhotoPaths);
         } else if (currentRecord != null) {
             currentRecord.note = noteText;
             currentRecord.attributes = attrs;
-            viewModel.updateLocation(currentRecord);
+            historyViewModel.updateLocation(currentRecord);
         }
 
         // Fix: Call matching ViewModel method name
         if (collector != null && !collector.isEmpty()) {
-            viewModel.updateRecentCollector(collector);
+            historyViewModel.updateRecentCollector(collector);
         }
     }
 
@@ -279,7 +281,7 @@ public class LocationDetailActivity extends AppCompatActivity {
                     tempPhotoPaths.remove(position);
                     photoAdapter.notifyItemRemoved(position);
                     // Fix: ViewModel method now matches
-                    if (!isNew) viewModel.deletePhotoByPath(path);
+                    if (!isNew) historyViewModel.deletePhotoByPath(path);
                 })
                 .setNegativeButton("Cancel", null).show();
     }
@@ -312,7 +314,8 @@ public class LocationDetailActivity extends AppCompatActivity {
         }
 
         if (prefs.getBoolean("show_date", true)) {
-            sb.append("Date: ").append(LocalDate.now().toString()).append("\n");
+            String dateToShow = isNew ? LocalDate.now().toString() : currentRecord.localTime;
+            sb.append("Date: ").append(dateToShow).append("\n");
         }
 
         if (prefs.getBoolean("show_province", true)) {
@@ -378,10 +381,10 @@ public class LocationDetailActivity extends AppCompatActivity {
 
     private void triggerSpatialLookups() {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        if (prefs.getBoolean("show_province", true)) viewModel.fetchProvinceName(lat, lon);
+        if (prefs.getBoolean("show_province", true)) searchViewModel.fetchProvinceName(lat, lon);
         else currentProvince = null;
 
-        if (prefs.getBoolean("show_district", true)) viewModel.fetchDistrictName(lat, lon);
+        if (prefs.getBoolean("show_district", true)) searchViewModel.fetchDistrictName(lat, lon);
         else currentDistrict = null;
     }
 
@@ -392,6 +395,4 @@ public class LocationDetailActivity extends AppCompatActivity {
             for (String path : tempPhotoPaths) FileUtils.deleteFileAtPath(path);
         }
     }
-
-
 }
