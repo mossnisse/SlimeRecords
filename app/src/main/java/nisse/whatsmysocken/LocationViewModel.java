@@ -12,10 +12,11 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Transformations;
 import androidx.paging.Pager;
 import androidx.paging.PagingConfig;
 import androidx.paging.PagingData;
-import androidx.paging.rxjava3.PagingRx;
+import androidx.paging.PagingLiveData;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -26,13 +27,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
-import io.reactivex.rxjava3.core.Flowable;
-import io.reactivex.rxjava3.core.Observable;
-import io.reactivex.rxjava3.core.Single;
-import io.reactivex.rxjava3.disposables.CompositeDisposable;
-import io.reactivex.rxjava3.schedulers.Schedulers;
-import io.reactivex.rxjava3.subjects.BehaviorSubject;
 import nisse.whatsmysocken.coords.Coordinates;
 import nisse.whatsmysocken.data.LocationDao;
 import nisse.whatsmysocken.data.LocationRecord;
@@ -41,55 +35,53 @@ import nisse.whatsmysocken.data.RecentCollector;
 import nisse.whatsmysocken.data.SpatialResolver;
 import nisse.whatsmysocken.data.SpeciesAttributes;
 import nisse.whatsmysocken.data.UserDatabase;
-import android.content.Intent;
 
 public class LocationViewModel extends AndroidViewModel {
     private final LocationDao locationDao;
-    //private android.location.Location currentBestLocation;
-    private final BehaviorSubject<Location> currentBestLocationSubject = BehaviorSubject.create();
+
+    // --- State: GPS & Search ---
+    private final MutableLiveData<Location> currentBestLocation = new MutableLiveData<>();
+    private final MutableLiveData<Boolean> userWantsSearching = new MutableLiveData<>(false);
+
+    // --- State: UI Feedbacks ---
     private final MutableLiveData<Boolean> saveOperationFinished = new MutableLiveData<>(false);
-    public final Flowable<PagingData<LocationWithPhotos>> historyFlow;
     private final MutableLiveData<String> provinceResult = new MutableLiveData<>();
     private final MutableLiveData<String> districtResult = new MutableLiveData<>();
-    // Export State Management
-    private final BehaviorSubject<ExportState> exportStatus = BehaviorSubject.createDefault(ExportState.IDLE);
+
+    // --- State: Paging History ---
+    public final LiveData<PagingData<LocationWithPhotos>> historyLiveData;
+
+    // --- State: Export Management ---
     public enum ExportState { IDLE, LOADING, SUCCESS, ERROR }
-    private final CompositeDisposable disposables = new CompositeDisposable();
+    private final MutableLiveData<ExportState> exportStatus = new MutableLiveData<>(ExportState.IDLE);
     private Uri lastExportUri;
 
     public LocationViewModel(@NonNull Application application) {
         super(application);
         locationDao = UserDatabase.getInstance(application).locationDao();
 
+        // 1. Setup Paging with LiveData
         Pager<Integer, LocationWithPhotos> pager = new Pager<>(
                 new PagingConfig(20, 5, false),
                 locationDao::getAllLocationsPaged
         );
-        historyFlow = PagingRx.getFlowable(pager);
+        historyLiveData = PagingLiveData.getLiveData(pager);
     }
 
-    // --- Standard Database Ops ---
+    // --- GPS Logic ---
+    public void setCurrentBestLocation(Location location) {
+        if (location != null) currentBestLocation.postValue(location);
+    }
+    public Location getCurrentBestLocation() { return currentBestLocation.getValue(); }
+    public LiveData<Boolean> getUserWantsSearching() { return userWantsSearching; }
+    public void setUserWantsSearching(boolean value) { userWantsSearching.setValue(value); }
 
+    // --- Database Operations (Using Executor) ---
     public void saveLocationWithPhotos(LocationRecord record, List<String> photoPaths) {
         UserDatabase.getDbExecutor().execute(() -> {
             locationDao.insertLocationWithPhotos(record, photoPaths);
             saveOperationFinished.postValue(true);
         });
-    }
-
-    public void deleteLocationWithPhotos(LocationWithPhotos item) {
-        UserDatabase.getDbExecutor().execute(() -> {
-            if (item.photos != null) {
-                for (PhotoRecord p : item.photos) {
-                    FileUtils.deleteFileAtPath(p.filePath);
-                }
-            }
-            locationDao.deleteLocationAndPhotos(item.location, item.photos);
-        });
-    }
-
-    public void deletePhotoByPath(String path) {
-        UserDatabase.getDbExecutor().execute(() -> locationDao.deletePhotoByPath(path));
     }
 
     public void updateLocation(LocationRecord record) {
@@ -98,20 +90,21 @@ public class LocationViewModel extends AndroidViewModel {
             saveOperationFinished.postValue(true);
         });
     }
-    public void setCurrentBestLocation(Location location) {
-        if (location == null) {
-            return;
-        }
-        currentBestLocationSubject.onNext(location);
-    }
-    public LiveData<String> getProvinceResult() { return provinceResult; }
-    public LiveData<String> getDistrictResult() { return districtResult; }
 
+    public void deleteLocationWithPhotos(LocationWithPhotos item) {
+        UserDatabase.getDbExecutor().execute(() -> {
+            if (item.photos != null) {
+                for (PhotoRecord p : item.photos) FileUtils.deleteFileAtPath(p.filePath);
+            }
+            locationDao.deleteLocation(item.location);
+        });
+    }
+
+    // --- Spatial/Region Resolving ---
     public void fetchProvinceName(double lat, double lon) {
         UserDatabase.getDbExecutor().execute(() -> {
             int[] coords = convertToSweref(lat, lon);
-            String name = SpatialResolver.getInstance(getApplication())
-                    .getRegionName(coords[0], coords[1], false);
+            String name = SpatialResolver.getInstance(getApplication()).getRegionName(coords[0], coords[1], false);
             provinceResult.postValue(name);
         });
     }
@@ -119,111 +112,75 @@ public class LocationViewModel extends AndroidViewModel {
     public void fetchDistrictName(double lat, double lon) {
         UserDatabase.getDbExecutor().execute(() -> {
             int[] coords = convertToSweref(lat, lon);
-            String name = SpatialResolver.getInstance(getApplication())
-                    .getRegionName(coords[0], coords[1], true);
+            String name = SpatialResolver.getInstance(getApplication()).getRegionName(coords[0], coords[1], true);
             districtResult.postValue(name);
         });
     }
 
-    // Helper to avoid repeating conversion math
     private int[] convertToSweref(double lat, double lon) {
         Coordinates sweref = new Coordinates(lat, lon).convertToSweref99TMFromWGS84();
         return new int[]{(int)Math.round(sweref.getNorth()), (int)Math.round(sweref.getEast())};
     }
 
-    public LiveData<List<String>> getRecentCollectors() {
-        return locationDao.getRecentCollectorNames();
-    }
-
-    public void updateRecentCollector(String name) {
-        if (name == null || name.trim().isEmpty()) return;
-        UserDatabase.getDbExecutor().execute(() ->
-            locationDao.insertRecentCollector(new RecentCollector(name.trim(), System.currentTimeMillis()))
-        );
-    }
-
-    // --- Export Logic ---
-    public boolean isExporting() {
-        return exportStatus.getValue() == ExportState.LOADING;
-    }
-
-    // New: Helper for the Activity to show "Found X files"
-    public LiveData<Integer> getLocationCount() {
-        return locationDao.getLocationCount();
-    }
+    // --- Export Logic (The Big Cleanup) ---
 
     public void startExport() {
-        if (isExporting()) return;
-        exportStatus.onNext(ExportState.LOADING);
+        if (exportStatus.getValue() == ExportState.LOADING) return;
 
-        Context context = getApplication();
-        String zipName = "WhatsMySocken_" + System.currentTimeMillis() + ".zip";
+        exportStatus.setValue(ExportState.LOADING);
 
-        disposables.add(
-                Single.fromCallable(() -> {
-                            // Prepare MediaStore Entry
-                            ContentValues values = new ContentValues();
-                            values.put(MediaStore.MediaColumns.DISPLAY_NAME, zipName);
-                            values.put(MediaStore.MediaColumns.MIME_TYPE, "application/zip");
-                            values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
-                            values.put(MediaStore.MediaColumns.IS_PENDING, 1);
+        UserDatabase.getDbExecutor().execute(() -> {
+            try {
+                Context context = getApplication();
+                String zipName = "WhatsMySocken_" + System.currentTimeMillis() + ".zip";
 
-                            Uri uri = context.getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
-                            if (uri == null) throw new IOException("Failed to create MediaStore entry");
+                // Create MediaStore entry
+                ContentValues values = new ContentValues();
+                values.put(MediaStore.MediaColumns.DISPLAY_NAME, zipName);
+                values.put(MediaStore.MediaColumns.MIME_TYPE, "application/zip");
+                values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
+                values.put(MediaStore.MediaColumns.IS_PENDING, 1);
 
-                            // Fetch all data in one go (Room handles the join/relation)
-                            List<LocationWithPhotos> allData = locationDao.getAllLocationsWithPhotosSync();
+                Uri uri = context.getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+                if (uri == null) throw new IOException("Failed to create MediaStore entry");
 
-                            try (OutputStream os = context.getContentResolver().openOutputStream(uri);
-                                 ZipOutputStream zos = new ZipOutputStream(os)) {
+                // Perform the Zip operation
+                List<LocationWithPhotos> allData = locationDao.getAllLocationsWithPhotosSync();
+                try (OutputStream os = context.getContentResolver().openOutputStream(uri);
+                     ZipOutputStream zos = new ZipOutputStream(os)) {
 
-                                // --- PHASE 1: Write CSV Entry ---
-                                zos.putNextEntry(new ZipEntry("data.csv"));
-                                StringBuilder csvBuilder = new StringBuilder();
-                                csvBuilder.append("ID,Latitude,Longitude,Accuracy,Altitude,Time,Species,Substrate,Habitat,Collector,Locality,IsSpecimen,SpecimenNr,Note,Photos\n");
+                    // CSV File
+                    zos.putNextEntry(new ZipEntry("data.csv"));
+                    StringBuilder csv = new StringBuilder("ID,Latitude,Longitude,Accuracy,Altitude,Time,Species,Substrate,Habitat,Collector,Locality,IsSpecimen,SpecimenNr,Note,Photos\n");
+                    for (LocationWithPhotos item : allData) csv.append(formatLocationAsCsv(item)).append("\n");
+                    zos.write(csv.toString().getBytes(StandardCharsets.UTF_8));
+                    zos.closeEntry();
 
-                                for (LocationWithPhotos item : allData) {
-                                    csvBuilder.append(formatLocationAsCsv(item)).append("\n");
-                                }
-                                zos.write(csvBuilder.toString().getBytes(StandardCharsets.UTF_8));
-                                zos.closeEntry();
+                    // Photos
+                    for (LocationWithPhotos item : allData) {
+                        for (PhotoRecord photo : item.photos) addPhotoToZip(zos, photo);
+                    }
+                    zos.finish();
+                }
 
-                                // --- PHASE 2: Write Photos (One-pass) ---
-                                for (LocationWithPhotos item : allData) {
-                                    for (PhotoRecord photo : item.photos) {
-                                        addPhotoToZip(zos, photo);
-                                    }
-                                }
+                // Mark as complete
+                values.clear();
+                values.put(MediaStore.MediaColumns.IS_PENDING, 0);
+                context.getContentResolver().update(uri, values, null, null);
 
-                                zos.finish();
-                            }
+                this.lastExportUri = uri;
+                exportStatus.postValue(ExportState.SUCCESS);
 
-                            // Mark as no longer pending
-                            values.clear();
-                            values.put(MediaStore.MediaColumns.IS_PENDING, 0);
-                            context.getContentResolver().update(uri, values, null, null);
-                            return uri;
-                        })
-                        .subscribeOn(Schedulers.io())
-                        .observeOn(AndroidSchedulers.mainThread())
-                        .subscribe(
-                                uri -> {
-                                    this.lastExportUri = uri;
-                                    exportStatus.onNext(ExportState.SUCCESS);
-                                },
-                                throwable -> {
-                                    Log.e("Export", "Zip Failed", throwable);
-                                    exportStatus.onNext(ExportState.ERROR);
-                                }
-                        )
-        );
+            } catch (Exception e) {
+                Log.e("Export", "Zip Failed", e);
+                exportStatus.postValue(ExportState.ERROR);
+            }
+        });
     }
 
     private String formatLocationAsCsv(LocationWithPhotos item) {
         LocationRecord r = item.location;
         SpeciesAttributes attr = r.attributes != null ? r.attributes : new SpeciesAttributes();
-
-        // Join photo filenames with a pipe |
         String photoNames = item.photos.stream()
                 .map(p -> new File(p.filePath).getName())
                 .reduce((a, b) -> a + "|" + b).orElse("");
@@ -236,70 +193,60 @@ public class LocationViewModel extends AndroidViewModel {
     }
 
     private String clean(String input) {
-        return input == null ? "" : input.replace("\"", "\"\"");
+        if (input == null) return "";
+        return input.replace("\"", "\"\"").replace("\n", " ").replace("\r", " ");
     }
 
     private void addPhotoToZip(ZipOutputStream zos, PhotoRecord photo) throws IOException {
         File photoFile = new File(photo.filePath);
-        if (!photoFile.exists()) {
-            Log.w("Export", "Photo not found: " + photo.filePath);
-            return;
-        }
-
+        if (!photoFile.exists()) return;
         try (FileInputStream fis = new FileInputStream(photoFile)) {
-            ZipEntry entry = new ZipEntry("photos/" + photoFile.getName());
-            zos.putNextEntry(entry);
-
+            zos.putNextEntry(new ZipEntry("photos/" + photoFile.getName()));
             byte[] buffer = new byte[8192];
             int length;
-            while ((length = fis.read(buffer)) >= 0) {
-                zos.write(buffer, 0, length);
-            }
+            while ((length = fis.read(buffer)) >= 0) zos.write(buffer, 0, length);
             zos.closeEntry();
         }
     }
 
-    public void shareExportedZip(Context context, Uri zipUri) {
-        Intent intent = new Intent(Intent.ACTION_SEND);
-        intent.setType("application/zip");
-        intent.putExtra(Intent.EXTRA_STREAM, zipUri);
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION); // Critical for security
-
-        // Optional: Pre-fill email subject
-        intent.putExtra(Intent.EXTRA_SUBJECT, "WhatsMySocken Export: " + System.currentTimeMillis());
-
-        context.startActivity(Intent.createChooser(intent, "Share Export via..."));
-    }
-
-    public Uri getLastExportUri() {
-        return lastExportUri;
-    }
-    @Override
-    protected void onCleared() {
-        super.onCleared();
-        disposables.clear();
-    }
-
-    // Getters
+    // --- Simple Getters ---
+    public LiveData<ExportState> getExportStatus() { return exportStatus; }
+    public Uri getLastExportUri() { return lastExportUri; }
+    public LiveData<Integer> getLocationCount() { return locationDao.getLocationCount(); }
+    public LiveData<String> getProvinceResult() { return provinceResult; }
+    public LiveData<String> getDistrictResult() { return districtResult; }
     public LiveData<Boolean> getSaveOperationFinished() { return saveOperationFinished; }
-    public LiveData<LocationWithPhotos> getLocationWithPhotos(long id) { return locationDao.getLocationById(id); }
-    public Location getCurrentBestLocation() {
-        return currentBestLocationSubject.getValue();
+
+    // Map Room entities to UI model using Transformations (Replaces RxJava map)
+    public LiveData<List<LocationWithPhotos>> getSpecimenLocationsWithPhotos() {
+        // Explicitly define the input type (List<LocationRecord>) in the lambda
+        return Transformations.map(locationDao.getSpecimenLocations(), (List<LocationRecord> records) -> {
+            List<LocationWithPhotos> result = new ArrayList<>();
+
+            // Now 'records' is recognized as a List, so 'foreach' will work
+            if (records != null) {
+                for (LocationRecord record : records) {
+                    LocationWithPhotos item = new LocationWithPhotos();
+                    item.location = record;
+                    item.photos = new ArrayList<>();
+                    result.add(item);
+                }
+            }
+            return result;
+        });
     }
 
-    public Observable<ExportState> getExportStatus() { return exportStatus; }
-
-    public Flowable<List<LocationWithPhotos>> getSpecimenLocationsWithPhotos() {
-        return locationDao.getSpecimenLocations()
-                .map(records -> {
-                    List<LocationWithPhotos> result = new ArrayList<>();
-                    for (LocationRecord record : records) {
-                        LocationWithPhotos item = new LocationWithPhotos();
-                        item.location = record;
-                        item.photos = new ArrayList<>(); // Initialize empty list
-                        result.add(item);
-                    }
-                    return result;
-                });
+    public LiveData<List<String>> getRecentCollectors() {
+        return locationDao.getRecentCollectorNames();
+    }
+    public LiveData<LocationWithPhotos> getLocationWithPhotos(long id) { return locationDao.getLocationById(id); }
+    public void updateRecentCollector(String name) {
+        if (name == null || name.trim().isEmpty()) return;
+        UserDatabase.getDbExecutor().execute(() ->
+                locationDao.insertRecentCollector(new RecentCollector(name.trim(), System.currentTimeMillis()))
+        );
+    }
+    public void deletePhotoByPath(String path) {
+        UserDatabase.getDbExecutor().execute(() -> locationDao.deletePhotoByPath(path));
     }
 }

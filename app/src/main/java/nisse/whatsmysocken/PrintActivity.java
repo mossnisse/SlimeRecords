@@ -13,14 +13,12 @@ import androidx.lifecycle.ViewModelProvider;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
-import io.reactivex.rxjava3.disposables.CompositeDisposable;
-import io.reactivex.rxjava3.schedulers.Schedulers;
+import java.util.List;
+import nisse.whatsmysocken.data.UserDatabase;
 import nisse.whatsmysocken.databinding.ActivityPrintBinding;
 
 public class PrintActivity extends AppCompatActivity {
     private LocationViewModel viewModel;
-    private final CompositeDisposable disposables = new CompositeDisposable();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,32 +36,39 @@ public class PrintActivity extends AppCompatActivity {
     }
 
     private void exportSpecimenLabels(boolean shouldShare) {
-        disposables.add(viewModel.getSpecimenLocationsWithPhotos()
-                .firstOrError()
-                .subscribeOn(Schedulers.io())
-                .map(list -> {
-                    if (list.isEmpty()) return null;
-                    return LabelHtmlGenerator.generateFullReport(this, list);
-                })
-                .map(htmlContent -> {
-                    if (htmlContent == null) return Uri.EMPTY;
-                    return saveFileAndGetUri(htmlContent); // Now returns URI
-                })
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(uri -> {
-                    if (uri == Uri.EMPTY) {
-                        Toast.makeText(this, "No specimens found!", Toast.LENGTH_SHORT).show();
-                    } else if (shouldShare) {
-                        shareFile(uri);
-                    } else {
-                        Toast.makeText(this, "Labels saved to Downloads", Toast.LENGTH_LONG).show();
-                    }
-                }, throwable ->
-                    Log.e("Print", "Error", throwable)
-                ));
+        // Since getSpecimenLocationsWithPhotos is LiveData, we can get its current value
+        // or observe it once. For button clicks, we often just want the current state.
+        viewModel.getSpecimenLocationsWithPhotos().observe(this, new androidx.lifecycle.Observer<List<LocationWithPhotos>>() {
+            @Override
+            public void onChanged(List<LocationWithPhotos> list) {
+                // Remove observer immediately so it only runs once per click
+                viewModel.getSpecimenLocationsWithPhotos().removeObserver(this);
+
+                if (list == null || list.isEmpty()) {
+                    Toast.makeText(PrintActivity.this, "No specimens found!", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                // Move heavy file operations to background thread
+                UserDatabase.getDbExecutor().execute(() -> {
+                    String htmlContent = LabelHtmlGenerator.generateFullReport(PrintActivity.this, list);
+                    Uri uri = saveFileAndGetUri(htmlContent);
+
+                    // Switch back to Main Thread for UI updates
+                    runOnUiThread(() -> {
+                        if (uri == Uri.EMPTY) {
+                            Toast.makeText(PrintActivity.this, "Failed to save labels", Toast.LENGTH_SHORT).show();
+                        } else if (shouldShare) {
+                            shareFile(uri);
+                        } else {
+                            Toast.makeText(PrintActivity.this, "Labels saved to Downloads", Toast.LENGTH_LONG).show();
+                        }
+                    });
+                });
+            }
+        });
     }
 
-    // Modified saveFile to run on the background thread and return a status string
     private Uri saveFileAndGetUri(String htmlContent) {
         String fileName = "Specimen_Labels_" + System.currentTimeMillis() + ".html";
         ContentValues values = new ContentValues();
@@ -71,14 +76,16 @@ public class PrintActivity extends AppCompatActivity {
         values.put(MediaStore.MediaColumns.MIME_TYPE, "text/html");
         values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
 
-        Uri uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
-        if (uri != null) {
-            try (OutputStream os = getContentResolver().openOutputStream(uri)) {
-                os.write(htmlContent.getBytes(StandardCharsets.UTF_8));
-                return uri;
-            } catch (IOException e) {
-                Log.e("Print", "Failed save", e);
+        try {
+            Uri uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+            if (uri != null) {
+                try (OutputStream os = getContentResolver().openOutputStream(uri)) {
+                    os.write(htmlContent.getBytes(StandardCharsets.UTF_8));
+                    return uri;
+                }
             }
+        } catch (IOException e) {
+            Log.e("Print", "Failed save", e);
         }
         return Uri.EMPTY;
     }
@@ -94,6 +101,6 @@ public class PrintActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        disposables.clear(); // Important to prevent memory leaks
+        // No more disposables to clear!
     }
 }

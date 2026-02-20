@@ -54,7 +54,6 @@ dependencies {
     // Paging 3 (Stable 3.4.1 is the latest)
     val pagingVersion = "3.4.1"
     implementation("androidx.paging:paging-runtime:$pagingVersion")
-    implementation("androidx.paging:paging-rxjava3:$pagingVersion")
 
     // Room (2.8.4 introduced significant connection pool fixes)
     val roomVersion = "2.6.1"
@@ -62,11 +61,6 @@ dependencies {
     annotationProcessor("androidx.room:room-compiler:$roomVersion")
     implementation("androidx.room:room-paging:$roomVersion")
     implementation("androidx.room:room-common:$roomVersion")
-    implementation("androidx.room:room-rxjava3:$roomVersion")
-
-    // RxJava
-    implementation("io.reactivex.rxjava3:rxandroid:3.0.2")
-    implementation("io.reactivex.rxjava3:rxjava:3.1.10") // Stable 3.1 branch
 
     //json parsing
     implementation("com.google.code.gson:gson:2.11.0")

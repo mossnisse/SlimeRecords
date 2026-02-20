@@ -10,8 +10,6 @@ import androidx.room.Query;
 import androidx.room.Transaction;
 import androidx.room.Update;
 import java.util.List;
-
-import io.reactivex.rxjava3.core.Flowable;
 import nisse.whatsmysocken.LocationWithPhotos;
 
 @Dao
@@ -45,12 +43,10 @@ public abstract class LocationDao {
     @Query("SELECT * FROM location_table WHERE id = :id LIMIT 1")
     public abstract LiveData<LocationWithPhotos> getLocationById(long id);
 
-    @Transaction
     @Delete
-    public abstract void deleteLocationAndPhotos(LocationRecord location, List<PhotoRecord> photos);
+    public abstract void deleteLocation(LocationRecord location);
 
     // --- EXPORT METHODS ---
-    // Live Count (UI use)
     @Query("SELECT COUNT(*) FROM location_table")
     public abstract LiveData<Integer> getLocationCount();
 
@@ -63,6 +59,7 @@ public abstract class LocationDao {
     @Transaction
     @Query("SELECT * FROM location_table ORDER BY timestamp DESC")
     public abstract List<LocationWithPhotos> getAllLocationsWithPhotosSync();
+
     @Query("SELECT * FROM location_table WHERE attributes LIKE '%\"isSpecimen\":true%'")
-    public abstract Flowable<List<LocationRecord>> getSpecimenLocations();
+    public abstract LiveData<List<LocationRecord>> getSpecimenLocations();
 }

@@ -32,7 +32,7 @@ public class LocationDetailActivity extends AppCompatActivity {
     private float accuracy;
     private double altitude;
     private boolean isNew, isSaved = false;
-    private ActivityLocationDetailBinding binding; // ViewBinding object
+    private ActivityLocationDetailBinding binding;
     private String currentPhotoPath;
     private final List<String> tempPhotoPaths = new ArrayList<>();
     private PhotoAdapter photoAdapter;
@@ -61,6 +61,7 @@ public class LocationDetailActivity extends AppCompatActivity {
     }
 
     private void setupObservers() {
+        // Corrected: observe standard LiveData
         viewModel.getSaveOperationFinished().observe(this, finished -> {
             if (Boolean.TRUE.equals(finished)) {
                 Toast.makeText(this, isNew ? "Saved!" : "Updated!", Toast.LENGTH_SHORT).show();
@@ -79,18 +80,16 @@ public class LocationDetailActivity extends AppCompatActivity {
             refreshCoordinateDisplay();
         });
 
-        viewModel.getRecentCollectors().observe(this, list -> {
+        // Fix: Explicitly typing the list to resolve "isEmpty" errors
+        viewModel.getRecentCollectors().observe(this, (List<String> list) -> {
             if (list != null && !list.isEmpty()) {
-                latestCollectorName = list.get(0); // The most recent one
+                latestCollectorName = list.get(0);
 
-                // Update the dropdown adapter
                 ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
                         android.R.layout.simple_dropdown_item_1line, list);
                 binding.inputCollector.setAdapter(adapter);
 
-                // FIX: Only auto-fill if it's a NEW record and the field is currently empty
                 if (isNew && binding.inputCollector.getText().toString().isEmpty()) {
-                    // Use 'false' to prevent the dropdown menu from popping up immediately
                     binding.inputCollector.setText(latestCollectorName, false);
                 }
             }
@@ -195,7 +194,6 @@ public class LocationDetailActivity extends AppCompatActivity {
                 binding.inputCollector.setText(currentRecord.attributes.collector);
                 binding.inputLocality.setText(currentRecord.attributes.localityDescription);
                 binding.checkboxIsSpecimen.setChecked(currentRecord.attributes.isSpecimen);
-                binding.checkboxIsSpecimen.setChecked(currentRecord.attributes.isSpecimen);
                 binding.tvSpecimenNr.setVisibility(currentRecord.attributes.isSpecimen ? View.VISIBLE : View.GONE);
                 binding.tvSpecimenNr.setText("No: " + (currentRecord.attributes.specimenNr != null ?
                         currentRecord.attributes.specimenNr : "--"));
@@ -214,51 +212,32 @@ public class LocationDetailActivity extends AppCompatActivity {
         String noteText = binding.detailNoteInput.getText().toString().trim();
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
 
-        // Get or create the attributes object
         SpeciesAttributes attrs;
         if (isNew || currentRecord == null || currentRecord.attributes == null) {
             attrs = new SpeciesAttributes();
         } else {
-            // Reuse existing attributes so hidden fields aren't wiped
             attrs = currentRecord.attributes;
         }
 
-        // Only update fields if they are currently active in settings
-        if (prefs.getBoolean("show_species_field", true)) {
-            attrs.species = binding.inputSpecies.getText().toString();
-        }
-
-        if (prefs.getBoolean("show_substrate_field", true)) {
-            attrs.substrate = binding.inputSubstrate.getText().toString();
-        }
-
-        if (prefs.getBoolean("show_habitat_field", true)) {
-            attrs.habitat = binding.inputHabitat.getText().toString();
-        }
+        // Logic for updating attributes...
+        if (prefs.getBoolean("show_species_field", true)) attrs.species = binding.inputSpecies.getText().toString();
+        if (prefs.getBoolean("show_substrate_field", true)) attrs.substrate = binding.inputSubstrate.getText().toString();
+        if (prefs.getBoolean("show_habitat_field", true)) attrs.habitat = binding.inputHabitat.getText().toString();
 
         String collector;
-        boolean isCollectorVisible = PreferenceManager.getDefaultSharedPreferences(this)
-                .getBoolean("show_collector_field", true);
-        if (isCollectorVisible) {
+        if (prefs.getBoolean("show_collector_field", true)) {
             collector = binding.inputCollector.getText().toString().trim();
         } else {
             collector = latestCollectorName;
         }
         attrs.collector = collector;
 
-        if (prefs.getBoolean("show_locality_description", true)) {
-            attrs.localityDescription = binding.inputLocality.getText().toString();
-        }
-
-        // Specimen toggle and number should generally always be preserved or handled
+        if (prefs.getBoolean("show_locality_description", true)) attrs.localityDescription = binding.inputLocality.getText().toString();
         attrs.isSpecimen = binding.checkboxIsSpecimen.isChecked();
 
         if (attrs.isSpecimen) {
-            // Extract the number from the text "No: 5" -> "5"
             String nrText = binding.tvSpecimenNr.getText().toString().replace("No: ", "").trim();
             attrs.specimenNr = nrText;
-
-            // Save this back to preferences as the new "last used" number
             try {
                 int currentNr = Integer.parseInt(nrText);
                 prefs.edit().putString("last_specimen_number", String.valueOf(currentNr + 1)).apply();
@@ -276,9 +255,11 @@ public class LocationDetailActivity extends AppCompatActivity {
             viewModel.saveLocationWithPhotos(record, tempPhotoPaths);
         } else if (currentRecord != null) {
             currentRecord.note = noteText;
-            currentRecord.attributes = attrs; // attrs now contains old data + new edits
+            currentRecord.attributes = attrs;
             viewModel.updateLocation(currentRecord);
         }
+
+        // Fix: Call matching ViewModel method name
         if (collector != null && !collector.isEmpty()) {
             viewModel.updateRecentCollector(collector);
         }
@@ -297,6 +278,7 @@ public class LocationDetailActivity extends AppCompatActivity {
                     FileUtils.deleteFileAtPath(path);
                     tempPhotoPaths.remove(position);
                     photoAdapter.notifyItemRemoved(position);
+                    // Fix: ViewModel method now matches
                     if (!isNew) viewModel.deletePhotoByPath(path);
                 })
                 .setNegativeButton("Cancel", null).show();
@@ -410,4 +392,6 @@ public class LocationDetailActivity extends AppCompatActivity {
             for (String path : tempPhotoPaths) FileUtils.deleteFileAtPath(path);
         }
     }
+
+
 }
