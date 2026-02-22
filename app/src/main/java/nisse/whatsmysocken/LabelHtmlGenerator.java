@@ -39,22 +39,25 @@ public class LabelHtmlGenerator {
                 ? item.localTime.substring(0, 10) : "____-____-____";
 
         return String.format(Locale.US,
-                "<div class='label-container'>" +
+                "<div class='label-container' data-uid='%d'>" +
                         "  <div class='header'>Flora Suecica</div>" +
-                        "  <div class='species'>%s</div>" +
-                        "  <div class='location'>%s, %s socken</div>" +
+                        "  <div class='species' data-label='Species Name'>%s</div>" +
+                        "  <div> " +
+                        "      <span class='province' data-label='province'>%s</span>, <span class='district' data-label='district'>%s</span> socken" +
+                        "  </div>" +
                         "  <div class='description'>" +
-                        "    <div>%s</div>" + // Locality Description
-                        "    <div>%s</div>" + // Substrate
-                        "    <div>%s</div>" +   // Habitat
+                        "    <div class='locality' data-label='Locality Description'>%s</div>" +
+                        "    <div class='substrate' data-label='Substrate'>%s</div>" +
+                        "    <div class='habitat' data-label='Habitat'>%s</div>" +
                         "    <div class='coordinates'>wgs84: %.5f, %.5f</div>" +
                         "  </div>" +
                         "  <div class='spacer'></div>" +
                         "  <div class='footer'>" +
-                        "    <span>Leg. %s %s</span>" +
-                        "    <span>%s</span>" +
+                        "    <span>Leg. <span class='collector' data-label='Collector'>%s</span> <span class='nr' data-label='Collection Nr'>%s</span></span>" +
+                        "    <span class='date' data-label='Date'>%s</span>" +
                         "  </div>" +
                         "</div>",
+                item.id, // Database ID
                 clean(attrs.species),
                 clean(prov),
                 clean(dist),
