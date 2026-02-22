@@ -21,7 +21,7 @@ public class SearchViewModel extends AndroidViewModel {
     }
 
     public void setCurrentBestLocation(Location location) {
-        if (location != null) currentBestLocation.postValue(location);
+        currentBestLocation.setValue(location);
     }
     public Location getCurrentBestLocation() { return currentBestLocation.getValue(); }
     public LiveData<Boolean> getUserWantsSearching() { return userWantsSearching; }

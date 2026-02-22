@@ -73,14 +73,16 @@ public class MainActivity extends AppCompatActivity {
         locationCallback = new LocationCallback() {
             @Override
             public void onLocationResult(@NonNull LocationResult result) {
-                Location location = result.getLastLocation();
-                if (location == null) return;
+                Location newLocation = result.getLastLocation();
+                if (newLocation == null) return;
 
                 Location best = viewModel.getCurrentBestLocation();
-                if (best == null || location.getAccuracy() < best.getAccuracy()) {
-                    viewModel.setCurrentBestLocation(location);
 
-                    int acc = (int) Math.ceil(location.getAccuracy());
+                // If best is null (new search), or newLocation is more accurate:
+                if (best == null || newLocation.getAccuracy() < best.getAccuracy()) {
+                    viewModel.setCurrentBestLocation(newLocation);
+
+                    int acc = (int) Math.ceil(newLocation.getAccuracy());
                     binding.ctextview.setText("Accuracy: " + acc + "m\nPress STOP when precision is sufficient.");
                 }
             }
