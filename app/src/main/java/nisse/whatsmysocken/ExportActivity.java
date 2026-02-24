@@ -4,9 +4,14 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.Spinner;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
+
+import com.google.android.material.textfield.MaterialAutoCompleteTextView;
+
 import nisse.whatsmysocken.databinding.ActivityExportBinding;
 
 public class ExportActivity extends AppCompatActivity {
@@ -38,10 +43,20 @@ public class ExportActivity extends AppCompatActivity {
             }
         });
 
-        // Start Export Button
+        MaterialAutoCompleteTextView formatDropdown = (MaterialAutoCompleteTextView) binding.editExportFormat;
+
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
+                R.array.export_formats, android.R.layout.simple_list_item_1);
+
+        formatDropdown.setAdapter(adapter);
+
+        formatDropdown.setText(adapter.getItem(0).toString(), false);
+
         binding.btnStartUsbExport.setOnClickListener(v -> {
             if (currentLocationCount > 0) {
-                exportViewModel.startExport();
+                // Retrieve text from the AutoCompleteTextView
+                String selectedFormat = formatDropdown.getText().toString();
+                exportViewModel.startExport(selectedFormat);
             } else {
                 Toast.makeText(this, "No data to export", Toast.LENGTH_SHORT).show();
             }

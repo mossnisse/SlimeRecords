@@ -37,7 +37,7 @@ public class ExportViewModel extends AndroidViewModel {
         locationDao = UserDatabase.getInstance(application).locationDao();
     }
 
-    public void startExport() {
+    public void startExport(String format) {
         if (exportStatus.getValue() == ExportState.LOADING) return;
         exportStatus.setValue(ExportState.LOADING);
 
@@ -56,17 +56,29 @@ public class ExportViewModel extends AndroidViewModel {
                 if (uri == null) throw new IOException("Failed to create MediaStore entry");
 
                 List<LocationWithPhotos> allData = locationDao.getAllLocationsWithPhotosSync();
+
                 try (OutputStream os = context.getContentResolver().openOutputStream(uri);
                      ZipOutputStream zos = new ZipOutputStream(os)) {
 
-                    zos.putNextEntry(new ZipEntry("data.csv"));
-                    StringBuilder csv = new StringBuilder("ID,Latitude,Longitude,Accuracy,Altitude,Time,Species,Substrate,Habitat,Collector,Locality,IsSpecimen,SpecimenNr,Note,Photos\n");
-                    for (LocationWithPhotos item : allData) csv.append(formatLocationAsCsv(item)).append("\n");
-                    zos.write(csv.toString().getBytes(StandardCharsets.UTF_8));
-                    zos.closeEntry();
+                    // Handle Excel-specific formatting (BOM + Semicolon)
+                    // Note: This check matches the string-array items you added earlier
+                    if (format.contains("Excel") || format.contains("Semicolon")) {
+                        writeCsv(zos, allData, ";", true);
+                    } else {
+                        writeCsv(zos, allData, ",", false);
+                    }
 
+                    // Write Photos (Resilient Loop)
                     for (LocationWithPhotos item : allData) {
-                        for (PhotoRecord photo : item.photos) addPhotoToZip(zos, photo);
+                        if (item.photos != null) {
+                            for (PhotoRecord photo : item.photos) {
+                                try {
+                                    addPhotoToZip(zos, photo);
+                                } catch (IOException e) {
+                                    Log.e("Export", "Failed to add photo: " + photo.filePath, e);
+                                }
+                            }
+                        }
                     }
                     zos.finish();
                 }
@@ -77,39 +89,82 @@ public class ExportViewModel extends AndroidViewModel {
 
                 this.lastExportUri = uri;
                 exportStatus.postValue(ExportState.SUCCESS);
+
             } catch (Exception e) {
-                Log.e("Export", "Zip Failed", e);
+                Log.e("Export", "Critical Export Failure", e);
                 exportStatus.postValue(ExportState.ERROR);
             }
         });
     }
 
-    private String formatLocationAsCsv(LocationWithPhotos item) {
+    private void writeCsv(ZipOutputStream zos, List<LocationWithPhotos> allData, String d, boolean includeBom) throws IOException {
+        zos.putNextEntry(new ZipEntry("data.csv"));
+
+        if (includeBom) {
+            byte[] bom = new byte[] {(byte)0xEF, (byte)0xBB, (byte)0xBF};
+            zos.write(bom);
+        }
+
+        // Build Header
+        String header = String.join(d, "ID", "Latitude", "Longitude", "Accuracy", "Altitude",
+                "Time", "Species", "Substrate", "Habitat", "Collector", "Locality",
+                "IsSpecimen", "SpecimenNr", "Note", "Photos") + "\n";
+
+        zos.write(header.getBytes(StandardCharsets.UTF_8));
+
+        // Build Rows
+        for (LocationWithPhotos item : allData) {
+            try {
+                String row = formatLocationAsCsv(item, d) + "\n";
+                zos.write(row.getBytes(StandardCharsets.UTF_8));
+            } catch (Exception e) {
+                Log.e("Export", "Error formatting row for ID: " + item.location.id, e);
+            }
+        }
+        zos.closeEntry();
+    }
+
+    private String formatLocationAsCsv(LocationWithPhotos item, String d) {
         LocationRecord r = item.location;
         SpeciesAttributes attr = r.attributes != null ? r.attributes : new SpeciesAttributes();
+
         String photoNames = "";
         if (item.photos != null) {
             for (PhotoRecord p : item.photos) {
                 photoNames += (photoNames.isEmpty() ? "" : "|") + new File(p.filePath).getName();
             }
         }
-        return String.format(Locale.US, "%d,%.6f,%.6f,%d,%d,\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",%b,\"%s\",\"%s\",\"%s\"",
-                r.id, r.latitude, r.longitude, (int)Math.ceil(r.accuracy), (int)Math.round(r.altitude), r.localTime,
-                clean(attr.species), clean(attr.substrate), clean(attr.habitat), clean(attr.collector),
-                clean(attr.localityDescription), attr.isSpecimen, clean(attr.specimenNr), clean(r.note), photoNames);
+
+        // Using Locale.US to ensure decimal dots even if the column delimiter is a semicolon
+        return String.format(Locale.US,
+                "%d%s%.6f%s%.6f%s%d%s%d%s\"%s\"%s\"%s\"%s\"%s\"%s\"%s\"%s\"%s\"%s\"%s\"%s%b%s\"%s\"%s\"%s\"%s\"%s\"",
+                r.id, d, r.latitude, d, r.longitude, d, (int)Math.ceil(r.accuracy), d, (int)Math.round(r.altitude), d,
+                r.localTime, d, clean(attr.species), d, clean(attr.substrate), d, clean(attr.habitat), d,
+                clean(attr.collector), d, clean(r.localityDescription), d, attr.isSpecimen, d,
+                clean(attr.specimenNr), d, clean(r.note), d, photoNames);
     }
 
-    private String clean(String input) { return (input == null) ? "" : input.replace("\"", "\"\"").replace("\n", " "); }
+    private String clean(String input) {
+        return (input == null) ? "" : input.replace("\"", "\"\"").replace("\n", " ");
+    }
 
     private void addPhotoToZip(ZipOutputStream zos, PhotoRecord photo) throws IOException {
         File photoFile = new File(photo.filePath);
         if (!photoFile.exists()) return;
-        try (FileInputStream fis = new FileInputStream(photoFile)) {
+
+        try {
             zos.putNextEntry(new ZipEntry("photos/" + photoFile.getName()));
-            byte[] buffer = new byte[8192];
-            int length;
-            while ((length = fis.read(buffer)) >= 0) zos.write(buffer, 0, length);
+            try (FileInputStream fis = new FileInputStream(photoFile)) {
+                byte[] buffer = new byte[8192];
+                int length;
+                while ((length = fis.read(buffer)) >= 0) {
+                    zos.write(buffer, 0, length);
+                }
+            }
             zos.closeEntry();
+        } catch (IOException e) {
+            zos.closeEntry();
+            throw e;
         }
     }
 

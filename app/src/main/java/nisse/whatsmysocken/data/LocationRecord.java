@@ -19,6 +19,8 @@ public class LocationRecord {
     public String localTime ="";
     @NonNull
     public String note = "";
+    @NonNull
+    public String localityDescription = "";
     @Nullable
     public SpeciesAttributes attributes;
 

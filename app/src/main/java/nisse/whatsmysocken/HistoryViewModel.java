@@ -73,4 +73,15 @@ public class HistoryViewModel extends AndroidViewModel {
     public LiveData<Integer> getLocationCount() {
         return locationDao.getLocationCount();
     }
+
+    public LiveData<List<String>> getNearbyLocalitySuggestions(double lat, double lon) {
+        // Approx 2km bounding box
+        double latDelta = 0.018;
+        double lonDelta = 0.036;
+
+        return locationDao.getNearbyLocalitySuggestions(
+                lat - latDelta, lat + latDelta,
+                lon - lonDelta, lon + lonDelta
+        );
+    }
 }

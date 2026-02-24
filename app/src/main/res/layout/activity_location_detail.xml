@@ -29,6 +29,24 @@
             android:hint="Species name"
             android:inputType="textCapSentences" />
 
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/layout_locality"
+            style="@style/Widget.Design.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp">
+
+            <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                android:id="@+id/edit_locality_description"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Description of where the location is"
+                android:textSize="18sp"
+                android:paddingStart="4dp"
+                android:inputType="textPersonName"
+                android:completionThreshold="0" />
+        </com.google.android.material.textfield.TextInputLayout>
+
         <EditText
             android:id="@+id/input_substrate"
             android:layout_width="match_parent"
@@ -44,7 +62,6 @@
             android:textSize="18sp"
             android:hint="Habitat/Biotope"
             android:inputType="textCapSentences" />
-
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/layout_collector"
@@ -63,14 +80,6 @@
                 android:inputType="textPersonName"
                 android:completionThreshold="0" />
         </com.google.android.material.textfield.TextInputLayout>
-
-        <EditText
-            android:id="@+id/input_locality"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textSize="18sp"
-            android:hint="Description of where the location is"
-            android:inputType="textMultiLine" />
 
         <EditText
             android:id="@+id/detail_note_input"

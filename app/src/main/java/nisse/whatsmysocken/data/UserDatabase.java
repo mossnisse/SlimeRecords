@@ -1,17 +1,21 @@
 package nisse.whatsmysocken.data;
 
 import android.content.Context;
+
+import androidx.annotation.NonNull;
 import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
 import androidx.room.TypeConverters;
+import androidx.room.migration.Migration;
+import androidx.sqlite.db.SupportSQLiteDatabase;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import nisse.whatsmysocken.Converters;
 
-@Database(entities = {LocationRecord.class, PhotoRecord.class, RecentCollector.class}, version = 1, exportSchema = false)
+@Database(entities = {LocationRecord.class, PhotoRecord.class, RecentCollector.class}, version = 2, exportSchema = false)
 @TypeConverters({Converters.class}) // Add this line
 public abstract class UserDatabase extends RoomDatabase {
 
@@ -28,7 +32,8 @@ public abstract class UserDatabase extends RoomDatabase {
                                     UserDatabase.class,
                                     "user_locations.db"
                             )
-                            .fallbackToDestructiveMigration()
+                            .addMigrations(MIGRATION_1_2)
+                            //.fallbackToDestructiveMigration()
                             .build();
                 }
             }
@@ -39,4 +44,12 @@ public abstract class UserDatabase extends RoomDatabase {
     public static ExecutorService getDbExecutor() {
         return dbExecutor;
     }
+
+    static final Migration MIGRATION_1_2 = new Migration(1, 2) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            // Add the new column to the table
+            database.execSQL("ALTER TABLE location_table ADD COLUMN localityDescription TEXT NOT NULL DEFAULT ''");
+        }
+    };
 }

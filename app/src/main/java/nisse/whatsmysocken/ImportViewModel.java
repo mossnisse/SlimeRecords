@@ -120,6 +120,7 @@ public class ImportViewModel extends AndroidViewModel {
                 record.altitude = Double.parseDouble(parts[4]);
                 record.localTime = cleanQuotes(parts[5]);
                 record.note = cleanQuotes(parts[13]);
+                record.localityDescription = cleanQuotes(parts[10]);
 
                 // Set timestamp so it shows up in HistoryActivity
                 try {
@@ -134,7 +135,6 @@ public class ImportViewModel extends AndroidViewModel {
                 attr.substrate = cleanQuotes(parts[7]);
                 attr.habitat = cleanQuotes(parts[8]);
                 attr.collector = cleanQuotes(parts[9]);
-                attr.localityDescription = cleanQuotes(parts[10]);
                 attr.isSpecimen = Boolean.parseBoolean(parts[11]);
                 attr.specimenNr = cleanQuotes(parts[12]);
                 record.attributes = attr;

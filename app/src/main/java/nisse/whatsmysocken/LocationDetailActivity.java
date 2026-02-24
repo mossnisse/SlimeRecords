@@ -7,6 +7,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -42,6 +43,7 @@ public class LocationDetailActivity extends AppCompatActivity {
     private String currentProvince = "Loading...";
     private String currentDistrict = "Loading...";
     private String latestCollectorName = "";
+    private boolean showPhoto;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,6 +62,8 @@ public class LocationDetailActivity extends AppCompatActivity {
         } else {
             setupExistingLocation();
         }
+
+        setupLocalityAutocomplete(lat, lon);
     }
 
     private void setupObservers() {
@@ -107,14 +111,14 @@ public class LocationDetailActivity extends AppCompatActivity {
 
         boolean showSpecies = prefs.getBoolean("show_species_field", true);
         binding.inputSpecies.setVisibility(showSpecies ? View.VISIBLE : View.GONE);
+        boolean showLocality = prefs.getBoolean( "show_locality_description", true);
+        binding.editLocalityDescription.setVisibility(showLocality ? View.VISIBLE : View.GONE);
         boolean showSubstrate = prefs.getBoolean("show_substrate_field", true);
         binding.inputSubstrate.setVisibility(showSubstrate ? View.VISIBLE : View.GONE);
         boolean showHabitat = prefs.getBoolean("show_habitat_field", true);
         binding.inputHabitat.setVisibility(showHabitat ? View.VISIBLE : View.GONE);
         boolean showCollector = prefs.getBoolean("show_collector_field", true);
         binding.inputCollector.setVisibility(showCollector ? View.VISIBLE : View.GONE);
-        boolean showLocality = prefs.getBoolean( "show_locality_description", true);
-        binding.inputLocality.setVisibility(showLocality ? View.VISIBLE : View.GONE);
         boolean showIsCollection = prefs.getBoolean("show_is_collection", true);
         binding.checkboxIsSpecimen.setVisibility(showIsCollection ? View.VISIBLE : View.GONE);
         boolean showMapLink = prefs.getBoolean("show_map_link", true);
@@ -142,8 +146,11 @@ public class LocationDetailActivity extends AppCompatActivity {
             }
         });
 
+        showPhoto = prefs.getBoolean("show_photo", true);
+        binding.btnTakePhotoDetail.setVisibility(showPhoto ? View.VISIBLE : View.GONE);
         // photo gallery
         binding.rvPhotoGallery.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+        binding.rvPhotoGallery.setVisibility(showPhoto ? View.VISIBLE : View.GONE);
 
         photoAdapter = new PhotoAdapter(tempPhotoPaths, new PhotoAdapter.OnPhotoListener() {
             @Override
@@ -187,6 +194,7 @@ public class LocationDetailActivity extends AppCompatActivity {
 
             // Set General Note
             binding.detailNoteInput.setText(currentRecord.note);
+            binding.editLocalityDescription.setText(currentRecord.localityDescription);
 
             // Set flexible attributes
             if (currentRecord.attributes != null) {
@@ -194,16 +202,19 @@ public class LocationDetailActivity extends AppCompatActivity {
                 binding.inputSubstrate.setText(currentRecord.attributes.substrate);
                 binding.inputHabitat.setText(currentRecord.attributes.habitat);
                 binding.inputCollector.setText(currentRecord.attributes.collector);
-                binding.inputLocality.setText(currentRecord.attributes.localityDescription);
                 binding.checkboxIsSpecimen.setChecked(currentRecord.attributes.isSpecimen);
                 binding.tvSpecimenNr.setVisibility(currentRecord.attributes.isSpecimen ? View.VISIBLE : View.GONE);
                 binding.tvSpecimenNr.setText("No: " + (currentRecord.attributes.specimenNr != null ?
                         currentRecord.attributes.specimenNr : "--"));
             }
-
-            tempPhotoPaths.clear();
-            for (PhotoRecord p : item.photos) tempPhotoPaths.add(p.filePath);
-            photoAdapter.notifyDataSetChanged();
+            if (showPhoto) {
+                tempPhotoPaths.clear();
+                for (PhotoRecord p : item.photos) tempPhotoPaths.add(p.filePath);
+                photoAdapter.notifyDataSetChanged();
+                binding.rvPhotoGallery.setVisibility(View.VISIBLE);
+            } else {
+                binding.rvPhotoGallery.setVisibility(View.GONE);
+            }
 
             triggerSpatialLookups();
             refreshCoordinateDisplay();
@@ -212,6 +223,7 @@ public class LocationDetailActivity extends AppCompatActivity {
 
     private void onCommitClicked() {
         String noteText = binding.detailNoteInput.getText().toString().trim();
+        String localityText = binding.editLocalityDescription.getText().toString().trim();
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
 
         SpeciesAttributes attrs;
@@ -234,7 +246,7 @@ public class LocationDetailActivity extends AppCompatActivity {
         }
         attrs.collector = collector;
 
-        if (prefs.getBoolean("show_locality_description", true)) attrs.localityDescription = binding.inputLocality.getText().toString();
+        //if (prefs.getBoolean("show_locality_description", true)) attrs.localityDescription = binding.editLocalityDescription.getText().toString();
         attrs.isSpecimen = binding.checkboxIsSpecimen.isChecked();
 
         if (attrs.isSpecimen) {
@@ -253,10 +265,12 @@ public class LocationDetailActivity extends AppCompatActivity {
                     java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
             LocationRecord record = new LocationRecord(lat, lon, altitude, System.currentTimeMillis(), accuracy, localTime, noteText);
+            record.localityDescription = localityText;
             record.attributes = attrs;
             historyViewModel.saveLocationWithPhotos(record, tempPhotoPaths);
         } else if (currentRecord != null) {
             currentRecord.note = noteText;
+            currentRecord.localityDescription = localityText;
             currentRecord.attributes = attrs;
             historyViewModel.updateLocation(currentRecord);
         }
@@ -386,6 +400,34 @@ public class LocationDetailActivity extends AppCompatActivity {
 
         if (prefs.getBoolean("show_district", true)) searchViewModel.fetchDistrictName(lat, lon);
         else currentDistrict = null;
+    }
+
+    private void setupLocalityAutocomplete(double currentLat, double currentLon) {
+        // Corrected ID to match the XML change above
+        AutoCompleteTextView editLocality = binding.editLocalityDescription;
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_dropdown_item_1line, new ArrayList<>());
+        editLocality.setAdapter(adapter);
+
+        double delta = 0.018;
+        // Calling the renamed ViewModel method
+        historyViewModel.getNearbyLocalitySuggestions(
+                currentLat - delta,
+                currentLon - delta
+        ).observe(this, suggestions -> {
+            if (suggestions != null) {
+                adapter.clear();
+                adapter.addAll(suggestions);
+                adapter.notifyDataSetChanged();
+            }
+        });
+
+        editLocality.setOnClickListener(v -> editLocality.showDropDown());
+        // Also show when focus is gained
+        editLocality.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) editLocality.showDropDown();
+        });
     }
 
     @Override

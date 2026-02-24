@@ -61,7 +61,7 @@ public class LabelHtmlGenerator {
                 clean(attrs.species),
                 clean(prov),
                 clean(dist),
-                clean(attrs.localityDescription),
+                clean(item.localityDescription),
                 clean(attrs.substrate),
                 clean(attrs.habitat),
                 item.latitude,

@@ -10,9 +10,7 @@ public class SpeciesAttributes {
     public String habitat;
     public String collector;
     public String specimenNr;
-    public String localityDescription;
     public boolean isSpecimen;
-
     public Map<String, String> extraData = new HashMap<>();
 
     // Standard equals implementation for DiffUtil to work correctly
@@ -27,13 +25,12 @@ public class SpeciesAttributes {
                 Objects.equals(habitat, that.habitat) &&
                 Objects.equals(collector, that.collector) &&
                 Objects.equals(specimenNr, that.specimenNr) &&
-                Objects.equals(localityDescription, that.localityDescription) &&
                 Objects.equals(extraData, that.extraData);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(species, substrate, habitat, collector,
-                specimenNr, localityDescription, isSpecimen, extraData);
+                specimenNr, isSpecimen, extraData);
     }
 }
