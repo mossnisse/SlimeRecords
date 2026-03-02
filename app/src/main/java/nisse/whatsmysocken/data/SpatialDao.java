@@ -19,4 +19,10 @@ public interface SpatialDao {
 
     @Query("SELECT * FROM districts WHERE id = :id")
     DistrictEntity getDistrictById(int id);
+
+    @Query("SELECT * FROM species_reference " +
+            "WHERE LOWER(name) LIKE LOWER(:query) || '%' " +
+            "ORDER BY isSynonym ASC, name ASC " +
+            "LIMIT 20")
+    List<SpeciesReferenceEntity> searchSpecies(String query);
 }

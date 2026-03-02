@@ -1,0 +1,135 @@
+kingdom	phylum	rank	latin	group	delete	
+Animalia		kingdom	Animalia			
+Animalia	Acanthocephala	phylum	Acanthocephala	övriga rygradslösa djur	false	
+Animalia	Annelida	phylum	Annelida	övriga rygradslösa djur	false	
+Animalia	Arthropoda	phylum	Arthropoda		false	
+Animalia	Arthropoda	class	Pauropoda	övriga rygradslösa djur	false	
+Animalia	Arthropoda	class	Diplopoda	övriga rygradslösa djur	false	
+Animalia	Arthropoda	class	Chilopoda	övriga rygradslösa djur	false	
+Animalia	Arthropoda	class	Symphyla	övriga rygradslösa djur	false	
+Animalia	Arthropoda	class	Entognatha		false	
+Animalia	Arthropoda	order	Collembola	övriga insekter	false	
+Animalia	Arthropoda	order	Protura	övriga insekter	false	
+Animalia	Arthropoda	order	Diplura	övriga insekter	false	
+Animalia	Arthropoda	order	Archaeognatha	övriga insekter	false	
+Animalia	Arthropoda	order	Blattodea	övriga insekter	false	
+Animalia	Arthropoda	order	Coleoptera	skalbaggar	false	
+Animalia	Arthropoda	order	Dermaptera	övriga insekter	false	
+Animalia	Arthropoda	order	Diptera	tvåvingar	false	
+Animalia	Arthropoda	order	Ephemeroptera	övriga insekter	false	
+Animalia	Arthropoda	order	Hemiptera	övriga insekter	false	
+Animalia	Arthropoda	order	Hymenoptera	steklar	false	
+Animalia	Arthropoda	order	Lepidoptera	fjärilar	false	
+Animalia	Arthropoda	order	Mantodea	övriga insekter	false	
+Animalia	Arthropoda	order	Mecoptera	övriga insekter	false	
+Animalia	Arthropoda	order	Megaloptera	övriga insekter	false	
+Animalia	Arthropoda	order	Neuroptera	övriga insekter	false	
+Animalia	Arthropoda	order	Odonata	övriga insekter	false	
+Animalia	Arthropoda	order	Orthoptera	övriga insekter	false	
+Animalia	Arthropoda	order	Phthiraptera	övriga insekter	false	
+Animalia	Arthropoda	order	Plecoptera	övriga insekter	false	
+Animalia	Arthropoda	order	Psocoptera	övriga insekter	false	
+Animalia	Arthropoda	order	Raphidioptera	övriga insekter	false	
+Animalia	Arthropoda	order	Siphonaptera	övriga insekter	false	
+Animalia	Arthropoda	order	Strepsiptera	övriga insekter	false	
+Animalia	Arthropoda	order	Thysanoptera	övriga insekter	false	
+Animalia	Arthropoda	order	Trichoptera	övriga insekter	false	
+Animalia	Arthropoda	order	Zygentoma	övriga insekter	false	
+Animalia	Arthropoda	class	Branchiopoda	övriga rygradslösa djur	false	
+Animalia	Arthropoda	class	Copepoda	övriga rygradslösa djur	true	
+Animalia	Arthropoda	class	Malacostraca	övriga rygradslösa djur	false	
+Animalia	Arthropoda	class	Tantulocarida	övriga rygradslösa djur	true	
+Animalia	Arthropoda	class	Thecostraca	övriga rygradslösa djur	false	
+Animalia	Arthropoda	class	Ichthyostraca	övriga rygradslösa djur	false	
+Animalia	Arthropoda	class	Ostracoda	övriga rygradslösa djur	true	
+Animalia	Arthropoda	class	Arachnida		false	
+Animalia	Arthropoda	order	Sarcoptiformes 	övriga rygradslösa djur	true	
+Animalia	Arthropoda	order	Trombidiformes 	övriga rygradslösa djur	true	
+Animalia	Arthropoda	order	Holothyrida 	övriga rygradslösa djur	true	
+Animalia	Arthropoda	order	Ixodida	övriga rygradslösa djur	false	
+Animalia	Arthropoda	order	Mesostigmata	övriga rygradslösa djur	true	
+Animalia	Arthropoda	order	Opilioacarida 	övriga rygradslösa djur	true	
+Animalia	Arthropoda	order	Araneae	spindlar	false	
+Animalia	Arthropoda	order	Opiliones	övriga rygradslösa djur	false	
+Animalia	Arthropoda	order	Pseudoscorpiones	övriga rygradslösa djur	false	
+Animalia	Arthropoda	class	Merostomata	övriga rygradslösa djur	false	
+Animalia	Arthropoda	class	Pycnogonida	övriga rygradslösa djur	false	
+Animalia	Brachiopoda	phylum	Brachiopoda	övriga rygradslösa djur	false	
+Animalia	Bryozoa	phylum	Bryozoa	övriga rygradslösa djur	false	
+Animalia	Chaetognatha	phylum	Chaetognatha	övriga rygradslösa djur	false	
+Animalia	Chordata	phylum	Chordata		false	
+Animalia	Chordata	order	Appendicularia	övriga rygradslösa djur	false	
+Animalia	Chordata	order	Thaliacea	övriga rygradslösa djur	false	
+Animalia	Chordata	class	Leptocardia	övriga rygradslösa djur	false	
+Animalia	Chordata	class	Myxini	fiskar	false	
+Animalia	Chordata	class	Petromyzontida	fiskar	false	
+Animalia	Chordata	class	Chondrichthyes	fiskar	false	
+Animalia	Chordata	class	Actinopterygii	fiskar	false	
+Animalia	Chordata	class	Mammalia	däggdjur	false	
+Animalia	Chordata	order	Squamata	grod-&kräldjur	false	
+Animalia	Chordata	class	Aves	fåglar	false	
+Animalia	Chordata	order	Testudines	grod-&kräldjur	false	
+Animalia	Chordata	class	Amphibia	grod-&kräldjur	false	
+Animalia	Cnidaria	phylum	Cnidaria	övriga rygradslösa djur	false	
+Animalia	Ctenophora	phylum	Ctenophora	övriga rygradslösa djur	false	
+Animalia	Cycliophora	phylum	Cycliophora	övriga rygradslösa djur	true	
+Animalia	Echinodermata	phylum	Echinodermata	övriga rygradslösa djur	false	
+Animalia	Entoprocta	phylum	Entoprocta	övriga rygradslösa djur	false	
+Animalia	Gastrotricha	phylum	Gastrotricha	övriga rygradslösa djur	true	
+Animalia	Gnathostomulida	phylum	Gnathostomulida	övriga rygradslösa djur	true	
+Animalia	Hemichordata	phylum	Hemichordata	övriga rygradslösa djur	false	
+Animalia	Kinorhyncha	phylum	Kinorhyncha	övriga rygradslösa djur	true	
+Animalia	Loricifera	phylum	Loricifera	övriga rygradslösa djur	true	
+Animalia	Mollusca	phylum	Mollusca	övriga rygradslösa djur	false	
+Animalia	Nematoda	phylum	Nematoda	övriga rygradslösa djur	true	
+Animalia	Nematomorpha	phylum	Nematomorpha	övriga rygradslösa djur	false	
+Animalia	Nemertea	phylum	Nemertea	övriga rygradslösa djur	false	
+Animalia	Orthonectida	phylum	Orthonectida	övriga rygradslösa djur	true	
+Animalia	Phoronida	phylum	Phoronida	övriga rygradslösa djur	false	
+Animalia	Platyhelminthes	phylum	Platyhelminthes	övriga rygradslösa djur	true	
+Animalia	Porifera	phylum	Porifera	övriga rygradslösa djur	false	
+Animalia	Priapulida	phylum	Priapulida	övriga rygradslösa djur	false	
+Animalia	Rhombozoa	phylum	Rhombozoa	övriga rygradslösa djur	true	
+Animalia	Rotifera	phylum	Rotifera	övriga rygradslösa djur	true	
+Animalia	Sipuncula	phylum	Sipuncula	övriga rygradslösa djur	false	
+Animalia	Tardigrada	phylum	Tardigrada	övriga rygradslösa djur	true	
+Animalia	Xenacoelomorpha	phylum	Xenacoelomorpha	övriga rygradslösa djur	true	
+Archaea		kingdom	Archaea		true	
+Bacteria		kingdom	Bacteria		true	
+Chromista		kingdom	Chromista			
+Chromista	Cryptophyta	phylum	Cryptophyta	alger	true	
+Chromista	Haptophyta	phylum	Haptophyta	alger	true	
+Chromista	Heliozoa	phylum	Heliozoa	protister	true	
+Chromista	Katablepharidophyta	phylum	Katablepharidophyta	protister	true	
+Chromista	Telonemia	phylum	Telonemia	protister	true	
+Chromista	Ciliophora	phylum	Ciliophora	protister	true	
+Chromista	Miozoa	phylum	Miozoa	protister	true	
+Chromista	Gyrista	phylum	Gyrista			
+Chromista	Gyrista	class	Hyphochytriomycetes 		true	Oomycota
+Chromista	Gyrista	class	Oomycetes 		true	Oomycota
+Chromista	Gyrista	class	Saprolegniomycetes 		true	Oomycota
+Chromista	Gyrista	class	Oomycota, classis incertae sedis 		true	Oomycota
+Chromista	Gyrista	class	Phaeophyceae	alger	false	
+Chromista	Gyrista	class	Xanthophyceae	alger	false	
+Chromista	Gyrista	class	Chlorarachniophyceae	alger	true	
+Chromista	Gyrista	class	Filosa	alger	true	
+Chromista	Gyrista	class	Imbricatea	protister	true	
+Chromista	Endomyxa	phylum	Endomyxa	protister	true	
+Chromista	Retaria	phylum	Retaria		true	
+Fungi		kingdom	Fungi	svampar	false	inkl. lavar, sortera ut mikro grejer?
+Plantae		kingdom	Plantae			
+Plantae	Glaucophyta	phylum	Glaucophyta	alger	true	
+Plantae	Rhodophyta	phylum	Rhodophyta	alger	false	
+Plantae	Anthocerotophyta	phylum	Anthocerotophyta	mossor	false	
+Plantae	Bryophyta	phylum	Bryophyta	mossor	false	
+Plantae	Marchantiophyta	phylum	Marchantiophyta	mossor	false	
+Plantae	Tracheophyta	phylum	Tracheophyta	kärlväxter	false	
+Plantae	Tracheophyta	class	Charophyceae	alger	false	
+Plantae	Tracheophyta	class	Chlorokybophyceae	alger	false	
+Plantae	Tracheophyta	class	Coleochaetophyceae	alger	false	
+Plantae	Tracheophyta	class	Conjugatophyceae	alger	false	
+Plantae	Tracheophyta	class	Klebsormidiophyceae	alger	false	
+Plantae	Tracheophyta	class	Mesostigmatophyceae	alger	true	
+Plantae	Chlorophyta	phylum	Chlorophyta	alger	false	
+Protozoa		kingdom	Protozoa	protister	true	rädda slemsvampar?
+Viruses		kingdom	Viruses		true	

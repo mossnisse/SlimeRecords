@@ -11,6 +11,7 @@ import android.widget.AutoCompleteTextView;
 import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
 import androidx.lifecycle.ViewModelProvider;
@@ -26,6 +27,7 @@ import nisse.whatsmysocken.coords.Coordinates;
 import nisse.whatsmysocken.data.LocationRecord;
 import nisse.whatsmysocken.data.PhotoRecord;
 import nisse.whatsmysocken.data.SpeciesAttributes;
+import nisse.whatsmysocken.data.SpeciesReferenceEntity;
 import nisse.whatsmysocken.databinding.ActivityLocationDetailBinding;
 
 public class LocationDetailActivity extends AppCompatActivity {
@@ -43,6 +45,7 @@ public class LocationDetailActivity extends AppCompatActivity {
     private String currentProvince = "Loading...";
     private String currentDistrict = "Loading...";
     private String latestCollectorName = "";
+    private Integer selectedDyntaxaID = null;
     private boolean showPhoto;
 
     @Override
@@ -55,6 +58,7 @@ public class LocationDetailActivity extends AppCompatActivity {
         historyViewModel = new ViewModelProvider(this).get(HistoryViewModel.class);
         initUI();
         setupObservers();
+        setupSpeciesAutocomplete();
 
         isNew = getIntent().getBooleanExtra("is_new", false);
         if (isNew) {
@@ -234,9 +238,12 @@ public class LocationDetailActivity extends AppCompatActivity {
         }
 
         // Logic for updating attributes...
-        if (prefs.getBoolean("show_species_field", true)) attrs.species = binding.inputSpecies.getText().toString();
-        if (prefs.getBoolean("show_substrate_field", true)) attrs.substrate = binding.inputSubstrate.getText().toString();
-        if (prefs.getBoolean("show_habitat_field", true)) attrs.habitat = binding.inputHabitat.getText().toString();
+        if (prefs.getBoolean("show_species_field", true)) {
+            attrs.species = binding.inputSpecies.getText().toString().trim();
+            attrs.dyntaxaID = selectedDyntaxaID; // Save the captured ID here!
+        }
+        if (prefs.getBoolean("show_substrate_field", true)) attrs.substrate = binding.inputSubstrate.getText().toString().trim();
+        if (prefs.getBoolean("show_habitat_field", true)) attrs.habitat = binding.inputHabitat.getText().toString().trim();
 
         String collector;
         if (prefs.getBoolean("show_collector_field", true)) {
@@ -427,6 +434,94 @@ public class LocationDetailActivity extends AppCompatActivity {
         // Also show when focus is gained
         editLocality.setOnFocusChangeListener((v, hasFocus) -> {
             if (hasFocus) editLocality.showDropDown();
+        });
+    }
+
+    private void setupSpeciesAutocomplete() {
+        AutoCompleteTextView speciesInput = binding.inputSpecies;
+
+        // Set threshold to 1 so it starts immediately
+        speciesInput.setThreshold(1);
+
+        // Use a custom adapter that doesn't filter locally
+        // This ensures that whatever the DB returns is actually shown
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
+                android.R.layout.simple_dropdown_item_1line) {
+            @NonNull
+            @Override
+            public android.widget.Filter getFilter() {
+                return new android.widget.Filter() {
+                    @Override
+                    protected FilterResults performFiltering(CharSequence constraint) {
+                        // We do nothing here because the DB already filtered
+                        return null;
+                    }
+                    @Override
+                    protected void publishResults(CharSequence constraint, FilterResults results) {
+                        // Do nothing
+                    }
+                };
+            }
+        };
+
+        speciesInput.setAdapter(adapter);
+
+        searchViewModel.getSpeciesSuggestions().observe(this, entities -> {
+            if (entities != null) {
+                List<String> displayList = new ArrayList<>();
+                for (SpeciesReferenceEntity e : entities) {
+                    StringBuilder sb = new StringBuilder();
+
+                    // Add the name
+                    sb.append(e.name);
+
+                    // Add a hint if it's a synonym
+                    if (e.isSynonym == 1) {
+                        sb.append(" (synonym)");
+                    }
+
+                    // Add the group if available
+                    if (e.taxonGroup != null && !e.taxonGroup.isEmpty()) {
+                        sb.append(" [").append(e.taxonGroup).append("]");
+                    }
+
+                    displayList.add(sb.toString());
+                }
+
+                adapter.clear();
+                adapter.addAll(displayList);
+                adapter.notifyDataSetChanged();
+            }
+        });
+
+        speciesInput.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void afterTextChanged(android.text.Editable s) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                // Only reset the ID if the change came from the user typing (keyboard)
+                // AutoCompleteTextView triggers this even when we call .setText()
+                if (speciesInput.hasFocus()) {
+                    selectedDyntaxaID = null;
+                }
+
+                String query = s.toString().trim();
+                if (query.length() >= 1) {
+                    searchViewModel.findSpecies(query);
+                }
+            }
+        });
+
+        speciesInput.setOnItemClickListener((parent, view, position, id) -> {
+
+            List<SpeciesReferenceEntity> currentSuggestions = searchViewModel.getSpeciesSuggestions().getValue();
+            if (currentSuggestions != null && position < currentSuggestions.size()) {
+                SpeciesReferenceEntity selected = currentSuggestions.get(position);
+                selectedDyntaxaID = selected.taxonID;
+                speciesInput.setText(selected.name);
+                speciesInput.setSelection(selected.name.length());
+            }
         });
     }
 

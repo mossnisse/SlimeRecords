@@ -21,13 +21,23 @@
             android:textStyle="bold"
             android:text="Coordinates..."/>
 
-        <EditText
-            android:id="@+id/input_species"
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/layout_species"
+            style="@style/Widget.Design.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="18sp"
-            android:hint="Species name"
-            android:inputType="textCapSentences" />
+            android:layout_marginTop="4dp">
+
+            <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                android:id="@+id/input_species"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Species name (Latin or Swedish)"
+                android:textSize="18sp"
+                android:paddingStart="4dp"
+                android:inputType="textCapSentences"
+                android:completionThreshold="1" />
+        </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/layout_locality"

@@ -7,7 +7,8 @@ import androidx.room.RoomDatabase;
 
 @Database(entities = {
         ProvinceEntity.class, ProvinceGeometryEntity.class,
-        DistrictEntity.class, DistrictGeometryEntity.class
+        DistrictEntity.class, DistrictGeometryEntity.class,
+        SpeciesReferenceEntity.class
 }, version = 1, exportSchema = false)
 public abstract class SpatialDatabase extends RoomDatabase {
 

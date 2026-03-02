@@ -6,6 +6,7 @@ import java.util.Objects;
 
 public class SpeciesAttributes {
     public String species;
+    public Integer dyntaxaID;
     public String substrate;
     public String habitat;
     public String collector;
@@ -21,6 +22,7 @@ public class SpeciesAttributes {
         SpeciesAttributes that = (SpeciesAttributes) o;
         return isSpecimen == that.isSpecimen &&
                 Objects.equals(species, that.species) &&
+                Objects.equals(dyntaxaID, that.dyntaxaID) && // Add this
                 Objects.equals(substrate, that.substrate) &&
                 Objects.equals(habitat, that.habitat) &&
                 Objects.equals(collector, that.collector) &&
@@ -30,7 +32,6 @@ public class SpeciesAttributes {
 
     @Override
     public int hashCode() {
-        return Objects.hash(species, substrate, habitat, collector,
-                specimenNr, isSpecimen, extraData);
+        return Objects.hash(species, dyntaxaID, substrate, habitat, collector, specimenNr, isSpecimen, extraData);
     }
 }

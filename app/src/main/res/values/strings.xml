@@ -12,5 +12,6 @@
     <string-array name="export_formats">
         <item>Standard CSV (Comma)</item>
         <item>Excel CSV (Semicolon + BOM)</item>
+        <item>Artportalen (Semicolon + SWEREF)</item>
     </string-array>
 </resources>

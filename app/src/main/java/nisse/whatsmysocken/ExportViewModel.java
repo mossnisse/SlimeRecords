@@ -25,6 +25,7 @@ import nisse.whatsmysocken.data.LocationRecord;
 import nisse.whatsmysocken.data.PhotoRecord;
 import nisse.whatsmysocken.data.SpeciesAttributes;
 import nisse.whatsmysocken.data.UserDatabase;
+import nisse.whatsmysocken.coords.Coordinates;
 
 public class ExportViewModel extends AndroidViewModel {
     private final LocationDao locationDao;
@@ -62,8 +63,10 @@ public class ExportViewModel extends AndroidViewModel {
 
                     // Handle Excel-specific formatting (BOM + Semicolon)
                     // Note: This check matches the string-array items you added earlier
-                    if (format.contains("Excel") || format.contains("Semicolon")) {
+                    if (format.contains("Excel")) {
                         writeCsv(zos, allData, ";", true);
+                    } else if (format.contains("Artportalen")) {
+                        writeArtportalenCsv(zos, allData);
                     } else {
                         writeCsv(zos, allData, ",", false);
                     }
@@ -168,6 +171,117 @@ public class ExportViewModel extends AndroidViewModel {
         }
     }
 
+    private void writeArtportalenCsv(ZipOutputStream zos, List<LocationWithPhotos> allData) throws IOException {
+        zos.putNextEntry(new ZipEntry("artportalen_import.csv"));
+
+        // Artportalen works best with BOM and Semicolon
+        byte[] bom = new byte[] {(byte)0xEF, (byte)0xBB, (byte)0xBF};
+        zos.write(bom);
+
+        String[] headers = {
+                "Artnamn", "Antal", "Enhet", "Antal substrat", "Ålder-Stadium", "Kön", "Aktivitet", "Metod",
+                "Lokalnamn", "Ost", "Nord", "Noggrannhet", "Diffusion", "Djup min", "Djup max", "Höjd min", "Höjd max",
+                "Startdatum", "Starttid", "Slutdatum", "Sluttid", "Publik kommentar", "Intressant kommentar",
+                "Privat kommentar", "Ej återfunnen", "Dölj fyndet t.o.m.", "Andrahand", "Osäker artbestämning",
+                "Ospontan", "Biotop", "Biotop-beskrivning", "Art som substrat", "Art som substrat beskrivning",
+                "Substrat", "Substrat-beskrivning", "Offentlig samling", "Privat samling", "Samlings-nummer",
+                "Bestämningsmetod", "Artbestämd av", "Artbestämd av (fritext)", "Bestämningsår", "Beskrivning artbestämning",
+                "Bekräftad av", "Bekräftad av (fritext)", "Bekräftelseår", "Länk till BOLD/GenBank",
+                "Med-observatör", "Med-observatör", "Med-observatör", "Med-observatör", "Med-observatör",
+                "Med-observatör", "Med-observatör", "Med-observatör", "Med-observatör", "Med-observatör",
+                "Externid", "Ej funnen"
+        };
+
+        zos.write((String.join(";", headers) + "\n").getBytes(StandardCharsets.UTF_8));
+
+        for (LocationWithPhotos item : allData) {
+            zos.write((formatArtportalenRow(item) + "\n").getBytes(StandardCharsets.UTF_8));
+        }
+        zos.closeEntry();
+    }
+
+    private String formatArtportalenRow(LocationWithPhotos item) {
+        LocationRecord r = item.location;
+        SpeciesAttributes a = r.attributes != null ? r.attributes : new SpeciesAttributes();
+
+        // 1. Split Date and Time (Assuming r.localTime is "YYYY-MM-DD HH:MM:SS")
+        String date = "";
+        String time = "";
+        if (r.localTime != null && r.localTime.length() >= 16) {
+            date = r.localTime.substring(0, 10);
+            time = r.localTime.substring(11, 16);
+        }
+
+        // 2. SWEREF 99 TM Conversion
+        // Replace this with your actual conversion call
+        Coordinates coord = new Coordinates(r.latitude, r.longitude);
+        Coordinates sweref = coord.convertToSweref99TMFromWGS84();
+        String ost = String.format(Locale.US, "%.0f", sweref.getNorth());
+        String nord = String.format(Locale.US, "%.0f", sweref.getEast());
+
+        // 3. Build the row (matching the 59 columns in the header)
+        StringBuilder sb = new StringBuilder();
+        sb.append(clean(a.species)).append(";");              // Artnamn
+        sb.append(";");                                       // Antal (Empty)
+        sb.append(";");                                       // Enhet
+        sb.append(";");                                       // Antal substrat
+        sb.append(";");                                       // Ålder
+        sb.append(";");                                       // Kön
+        sb.append(";");                                       // Aktivitet
+        sb.append(";");                                       // Metod
+        sb.append(truncate(clean(r.localityDescription), 75)).append(";"); // Lokalnamn
+        sb.append(ost).append(";");                           // Ost
+        sb.append(nord).append(";");                          // Nord
+        sb.append(mapArtportalenAccuracy(r.accuracy)).append(";"); // Noggrannhet
+        sb.append(";");                                       // Diffusion
+        sb.append(";");                                       // Djup min
+        sb.append(";");                                       // Djup max
+        sb.append(Math.round(r.altitude)).append(";");        // Höjd min
+        sb.append(";");                                       // Höjd max
+        sb.append(date).append(";");                          // Startdatum
+        sb.append(time).append(";");                          // Starttid
+        sb.append(";");                                       // Slutdatum
+        sb.append(";");                                       // Sluttid
+        sb.append(truncate(clean(r.note), 1000)).append(";"); // Publik kommentar
+        sb.append(";");                                       // Intressant kommentar
+        sb.append(";");                                       // Privat kommentar
+        sb.append(";");                                       // Ej återfunnen
+        sb.append(";");                                       // Dölj fyndet
+        sb.append(";");                                       // Andrahand
+        sb.append(";");                                       // Osäker
+        sb.append(";");                                       // Ospontan
+        sb.append(";");                                       // Biotop (Choice list)
+        sb.append(clean(a.habitat)).append(";");              // Biotop-beskrivning
+        sb.append(";");                                       // Art som substrat
+        sb.append(";");                                       // Art som substrat besk.
+        sb.append(";");                                       // Substrat (Choice list)
+        sb.append(clean(a.substrate)).append(";");            // Substrat-beskrivning
+        sb.append(";");                                       // Offentlig samling
+        sb.append(";");                                       // Privat samling
+        sb.append(clean(a.specimenNr)).append(";");           // Samlings-nummer
+
+        // Fill remaining 21 empty columns for Med-observatör, Externid, etc.
+        for(int i=0; i<21; i++) sb.append(";");
+
+        return sb.toString();
+    }
+
+    private String truncate(String text, int max) {
+        if (text == null) return "";
+        return text.length() > max ? text.substring(0, max) : text;
+    }
+
+    private String mapArtportalenAccuracy(float accuracy) {
+        int[] steps = {1, 5, 10, 25, 50, 75, 100, 125, 150, 200, 250, 300, 400, 500, 750, 1000, 1500, 2000, 2500, 3000, 5000};
+        int selected = 5000; // Default max
+        for (int step : steps) {
+            if (accuracy <= step) {
+                selected = step;
+                break;
+            }
+        }
+        return selected + " m";
+    }
     public LiveData<List<LocationRecord>> getSpecimenLocations() {
         return locationDao.getSpecimenLocations();
     }
