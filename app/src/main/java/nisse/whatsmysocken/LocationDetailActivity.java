@@ -39,6 +39,7 @@ public class LocationDetailActivity extends AppCompatActivity {
     private String currentPhotoPath;
     private final List<String> tempPhotoPaths = new ArrayList<>();
     private PhotoAdapter photoAdapter;
+    private ArrayAdapter<String> localityAdapter;
     private LocationRecord currentRecord;
     private SearchViewModel searchViewModel;
     private HistoryViewModel historyViewModel;
@@ -56,7 +57,9 @@ public class LocationDetailActivity extends AppCompatActivity {
 
         searchViewModel = new ViewModelProvider(this).get(SearchViewModel.class);
         historyViewModel = new ViewModelProvider(this).get(HistoryViewModel.class);
+
         initUI();
+        initLocalityView();
         setupObservers();
         setupSpeciesAutocomplete();
 
@@ -66,8 +69,6 @@ public class LocationDetailActivity extends AppCompatActivity {
         } else {
             setupExistingLocation();
         }
-
-        setupLocalityAutocomplete(lat, lon);
     }
 
     private void setupObservers() {
@@ -172,6 +173,46 @@ public class LocationDetailActivity extends AppCompatActivity {
         binding.rvPhotoGallery.setAdapter(photoAdapter);
     }
 
+    private void initLocalityView() {
+        AutoCompleteTextView editLocality = binding.editLocalityDescription;
+
+        // Initialize the adapter
+        localityAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, new ArrayList<>());
+        editLocality.setAdapter(localityAdapter);
+
+        // Allow the dropdown to show even without typing
+        editLocality.setThreshold(0);
+
+        editLocality.setOnClickListener(v -> {
+            if (localityAdapter.getCount() > 0) {
+                editLocality.showDropDown();
+            }
+        });
+
+        editLocality.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus && localityAdapter.getCount() > 0) {
+                editLocality.showDropDown();
+            }
+        });
+    }
+
+    private void loadLocalitySuggestions() {
+        // Only fetch if we actually have coordinates
+        if (lat == 0 && lon == 0) return;
+
+        historyViewModel.getNearbyLocalitySuggestions(lat, lon).observe(this, suggestions -> {
+            if (suggestions != null && localityAdapter != null) {
+                localityAdapter.clear();
+                // Filter out the current text to avoid suggesting what's already typed
+                String currentText = binding.editLocalityDescription.getText().toString();
+                for (String s : suggestions) {
+                    if (!s.equals(currentText)) localityAdapter.add(s);
+                }
+                localityAdapter.notifyDataSetChanged();
+            }
+        });
+    }
+
     private void setupNewLocation() {
         lat = getIntent().getDoubleExtra("lat", 0);
         lon = getIntent().getDoubleExtra("lon", 0);
@@ -179,6 +220,7 @@ public class LocationDetailActivity extends AppCompatActivity {
         altitude = getIntent().getDoubleExtra("altitude", 0);
         triggerSpatialLookups();
         refreshCoordinateDisplay();
+        loadLocalitySuggestions();
     }
 
     private void setupExistingLocation() {
@@ -222,6 +264,7 @@ public class LocationDetailActivity extends AppCompatActivity {
 
             triggerSpatialLookups();
             refreshCoordinateDisplay();
+            loadLocalitySuggestions();
         });
     }
 

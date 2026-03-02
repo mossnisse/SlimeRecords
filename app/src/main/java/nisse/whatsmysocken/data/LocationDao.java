@@ -46,7 +46,6 @@ public abstract class LocationDao {
     @Delete
     public abstract void deleteLocation(LocationRecord location);
 
-
     @Query("SELECT DISTINCT localityDescription FROM location_table " +
             "WHERE latitude BETWEEN :minLat AND :maxLat " +
             "AND longitude BETWEEN :minLon AND :maxLon " +
