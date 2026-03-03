@@ -82,22 +82,23 @@ def process_taxonomy(conn, taxon_csv, vernacular_csv, group_def_csv):
     # Process Vernacular
     print("Parsing VernacularName.csv...")
     with open(vernacular_csv, 'r', encoding='utf-8-sig') as f:
-        # DictReader hoppar automatiskt över första raden (headern)
         reader = csv.DictReader(f, delimiter='\t')
-        
-        # Rensa eventuella dolda mellanslag i kolumnnamnen
         reader.fieldnames = [field.strip() for field in reader.fieldnames]
         
         for row in reader:
             try:
-                raw_id = row['dyntaxaId']
+                # CHANGE THIS LINE: Use 'taxonId' to match your CSV header
+                raw_id = row['taxonId'] 
+                
                 t_id = int(raw_id.split(':')[-1])
                 
                 if t_id in taxon_info and row['language'] in ['sv', 'en']:
                     info = taxon_info[t_id]
                     
+                    # Check isPreferredName logic
+                    # Note: SANT is Swedish for TRUE. 
                     is_pref = row['isPreferredName'].strip().upper()
-                    is_synonym_val = 0 if is_pref == "SANT" else 1
+                    is_synonym_val = 0 if (is_pref == "SANT" or is_pref == "TRUE") else 1
                     
                     cursor.execute("""
                         INSERT INTO species_reference 
@@ -111,6 +112,6 @@ def process_taxonomy(conn, taxon_csv, vernacular_csv, group_def_csv):
                         is_synonym_val, 
                         info['grp']
                     ))
-            except (ValueError, KeyError, IndexError):
-                # Hoppa över rader som är trasiga eller saknar data
+            except (ValueError, KeyError, IndexError) as e:
+                # Optional: print(f"Skipping row due to: {e}") 
                 continue

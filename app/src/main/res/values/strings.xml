@@ -14,4 +14,16 @@
         <item>Excel CSV (Semicolon + BOM)</item>
         <item>Artportalen (Semicolon + SWEREF)</item>
     </string-array>
+
+    <string-array name="language_names">
+        <item>Swedish</item>
+        <item>Latin</item>
+        <item>English</item>
+    </string-array>
+
+    <string-array name="language_values">
+        <item>sv</item>
+        <item>la</item>
+        <item>en</item>
+    </string-array>
 </resources>

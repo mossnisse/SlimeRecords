@@ -86,4 +86,20 @@ public class SearchViewModel extends AndroidViewModel {
             }
         });
     }
+
+    public LiveData<SpeciesReferenceEntity> resolveAcceptedName(int taxonID, String targetLang) {
+        MutableLiveData<SpeciesReferenceEntity> result = new MutableLiveData<>();
+
+        UserDatabase.getDbExecutor().execute(() -> {
+            try {
+                // We ask the DAO for the non-synonym record for this ID in the chosen language
+                SpeciesReferenceEntity accepted = spatialDao.getAcceptedName(taxonID, targetLang);
+                result.postValue(accepted);
+            } catch (Exception e) {
+                result.postValue(null);
+            }
+        });
+
+        return result;
+    }
 }

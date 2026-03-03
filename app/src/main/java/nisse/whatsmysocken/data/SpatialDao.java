@@ -25,4 +25,10 @@ public interface SpatialDao {
             "ORDER BY isSynonym ASC, name ASC " +
             "LIMIT 20")
     List<SpeciesReferenceEntity> searchSpecies(String query);
+
+    @Query("SELECT * FROM species_reference " +
+            "WHERE dyntaxaID = :tID " +
+            "AND language = :lang " +
+            "AND isSynonym = 0 LIMIT 1")
+    SpeciesReferenceEntity getAcceptedName(int tID, String lang);
 }

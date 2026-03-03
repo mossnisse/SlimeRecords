@@ -557,13 +557,33 @@ public class LocationDetailActivity extends AppCompatActivity {
         });
 
         speciesInput.setOnItemClickListener((parent, view, position, id) -> {
-
             List<SpeciesReferenceEntity> currentSuggestions = searchViewModel.getSpeciesSuggestions().getValue();
             if (currentSuggestions != null && position < currentSuggestions.size()) {
                 SpeciesReferenceEntity selected = currentSuggestions.get(position);
-                selectedDyntaxaID = selected.taxonID;
-                speciesInput.setText(selected.name);
-                speciesInput.setSelection(selected.name.length());
+
+                SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+                boolean autoResolve = prefs.getBoolean("auto_resolve_synonyms", true);
+                String targetLang = prefs.getString("preferred_species_language", "sv");
+
+                // If it's a synonym OR we want to translate from Latin to Swedish (or vice versa)
+                if (autoResolve || !selected.language.equals(targetLang)) {
+                    // Find the accepted name in the target language
+                    searchViewModel.resolveAcceptedName(selected.taxonID, targetLang).observe(this, accepted -> {
+                        if (accepted != null) {
+                            speciesInput.setText(accepted.name);
+                            selectedDyntaxaID = accepted.taxonID;
+                        } else {
+                            // Fallback if no translation exists
+                            speciesInput.setText(selected.name);
+                            selectedDyntaxaID = selected.taxonID;
+                        }
+                        speciesInput.setSelection(speciesInput.getText().length());
+                    });
+                } else {
+                    speciesInput.setText(selected.name);
+                    selectedDyntaxaID = selected.taxonID;
+                    speciesInput.setSelection(selected.name.length());
+                }
             }
         });
     }
