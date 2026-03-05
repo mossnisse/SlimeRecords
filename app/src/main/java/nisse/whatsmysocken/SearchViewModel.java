@@ -1,11 +1,14 @@
 package nisse.whatsmysocken;
 
 import android.app.Application;
+import android.content.SharedPreferences;
 import android.location.Location;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.preference.PreferenceManager;
+
 import java.util.ArrayList;
 import java.util.List;
 import nisse.whatsmysocken.coords.Coordinates;
@@ -13,6 +16,7 @@ import nisse.whatsmysocken.data.SpatialDao;
 import nisse.whatsmysocken.data.SpatialDatabase;
 import nisse.whatsmysocken.data.SpatialResolver;
 import nisse.whatsmysocken.data.SpeciesReferenceEntity;
+import nisse.whatsmysocken.data.SpeciesReferenceWithAccepted;
 import nisse.whatsmysocken.data.UserDatabase;
 
 public class SearchViewModel extends AndroidViewModel {
@@ -20,7 +24,7 @@ public class SearchViewModel extends AndroidViewModel {
     private final MutableLiveData<Boolean> userWantsSearching = new MutableLiveData<>(false);
     private final MutableLiveData<String> provinceResult = new MutableLiveData<>();
     private final MutableLiveData<String> districtResult = new MutableLiveData<>();
-    private final MutableLiveData<List<SpeciesReferenceEntity>> speciesSuggestions = new MutableLiveData<>();
+    private final MutableLiveData<List<SpeciesReferenceWithAccepted>> speciesSuggestions = new MutableLiveData<>();
     private final SpatialDao spatialDao;
     private String lastQuery = "";
 
@@ -60,11 +64,11 @@ public class SearchViewModel extends AndroidViewModel {
     public LiveData<String> getProvinceResult() { return provinceResult; }
     public LiveData<String> getDistrictResult() { return districtResult; }
 
-    public LiveData<List<SpeciesReferenceEntity>> getSpeciesSuggestions() {
+    public LiveData<List<SpeciesReferenceWithAccepted>> getSpeciesSuggestions() {
         return speciesSuggestions;
     }
 
-    public void findSpecies(String query) {
+    public void findSpecies(String query, String prefLang) {
         if (query == null || query.trim().isEmpty()) {
             speciesSuggestions.postValue(new ArrayList<>());
             return;
@@ -75,9 +79,34 @@ public class SearchViewModel extends AndroidViewModel {
 
         UserDatabase.getDbExecutor().execute(() -> {
             try {
-                List<SpeciesReferenceEntity> results = spatialDao.searchSpecies(currentQuery);
+                SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplication());
 
-                // Only update the UI if this is still the most recent query
+                // Build list of active languages
+                List<String> activeLangs = new ArrayList<>();
+                if (prefs.getBoolean("lang_la", true)) activeLangs.add("la");
+                if (prefs.getBoolean("lang_sv", true)) activeLangs.add("sv");
+                if (prefs.getBoolean("lang_en", false)) activeLangs.add("en");
+
+                // Build list of active groups
+                // Note: These strings MUST match the 'group' column in your DB
+                String[] allGroups = {"fåglar", "däggdjur", "grod_kräldjur", "fiskar", "tvåvingar", "skalbaggar", "fjärilar", "steklar", "övriga_insekter", "spindlar", "övriga_rygradslösa_djur", "svampar", "mossor", "kärlväxter", "alger"};
+                List<String> activeGroups = new ArrayList<>();
+                for (String g : allGroups) {
+                    if (prefs.getBoolean("group_" + g, true)) {
+                        activeGroups.add(g);
+                    }
+                }
+
+                // If everything is unchecked, default to all or return empty
+                if (activeLangs.isEmpty() || activeGroups.isEmpty()) {
+                    speciesSuggestions.postValue(new ArrayList<>());
+                    return;
+                }
+
+                List<SpeciesReferenceWithAccepted> results = spatialDao.searchSpeciesWithAccepted(
+                        currentQuery, prefLang, activeLangs, activeGroups
+                );
+
                 if (currentQuery.equals(lastQuery)) {
                     speciesSuggestions.postValue(results);
                 }
@@ -85,21 +114,5 @@ public class SearchViewModel extends AndroidViewModel {
                 speciesSuggestions.postValue(new ArrayList<>());
             }
         });
-    }
-
-    public LiveData<SpeciesReferenceEntity> resolveAcceptedName(int taxonID, String targetLang) {
-        MutableLiveData<SpeciesReferenceEntity> result = new MutableLiveData<>();
-
-        UserDatabase.getDbExecutor().execute(() -> {
-            try {
-                // We ask the DAO for the non-synonym record for this ID in the chosen language
-                SpeciesReferenceEntity accepted = spatialDao.getAcceptedName(taxonID, targetLang);
-                result.postValue(accepted);
-            } catch (Exception e) {
-                result.postValue(null);
-            }
-        });
-
-        return result;
     }
 }

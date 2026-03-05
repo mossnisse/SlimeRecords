@@ -16,7 +16,7 @@ public class SpeciesReferenceEntity {
 
     @NonNull
     @ColumnInfo(name = "dyntaxaID")
-    public Integer taxonID;
+    public Integer dyntaxaID;
 
     @NonNull
     public String name;

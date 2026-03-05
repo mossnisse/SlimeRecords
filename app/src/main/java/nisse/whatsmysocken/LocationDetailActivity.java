@@ -28,6 +28,7 @@ import nisse.whatsmysocken.data.LocationRecord;
 import nisse.whatsmysocken.data.PhotoRecord;
 import nisse.whatsmysocken.data.SpeciesAttributes;
 import nisse.whatsmysocken.data.SpeciesReferenceEntity;
+import nisse.whatsmysocken.data.SpeciesReferenceWithAccepted;
 import nisse.whatsmysocken.databinding.ActivityLocationDetailBinding;
 
 public class LocationDetailActivity extends AppCompatActivity {
@@ -512,25 +513,16 @@ public class LocationDetailActivity extends AppCompatActivity {
         searchViewModel.getSpeciesSuggestions().observe(this, entities -> {
             if (entities != null) {
                 List<String> displayList = new ArrayList<>();
-                for (SpeciesReferenceEntity e : entities) {
-                    StringBuilder sb = new StringBuilder();
+                for (SpeciesReferenceWithAccepted item : entities) {
+                    String original = item.getName();
+                    String accepted = item.acceptedName;
 
-                    // Add the name
-                    sb.append(e.name);
-
-                    // Add a hint if it's a synonym
-                    if (e.isSynonym == 1) {
-                        sb.append(" (synonym)");
+                    if (item.getIsSynonym() == 1 && accepted != null && !original.equalsIgnoreCase(accepted)) {
+                        displayList.add(original + " -> " + accepted);
+                    } else {
+                        displayList.add(original);
                     }
-
-                    // Add the group if available
-                    if (e.taxonGroup != null && !e.taxonGroup.isEmpty()) {
-                        sb.append(" [").append(e.taxonGroup).append("]");
-                    }
-
-                    displayList.add(sb.toString());
                 }
-
                 adapter.clear();
                 adapter.addAll(displayList);
                 adapter.notifyDataSetChanged();
@@ -543,47 +535,46 @@ public class LocationDetailActivity extends AppCompatActivity {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                // Only reset the ID if the change came from the user typing (keyboard)
-                // AutoCompleteTextView triggers this even when we call .setText()
                 if (speciesInput.hasFocus()) {
                     selectedDyntaxaID = null;
                 }
 
                 String query = s.toString().trim();
                 if (query.length() >= 1) {
-                    searchViewModel.findSpecies(query);
+                    // Get target language from prefs to pass to the search
+                    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(LocationDetailActivity.this);
+                    String targetLang = prefs.getString("preferred_species_language", "sv");
+
+                    searchViewModel.findSpecies(query, targetLang);
                 }
             }
         });
 
         speciesInput.setOnItemClickListener((parent, view, position, id) -> {
-            List<SpeciesReferenceEntity> currentSuggestions = searchViewModel.getSpeciesSuggestions().getValue();
+            List<SpeciesReferenceWithAccepted> currentSuggestions = searchViewModel.getSpeciesSuggestions().getValue();
+
             if (currentSuggestions != null && position < currentSuggestions.size()) {
-                SpeciesReferenceEntity selected = currentSuggestions.get(position);
+                SpeciesReferenceWithAccepted selected = currentSuggestions.get(position);
 
                 SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
                 boolean autoResolve = prefs.getBoolean("auto_resolve_synonyms", true);
                 String targetLang = prefs.getString("preferred_species_language", "sv");
 
-                // If it's a synonym OR we want to translate from Latin to Swedish (or vice versa)
-                if (autoResolve || !selected.language.equals(targetLang)) {
-                    // Find the accepted name in the target language
-                    searchViewModel.resolveAcceptedName(selected.taxonID, targetLang).observe(this, accepted -> {
-                        if (accepted != null) {
-                            speciesInput.setText(accepted.name);
-                            selectedDyntaxaID = accepted.taxonID;
-                        } else {
-                            // Fallback if no translation exists
-                            speciesInput.setText(selected.name);
-                            selectedDyntaxaID = selected.taxonID;
-                        }
-                        speciesInput.setSelection(speciesInput.getText().length());
-                    });
+                // Logic: If it's a synonym or wrong language, use the 'acceptedName' from our POJO
+                if ((selected.getIsSynonym() == 1 && autoResolve) || !selected.species.language.equals(targetLang)) {
+                    if (selected.acceptedName != null) {
+                        speciesInput.setText(selected.acceptedName);
+                        selectedDyntaxaID = selected.getTaxonID();
+                    } else {
+                        // If no translation found, fall back to current
+                        speciesInput.setText(selected.getName());
+                        selectedDyntaxaID = selected.getTaxonID();
+                    }
                 } else {
-                    speciesInput.setText(selected.name);
-                    selectedDyntaxaID = selected.taxonID;
-                    speciesInput.setSelection(selected.name.length());
+                    speciesInput.setText(selected.getName());
+                    selectedDyntaxaID = selected.getTaxonID();
                 }
+                speciesInput.setSelection(speciesInput.getText().length());
             }
         });
     }
