@@ -2,20 +2,20 @@ package nisse.whatsmysocken;
 
 import android.app.Application;
 import android.content.SharedPreferences;
+import android.content.res.Resources;
 import android.location.Location;
+import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.preference.PreferenceManager;
-
 import java.util.ArrayList;
 import java.util.List;
 import nisse.whatsmysocken.coords.Coordinates;
 import nisse.whatsmysocken.data.SpatialDao;
 import nisse.whatsmysocken.data.SpatialDatabase;
 import nisse.whatsmysocken.data.SpatialResolver;
-import nisse.whatsmysocken.data.SpeciesReferenceEntity;
 import nisse.whatsmysocken.data.SpeciesReferenceWithAccepted;
 import nisse.whatsmysocken.data.UserDatabase;
 
@@ -80,24 +80,28 @@ public class SearchViewModel extends AndroidViewModel {
         UserDatabase.getDbExecutor().execute(() -> {
             try {
                 SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplication());
+                Resources res = getApplication().getResources();
 
-                // Build list of active languages
+                // 1. Languages
                 List<String> activeLangs = new ArrayList<>();
                 if (prefs.getBoolean("lang_la", true)) activeLangs.add("la");
                 if (prefs.getBoolean("lang_sv", true)) activeLangs.add("sv");
                 if (prefs.getBoolean("lang_en", false)) activeLangs.add("en");
 
-                // Build list of active groups
-                // Note: These strings MUST match the 'group' column in your DB
-                String[] allGroups = {"fåglar", "däggdjur", "grod_kräldjur", "fiskar", "tvåvingar", "skalbaggar", "fjärilar", "steklar", "övriga_insekter", "spindlar", "övriga_rygradslösa_djur", "svampar", "mossor", "kärlväxter", "alger"};
+                // 2. Groups (Dynamic Mapping)
+                String[] prefKeys = res.getStringArray(R.array.taxon_group_pref_keys);
+                String[] dbValues = res.getStringArray(R.array.taxon_group_db_values);
                 List<String> activeGroups = new ArrayList<>();
-                for (String g : allGroups) {
-                    if (prefs.getBoolean("group_" + g, true)) {
-                        activeGroups.add(g);
+
+                for (int i = 0; i < prefKeys.length; i++) {
+                    // If the user checked this group in settings...
+                    if (prefs.getBoolean(prefKeys[i], true)) {
+                        // ...add the corresponding DB string to our search list
+                        activeGroups.add(dbValues[i]);
                     }
                 }
 
-                // If everything is unchecked, default to all or return empty
+                // Safety check
                 if (activeLangs.isEmpty() || activeGroups.isEmpty()) {
                     speciesSuggestions.postValue(new ArrayList<>());
                     return;
@@ -111,6 +115,7 @@ public class SearchViewModel extends AndroidViewModel {
                     speciesSuggestions.postValue(results);
                 }
             } catch (Exception e) {
+                Log.e("SearchViewModel", "Search failed", e);
                 speciesSuggestions.postValue(new ArrayList<>());
             }
         });

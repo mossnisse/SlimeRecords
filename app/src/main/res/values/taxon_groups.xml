@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="taxon_group_pref_keys">
+        <item>group_fåglar</item>
+        <item>group_däggdjur</item>
+        <item>group_grod_kräldjur</item>
+        <item>group_fiskar</item>
+        <item>group_tvåvingar</item>
+        <item>group_skalbaggar</item>
+        <item>group_fjärilar</item>
+        <item>group_steklar</item>
+        <item>group_övriga_insekter</item>
+        <item>group_spindlar</item>
+        <item>group_övriga_rygradslösa_djur</item>
+        <item>group_svampar</item>
+        <item>group_mossor</item>
+        <item>group_kärlväxter</item>
+        <item>group_alger</item>
+    </string-array>
+
+    <string-array name="taxon_group_db_values">
+        <item>fåglar</item>
+        <item>däggdjur</item>
+        <item>grod-&amp;kräldjur</item>
+        <item>fiskar</item>
+        <item>tvåvingar</item>
+        <item>skalbaggar</item>
+        <item>fjärilar</item>
+        <item>steklar</item>
+        <item>övriga insekter</item>
+        <item>spindlar</item>
+        <item>övriga rygradslösa djur</item>
+        <item>svampar</item>
+        <item>mossor</item>
+        <item>kärlväxter</item>
+        <item>alger</item>
+    </string-array>
+</resources>

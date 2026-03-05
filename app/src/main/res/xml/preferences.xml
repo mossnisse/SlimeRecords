@@ -139,7 +139,7 @@
         <CheckBoxPreference android:key="group_svampar" android:title="Svampar (Fungi inclusive lichens)" android:defaultValue="true" />
         <CheckBoxPreference android:key="group_mossor" android:title="Mossor (Bryophytes)" android:defaultValue="true" />
         <CheckBoxPreference android:key="group_kärlväxter" android:title="Kärlväxter (Plants)" android:defaultValue="true" />
-        <CheckBoxPreference android:key="group_algae" android:title="Alger (Algae)" android:defaultValue="true" />
+        <CheckBoxPreference android:key="group_alger" android:title="Alger (Algae)" android:defaultValue="true" />
     </PreferenceCategory>
 
     <PreferenceCategory android:title="Utilities">
