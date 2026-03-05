@@ -3,11 +3,11 @@ plugins {
 }
 
 android {
-    namespace = "nisse.whatsmysocken"
+    namespace = "nisse.SlimeRecords"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "nisse.whatsmysocken"
+        applicationId = "nisse.SlimeRecords"
         minSdk = 29
         targetSdk = 34
         versionCode = 1

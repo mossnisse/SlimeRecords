@@ -5,7 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="nisse.whatsmysocken.MainActivity">
+    tools:context="nisse.SlimeRecords.MainActivity">
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
@@ -19,7 +19,7 @@
             android:elevation="4dp"
             app:titleTextColor="#FFFFFF"
             app:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
-            app:popupTheme="@style/Theme.WhatsMySocken.PopupOverlay"/>
+            app:popupTheme="@style/Theme.SlimeRecords.PopupOverlay"/>
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.core.widget.NestedScrollView

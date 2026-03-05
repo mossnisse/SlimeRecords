@@ -14,11 +14,11 @@
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.WhatsMySocken">
+        android:theme="@style/Theme.SlimeRecords">
 
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="nisse.whatsmysocken.fileprovider"
+            android:authorities="nisse.SlimeRecords.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data
@@ -27,57 +27,57 @@
         </provider>
 
         <activity
-            android:name="nisse.whatsmysocken.MainActivity"
+            android:name="nisse.SlimeRecords.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.WhatsMySocken.NoActionBar">
+            android:theme="@style/Theme.SlimeRecords.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <activity android:name="nisse.whatsmysocken.LocationDetailActivity" />
+        <activity android:name="nisse.SlimeRecords.LocationDetailActivity" />
 
         <activity
-            android:name="nisse.whatsmysocken.FullScreenPhotoActivity"
+            android:name="nisse.SlimeRecords.FullScreenPhotoActivity"
             android:theme="@style/Theme.AppCompat.NoActionBar"
             android:configChanges="orientation|screenSize"
             android:exported="false" />
 
         <activity
-            android:name="nisse.whatsmysocken.SettingsActivity"
+            android:name="nisse.SlimeRecords.SettingsActivity"
             android:label="Settings"
             android:exported="false"
-            android:parentActivityName="nisse.whatsmysocken.MainActivity">
+            android:parentActivityName="nisse.SlimeRecords.MainActivity">
         </activity>
 
         <activity
-            android:name="nisse.whatsmysocken.HistoryActivity"
+            android:name="nisse.SlimeRecords.HistoryActivity"
             android:label="Saved Locations"
             android:exported="false"
-            android:parentActivityName="nisse.whatsmysocken.MainActivity">
+            android:parentActivityName="nisse.SlimeRecords.MainActivity">
         </activity>
 
         <activity
-            android:name="nisse.whatsmysocken.ExportActivity"
+            android:name="nisse.SlimeRecords.ExportActivity"
             android:exported="false"
             android:label="Export Data"
-            android:parentActivityName="nisse.whatsmysocken.MainActivity">
+            android:parentActivityName="nisse.SlimeRecords.MainActivity">
         </activity>
 
         <activity
-            android:name="nisse.whatsmysocken.ImportActivity"
+            android:name="nisse.SlimeRecords.ImportActivity"
             android:exported="false"
             android:label="Import Data"
-            android:parentActivityName="nisse.whatsmysocken.MainActivity">
+            android:parentActivityName="nisse.SlimeRecords.MainActivity">
         </activity>
 
         <activity
-            android:name="nisse.whatsmysocken.PrintActivity"
+            android:name="nisse.SlimeRecords.PrintActivity"
             android:exported="false"
             android:label="Print Labels"
-            android:parentActivityName="nisse.whatsmysocken.MainActivity">
+            android:parentActivityName="nisse.SlimeRecords.MainActivity">
         </activity>
 
     </application>

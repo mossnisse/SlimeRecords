@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "WhatsMySocken"
+rootProject.name = "SlimeRecords"
 include(":app")
