@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="method_sv_values">
+        <item>Observerad</item>
+        <item>Slaghåvning</item>
+        <item>Vattenhåvning</item>
+        <item>Bilhåvning</item>
+        <item>Lampa</item>
+        <item>Nattsök med lampa</item>
+        <item>Ljusfälla</item>
+        <item>Lockbete</item>
+        <item>Feromon</item>
+        <item>Fallfälla</item>
+        <item>Färgskål</item>
+        <item>Fönsterfälla</item>
+        <item>Malaisefälla</item>
+        <item>Limfälla</item>
+        <item>Stationär sugfälla</item>
+        <item>Kläckningsfälla</item>
+        <item>Fälla</item>
+        <item>Mobil sugsamlare</item>
+        <item>Sållning</item>
+        <item>Bankning</item>
+        <item>Mosskramning</item>
+        <item>Dränkning</item>
+        <item>Trampning</item>
+        <item>Utdrivning</item>
+        <item>Substratprov</item>
+        <item>Ultraljudsdetektor</item>
+        <item>Bottenhämtare</item>
+        <item>Bottenskrapa</item>
+        <item>Bottenhuggare</item>
+        <item>Bottensläde</item>
+        <item>Surberprovtagare</item>
+        <item>Ryssja/mjärde</item>
+        <item>Fiske med nät</item>
+        <item>Backlina</item>
+        <item>Trålfiske</item>
+        <item>Dykning</item>
+        <item>Slag-/vattenhåvning</item>
+        <item>Insamlad för uppfödning/kläckning</item>
+        <item>eDNA</item>
+        <item>Observation med värmekamera</item>
+        <item>Hydrofon</item>
+        <item>Bildförstärkare</item>
+        <item>Pejling</item>
+        <item>Webbkamera</item>
+        <item>Kamera med rörelsedetektor</item>
+        <item>Insamling av material för DNA-analys</item>
+        <item>Autobox</item>
+        <item>Slöjnät</item>
+        <item>Passiv ljudinspelning</item>
+        <item>Vattenhåvning</item>
+        <item>Trolling</item>
+        <item>Drivgarn</item>
+        <item>Elfiske</item>
+        <item>Flugfiske</item>
+        <item>Pimpelfiske</item>
+        <item>Vadfiske</item>
+        <item>Pilkfiske</item>
+        <item>Spinnfiske</item>
+        <item>Mete</item>
+        <item>Krattning</item>
+    </string-array>
+
+    <string-array name="method_en_values">
+        <item>Observed</item>
+        <item>Sweep netting</item>
+        <item>Water netting</item>
+        <item>Car netting</item>
+        <item>Light (attraction)</item>
+        <item>Night searching with lamp</item>
+        <item>Light trap</item>
+        <item>Baiting/Luring</item>
+        <item>Pheromone trap</item>
+        <item>Pitfall trap</item>
+        <item>Pan trap</item>
+        <item>Window trap</item>
+        <item>Malaise trap</item>
+        <item>Sticky trap</item>
+        <item>Stationary suction trap</item>
+        <item>Emergence trap</item>
+        <item>Trap</item>
+        <item>Mobile suction sampler</item>
+        <item>Sifting/Sieving</item>
+        <item>Beating</item>
+        <item>Moss squeezing</item>
+        <item>Submersion/Drowning</item>
+        <item>Treading</item>
+        <item>Extraction</item>
+        <item>Substrate sample</item>
+        <item>Bat detector/Ultrasonic detector</item>
+        <item>Benthic grab</item>
+        <item>Benthic dredge</item>
+        <item>Bottom sampler/Grab</item>
+        <item>Benthic sledge</item>
+        <item>Surber sampler</item>
+        <item>Fyke net/Pot</item>
+        <item>Gillnetting</item>
+        <item>Longlining</item>
+        <item>Trawling</item>
+        <item>Diving</item>
+        <item>Sweep/water netting</item>
+        <item>Collected for rearing/hatching</item>
+        <item>eDNA</item>
+        <item>Thermal imaging observation</item>
+        <item>Hydrophone</item>
+        <item>Night vision intensifier</item>
+        <item>Telemetry/Radio tracking</item>
+        <item>Webcam</item>
+        <item>Trail camera/Motion-activated camera</item>
+        <item>Collection for DNA analysis</item>
+        <item>Automated bat detector</item>
+        <item>Mist net</item>
+        <item>Passive acoustic monitoring</item>
+        <item>Water netting</item>
+        <item>Trolling</item>
+        <item>Drift net</item>
+        <item>Electrofishing</item>
+        <item>Fly fishing</item>
+        <item>Ice fishing (jigging)</item>
+        <item>Seine netting</item>
+        <item>Jigging</item>
+        <item>Spin fishing</item>
+        <item>Angling (bait fishing)</item>
+        <item>Raking</item>
+    </string-array>
+
+</resources>
+

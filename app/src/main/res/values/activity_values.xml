@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="activity_sv_values">
+        <item>Bobygge</item>
+        <item>Besöker bebott bo</item>
+        <item>Spel</item>
+        <item>Parning/parningsceremonier</item>
+        <item>Revirhävdande</item>
+        <item>Födosökande</item>
+        <item>Frispringande/krypande</item>
+        <item>Friflygande</item>
+        <item>Grävande</item>
+        <item>Vilande</item>
+        <item>Äggläggande</item>
+        <item>Sträckande</item>
+        <item>I vatten/simmande</item>
+        <item>På övervintringsplats</item>
+        <item>Dvala</item>
+        <item>Funnen död</item>
+        <item>Färska gnagspår</item>
+        <item>Äldre gnagspår</item>
+        <item>Färsk spillning</item>
+        <item>Äldre spillning</item>
+        <item>Kokong</item>
+        <item>Gall</item>
+        <item>Mina</item>
+        <item>Fragment</item>
+        <item>Gående/springande</item>
+        <item>Spel/sång</item>
+        <item>Lockläte, övriga läten</item>
+        <item>Hopp över vattenytan</item>
+        <item>Konstant kurs, regelbunden dykning</item>
+        <item>Varierande kurs, oregelbunden dykning</item>
+        <item>Långsam rörelse, lång tid vid ytan</item>
+        <item>Närmanden mot båt</item>
+        <item>Dräktig hona</item>
+        <item>Obs av hona med unge/ungar</item>
+        <item>Kamp mellan handjur</item>
+        <item>Individmärkt</item>
+        <item>Sjuk</item>
+        <item>Skjuten/avlivad</item>
+        <item>Död av sjukdom/svält</item>
+        <item>Trafikdödad</item>
+        <item>Drunknad i fiskenät</item>
+        <item>Dödad av predator</item>
+        <item>Nyligen använt bo</item>
+        <item>Gammalt bo</item>
+        <item>Färska spår</item>
+        <item>Äldre spår</item>
+        <item>Spår från löpande hona</item>
+        <item>Spår av vuxet djur med unge/ungar</item>
+        <item>Bytes-/matrester</item>
+        <item>Hårrester</item>
+        <item>Spår från klättring</item>
+        <item>Aktiv</item>
+        <item>Yngelplats med ungar</item>
+        <item>Död, krockat med vindkraftverk</item>
+        <item>Död, krockat med fyr</item>
+        <item>Ömsskinn</item>
+        <item>I lekdräkt</item>
+        <item>Lek</item>
+        <item>Vandrande</item>
+        <item>Bo, ägg/ungar</item>
+        <item>Bo, hörda ungar</item>
+        <item>Misslyckad häckning</item>
+        <item>Ruvande</item>
+        <item>Äggskal</item>
+        <item>Föda åt ungar</item>
+        <item>Bär exkrementsäck</item>
+        <item>Pulli/nyligen flygga ungar</item>
+        <item>Ruvfläckar</item>
+        <item>Upprörd, varnande</item>
+        <item>Bobesök?</item>
+        <item>Permanent revir</item>
+        <item>Par i lämplig häckbiotop</item>
+        <item>Obs i häcktid, lämplig biotop</item>
+        <item>Rastande</item>
+        <item>Stationär</item>
+        <item>Förbiflygande</item>
+        <item>Övernattning</item>
+        <item>Revir, ej häckning</item>
+        <item>Ringmärktes</item>
+        <item>Död, krockat med kraftledning</item>
+        <item>Död, krockat med fönster</item>
+        <item>Död, krockat med flygplan</item>
+        <item>Död, krockat med staket</item>
+        <item>Dödad av elektricitet</item>
+        <item>Gammalt bo</item>
+    </string-array>
+
+    <string-array name="activity_en_values">
+        <item>Nest building</item>
+        <item>Visiting occupied nest</item>
+        <item>Displaying</item>
+        <item>Mating/mating ceremonies</item>
+        <item>Territorial behavior</item>
+        <item>Foraging</item>
+        <item>Free-running/crawling</item>
+        <item>Free-flying</item>
+        <item>Burrowing</item>
+        <item>Resting</item>
+        <item>Egg-laying</item>
+        <item>Migrating</item>
+        <item>In water/swimming</item>
+        <item>At wintering site</item>
+        <item>Dormancy/Hibernation</item>
+        <item>Found dead</item>
+        <item>Fresh gnaw marks</item>
+        <item>Old gnaw marks</item>
+        <item>Fresh droppings</item>
+        <item>Old droppings</item>
+        <item>Cocoon</item>
+        <item>Gall</item>
+        <item>Leaf mine</item>
+        <item>Fragment</item>
+        <item>Walking/running</item>
+        <item>Displaying/song</item>
+        <item>Call, other vocalizations</item>
+        <item>Jumping above water surface</item>
+        <item>Constant course, regular diving</item>
+        <item>Variable course, irregular diving</item>
+        <item>Slow movement, long time at surface</item>
+        <item>Approaching boat</item>
+        <item>Pregnant female</item>
+        <item>Obs of female with young</item>
+        <item>Fight between males</item>
+        <item>Individually marked</item>
+        <item>Sick</item>
+        <item>Shot/culled</item>
+        <item>Dead from disease/starvation</item>
+        <item>Roadkill</item>
+        <item>Drowned in fishing net</item>
+        <item>Killed by predator</item>
+        <item>Recently used nest</item>
+        <item>Old nest</item>
+        <item>Fresh tracks</item>
+        <item>Old tracks</item>
+        <item>Tracks from female in heat</item>
+        <item>Tracks of adult with young</item>
+        <item>Prey/food remains</item>
+        <item>Hair remains</item>
+        <item>Climbing tracks</item>
+        <item>Active</item>
+        <item>Nursery site with young</item>
+        <item>Dead, collided with wind turbine</item>
+        <item>Dead, collided with lighthouse</item>
+        <item>Slough/shed skin</item>
+        <item>In breeding plumage</item>
+        <item>Spawning</item>
+        <item>Migrating/wandering</item>
+        <item>Nest, eggs/young</item>
+        <item>Nest, young heard</item>
+        <item>Failed breeding</item>
+        <item>Incubating/brooding</item>
+        <item>Eggshell</item>
+        <item>Food for young</item>
+        <item>Carrying fecal sac</item>
+        <item>Pulli/recently fledged young</item>
+        <item>Brood patches</item>
+        <item>Agitated, warning</item>
+        <item>Nest visit?</item>
+        <item>Permanent territory</item>
+        <item>Pair in suitable breeding habitat</item>
+        <item>Observed during breeding season, suitable habitat</item>
+        <item>Staging/resting</item>
+        <item>Stationary</item>
+        <item>Flying past</item>
+        <item>Roosting</item>
+        <item>Territory, not breeding</item>
+        <item>Banded/ringed</item>
+        <item>Dead, collided with power line</item>
+        <item>Dead, collided with window</item>
+        <item>Dead, collided with aircraft</item>
+        <item>Dead, collided with fence</item>
+        <item>Killed by electrocution</item>
+        <item>Old nest</item>
+    </string-array>
+
+</resources>

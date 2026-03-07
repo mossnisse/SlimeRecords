@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="rank_sv_values">
+        <item>Rot</item>
+        <item>Domän</item>
+        <item>Rike</item>
+        <item>Underrike</item>
+        <item>Infrarike</item>
+        <item>Gren</item>
+        <item>Stam</item>
+        <item>Överstam</item>
+        <item>Understam</item>
+        <item>Infrastam</item>
+        <item>Avdelning</item>
+        <item>Överavdelning</item>
+        <item>Underavdelning</item>
+        <item>Infraavdelning</item>
+        <item>Överklass</item>
+        <item>Klass</item>
+        <item>Underklass</item>
+        <item>Infraklass</item>
+        <item>Parvklass</item>
+        <item>Överordning</item>
+        <item>Ordning</item>
+        <item>Underordning</item>
+        <item>Infraordning</item>
+        <item>Överfamilj</item>
+        <item>Familj</item>
+        <item>Underfamilj</item>
+        <item>Infrafamilj</item>
+        <item>Övertribus</item>
+        <item>Tribus</item>
+        <item>Undertribus</item>
+        <item>Infratribus</item>
+        <item>Släkte</item>
+        <item>Undersläkte</item>
+        <item>Sektion</item>
+        <item>Undersektion</item>
+        <item>Serie</item>
+        <item>Underserie</item>
+        <item>Kollektivtaxon</item>
+        <item>Artkomplex</item>
+        <item>Aggregat</item>
+        <item>Art</item>
+        <item>Småart</item>
+        <item>Underart</item>
+        <item>Varietet</item>
+        <item>Form</item>
+        <item>Hybrid</item>
+        <item>Sort</item>
+        <item>Sortgrupp</item>
+        <item>Morfotyp</item>
+        <item>Population</item>
+        <item>Organismgrupp</item>
+        <item>Ranglös</item>
+        <item>Pseudotaxon</item>
+    </string-array>
+
+    <string-array name="rank_en_values">
+        <item>Root</item>
+        <item>Domain</item>
+        <item>Kingdom</item>
+        <item>Subkingdom</item>
+        <item>Infrakingdom</item>
+        <item>Branch</item>
+        <item>Phylum</item>
+        <item>Superphylum</item>
+        <item>Subphylum</item>
+        <item>Infraphylum</item>
+        <item>Division</item>
+        <item>Superdivision</item>
+        <item>Subdivision</item>
+        <item>Infradivision</item>
+        <item>Superclass</item>
+        <item>Class</item>
+        <item>Subclass</item>
+        <item>Infraclass</item>
+        <item>Parvclass</item>
+        <item>Superorder</item>
+        <item>Order</item>
+        <item>Suborder</item>
+        <item>Infraorder</item>
+        <item>Superfamily</item>
+        <item>Family</item>
+        <item>Subfamily</item>
+        <item>Infrafamily</item>
+        <item>Supertribe</item>
+        <item>Tribe</item>
+        <item>Subtribe</item>
+        <item>Infratribe</item>
+        <item>Genus</item>
+        <item>Subgenus</item>
+        <item>Section</item>
+        <item>Subsection</item>
+        <item>Series</item>
+        <item>Subseries</item>
+        <item>Species Aggregate</item>
+        <item>Species Complex</item>
+        <item>Aggregate</item>
+        <item>Species</item>
+        <item>Microspecies</item>
+        <item>Subspecies</item>
+        <item>Variety</item>
+        <item>Form</item>
+        <item>Hybrid</item>
+        <item>Cultivar</item>
+        <item>Cultivar Group</item>
+        <item>Morphotype</item>
+        <item>Population</item>
+        <item>Major group</item>
+        <item>Unranked</item>
+        <item>Pseudotaxon</item>
+    </string-array>
+
+</resources>
+

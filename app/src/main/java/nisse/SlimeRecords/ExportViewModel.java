@@ -110,7 +110,7 @@ public class ExportViewModel extends AndroidViewModel {
 
         // Build Header
         String header = String.join(d, "ID", "Latitude", "Longitude", "Accuracy", "Altitude",
-                "Time", "Species", "Substrate", "Habitat", "Collector", "Locality",
+                "Time", "Species", "quantity", "life_stage", "gender", "activity", "method", "Substrate", "Habitat", "Collector", "Locality",
                 "IsSpecimen", "SpecimenNr", "Note", "Photos") + "\n";
 
         zos.write(header.getBytes(StandardCharsets.UTF_8));
@@ -131,20 +131,43 @@ public class ExportViewModel extends AndroidViewModel {
         LocationRecord r = item.location;
         SpeciesAttributes attr = r.attributes != null ? r.attributes : new SpeciesAttributes();
 
-        String photoNames = "";
+        // Process Photo Names
+        StringBuilder photoBuilder = new StringBuilder();
         if (item.photos != null) {
             for (PhotoRecord p : item.photos) {
-                photoNames += (photoNames.isEmpty() ? "" : "|") + new File(p.filePath).getName();
+                if (p.filePath != null && !p.filePath.isEmpty()) {
+                    if (photoBuilder.length() > 0) photoBuilder.append("|");
+                    photoBuilder.append(new File(p.filePath).getName());
+                }
             }
         }
 
-        // Using Locale.US to ensure decimal dots even if the column delimiter is a semicolon
-        return String.format(Locale.US,
-                "%d%s%.6f%s%.6f%s%d%s%d%s\"%s\"%s\"%s\"%s\"%s\"%s\"%s\"%s\"%s\"%s\"%s\"%s%b%s\"%s\"%s\"%s\"%s\"%s\"",
-                r.id, d, r.latitude, d, r.longitude, d, (int)Math.ceil(r.accuracy), d, (int)Math.round(r.altitude), d,
-                r.localTime, d, clean(attr.species), d, clean(attr.substrate), d, clean(attr.habitat), d,
-                clean(attr.collector), d, clean(r.localityDescription), d, attr.isSpecimen, d,
-                clean(attr.specimenNr), d, clean(r.note), d, photoNames);
+        // Build the row column by column to match the header exactly
+        StringBuilder sb = new StringBuilder();
+        sb.append(r.id).append(d);
+        sb.append(String.format(Locale.US, "%.6f", r.latitude)).append(d);
+        sb.append(String.format(Locale.US, "%.6f", r.longitude)).append(d);
+        sb.append((int)Math.ceil(r.accuracy)).append(d);
+        sb.append((int)Math.round(r.altitude)).append(d);
+        sb.append("\"").append(clean(r.localTime)).append("\"").append(d);
+        sb.append("\"").append(clean(attr.species)).append("\"").append(d);
+        sb.append(attr.quantity != null ? attr.quantity : "").append(d);
+        sb.append("\"").append(clean(attr.life_stage)).append("\"").append(d);
+        sb.append("\"").append(clean(attr.gender)).append("\"").append(d);
+        sb.append("\"").append(clean(attr.activity)).append("\"").append(d);
+        sb.append("\"").append(clean(attr.method)).append("\"").append(d);
+        sb.append("\"").append(clean(attr.substrate)).append("\"").append(d);
+        sb.append("\"").append(clean(attr.habitat)).append("\"").append(d);
+        sb.append("\"").append(clean(attr.collector)).append("\"").append(d);
+        sb.append("\"").append(clean(r.localityDescription)).append("\"").append(d);
+        sb.append(attr.isSpecimen).append(d);
+        sb.append("\"").append(clean(attr.specimenNr)).append("\"").append(d);
+        sb.append("\"").append(clean(r.note)).append("\"").append(d);
+
+        // The final column: Photos
+        sb.append("\"").append(photoBuilder.toString()).append("\"");
+
+        return sb.toString();
     }
 
     private String clean(String input) {
@@ -204,31 +227,30 @@ public class ExportViewModel extends AndroidViewModel {
         LocationRecord r = item.location;
         SpeciesAttributes a = r.attributes != null ? r.attributes : new SpeciesAttributes();
 
-        // 1. Split Date and Time (Assuming r.localTime is "YYYY-MM-DD HH:MM:SS")
+        // Split Date and Time (Assuming r.localTime is "YYYY-MM-DD HH:MM:SS")
         String date = "";
         String time = "";
-        if (r.localTime != null && r.localTime.length() >= 16) {
+        if (r.localTime != null && r.localTime.length() >= 10) {
             date = r.localTime.substring(0, 10);
-            time = r.localTime.substring(11, 16);
+            if (r.localTime.length() >= 16) time = r.localTime.substring(11, 16);
         }
 
-        // 2. SWEREF 99 TM Conversion
-        // Replace this with your actual conversion call
+        // SWEREF 99 TM Conversion
         Coordinates coord = new Coordinates(r.latitude, r.longitude);
         Coordinates sweref = coord.convertToSweref99TMFromWGS84();
-        String ost = String.format(Locale.US, "%.0f", sweref.getNorth());
-        String nord = String.format(Locale.US, "%.0f", sweref.getEast());
+        String ost = String.format(Locale.US, "%.0f", sweref.getEast());
+        String nord = String.format(Locale.US, "%.0f", sweref.getNorth());
 
-        // 3. Build the row (matching the 59 columns in the header)
+        // Build the row (matching the 59 columns in the header)
         StringBuilder sb = new StringBuilder();
         sb.append(clean(a.species)).append(";");              // Artnamn
-        sb.append(";");                                       // Antal (Empty)
+        sb.append(a.quantity != null ? a.quantity : "").append(";"); // Antal
         sb.append(";");                                       // Enhet
         sb.append(";");                                       // Antal substrat
-        sb.append(";");                                       // Ålder
-        sb.append(";");                                       // Kön
-        sb.append(";");                                       // Aktivitet
-        sb.append(";");                                       // Metod
+        sb.append(clean(a.life_stage)).append(";");           // Ålder-Stadium
+        sb.append(clean(a.gender)).append(";");               // Kön
+        sb.append(clean(a.activity)).append(";");             // Aktivitet
+        sb.append(clean(a.method)).append(";");               // Metod
         sb.append(truncate(clean(r.localityDescription), 75)).append(";"); // Lokalnamn
         sb.append(ost).append(";");                           // Ost
         sb.append(nord).append(";");                          // Nord

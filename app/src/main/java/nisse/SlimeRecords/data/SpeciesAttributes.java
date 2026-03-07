@@ -10,6 +10,11 @@ public class SpeciesAttributes {
     public String substrate;
     public String habitat;
     public String collector;
+    public Integer quantity;
+    public String life_stage;
+    public String gender;
+    public String activity;
+    public String method;
     public String specimenNr;
     public boolean isSpecimen;
     public Map<String, String> extraData = new HashMap<>();
@@ -25,6 +30,11 @@ public class SpeciesAttributes {
                 Objects.equals(dyntaxaID, that.dyntaxaID) && // Add this
                 Objects.equals(substrate, that.substrate) &&
                 Objects.equals(habitat, that.habitat) &&
+                Objects.equals(quantity, that.quantity) &&
+                Objects.equals(life_stage, that.life_stage) &&
+                Objects.equals(gender, that.gender) &&
+                Objects.equals(activity, that.activity) &&
+                Objects.equals(method, that.method) &&
                 Objects.equals(collector, that.collector) &&
                 Objects.equals(specimenNr, that.specimenNr) &&
                 Objects.equals(extraData, that.extraData);
@@ -32,6 +42,6 @@ public class SpeciesAttributes {
 
     @Override
     public int hashCode() {
-        return Objects.hash(species, dyntaxaID, substrate, habitat, collector, specimenNr, isSpecimen, extraData);
+        return Objects.hash(species, dyntaxaID, substrate, habitat, collector, quantity, life_stage, gender, activity, method, collector, specimenNr, isSpecimen, extraData);
     }
 }

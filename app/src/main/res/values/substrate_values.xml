@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="substrate_sv_values">
+        <item>Mark/botten</item>
+        <item>Sten/berg på land</item>
+        <item>Sur bergart</item>
+        <item>Granit</item>
+        <item>Pegmatit</item>
+        <item>Porfyr</item>
+        <item>Kvartsit</item>
+        <item>Glimmerskiffer</item>
+        <item>Gnejs</item>
+        <item>Sandsten</item>
+        <item>Basisk bergart (grönsten)</item>
+        <item>Basalt</item>
+        <item>Gabbro</item>
+        <item>Diabas</item>
+        <item>Hyperit</item>
+        <item>Diorit</item>
+        <item>Amfibolit</item>
+        <item>Kalksten</item>
+        <item>Hårdbotten</item>
+        <item>Mark/jord på land</item>
+        <item>Mineraljord</item>
+        <item>Morän</item>
+        <item>Block (&gt; 200 mm)</item>
+        <item>Sten (60 - 200 mm)</item>
+        <item>Grus (2-60 mm)</item>
+        <item>Sand (0,06-2 mm)</item>
+        <item>Silt/mo/mjäla (0,002-0,06 mm)</item>
+        <item>Lera (&lt; 0,002 mm)</item>
+        <item>Organogen jord</item>
+        <item>Humus</item>
+        <item>Dy</item>
+        <item>Mull</item>
+        <item>Gyttja</item>
+        <item>Torv</item>
+        <item>Förna</item>
+        <item>Tångvall eller annan driftrand</item>
+        <item>Skalgrus</item>
+        <item>Mjukbotten</item>
+        <item>Oorganiskt bottenmaterial</item>
+        <item>Block på botten (&gt; 200 mm)</item>
+        <item>Sten på botten (60 - 200 mm)</item>
+        <item>Grus på botten (2-60 mm)</item>
+        <item>Sand på botten (0,06-2 mm)</item>
+        <item>Finsediment på botten</item>
+        <item>Organiskt material på botten</item>
+        <item>Findetritus på botten</item>
+        <item>Grovdetritus på botten</item>
+        <item>Organismer som substrat</item>
+        <item>Svamp, fruktkropp mm</item>
+        <item>Växt</item>
+        <item>Ört/gräs</item>
+        <item>Levande del av ört/gräs</item>
+        <item>Blomma på levande ört</item>
+        <item>Frukt</item>
+        <item>Frö från ört/gräs</item>
+        <item>Blad</item>
+        <item>Knopp från ört/gräs</item>
+        <item>Stjälk/strå</item>
+        <item>Rot av ört/gräs</item>
+        <item>Död delar av ört/gräs</item>
+        <item>Vedartad växt</item>
+        <item>Levande vedartad växt</item>
+        <item>Blomma på levande träd/buske</item>
+        <item>Frö från träd/buske</item>
+        <item>Kotte</item>
+        <item>Barr/blad</item>
+        <item>Bark på levande träd</item>
+        <item>Kambium på levande träd</item>
+        <item>Inuti levande ved</item>
+        <item>Knopp från träd/buske</item>
+        <item>Gren på levande träd</item>
+        <item>Trädstam på levande träd</item>
+        <item>Trädbas</item>
+        <item>Trädrot</item>
+        <item>Hålighet i levande träd med/utan mulm</item>
+        <item>Savflöde</item>
+        <item>Brandpåverkad levande träd</item>
+        <item>Död ved vedartad växt</item>
+        <item>Bark på dött träd</item>
+        <item>Under bark på död ved</item>
+        <item>Vedyta på död ved</item>
+        <item>Inuti död ved</item>
+        <item>Död gren</item>
+        <item>Död trädstam</item>
+        <item>Stående död trädstam/högstubbe</item>
+        <item>Liggande död trädstam, utan markkontakt</item>
+        <item>Liggande död trädstam, markkontakt</item>
+        <item>Hålighet i dött träd med/utan mulm</item>
+        <item>Stubbe</item>
+        <item>Branddödat träd</item>
+        <item>Ved under vatten</item>
+        <item>Djur</item>
+        <item>Levande djur</item>
+        <item>Vuxet djur</item>
+        <item>Puppa</item>
+        <item>Larv</item>
+        <item>Ägg</item>
+        <item>Kroppsdel hos levande djur</item>
+        <item>Hår, päls, fjäll eller fjädrar</item>
+        <item>Hud, skal</item>
+        <item>Dött djur, kadaver</item>
+        <item>Efterlämning av djur</item>
+        <item>Friliggande bo</item>
+        <item>Grävt bo i marken</item>
+        <item>Gång I ved</item>
+        <item>Gallbildning</item>
+        <item>Spillning</item>
+        <item>Människoskapat substrat</item>
+        <item>Stolpe, trägärdesgård mm</item>
+        <item>Stenmur och -röse</item>
+        <item>Bro</item>
+        <item>Brygga/pir</item>
+        <item>Hustak</item>
+        <item>Husvägg</item>
+        <item>Gödselstack</item>
+        <item>Kompost</item>
+        <item>Sågspån</item>
+    </string-array>
+
+    <string-array name="substrate_en_values">
+        <item>Ground/Bottom</item>
+        <item>Rock/Bedrock (terrestrial)</item>
+        <item>Acidic rock</item>
+        <item>Granite</item>
+        <item>Pegmatite</item>
+        <item>Porphyry</item>
+        <item>Quartzite</item>
+        <item>Mica schist</item>
+        <item>Gneiss</item>
+        <item>Sandstone</item>
+        <item>Basic rock (Greenstone)</item>
+        <item>Basalt</item>
+        <item>Gabbro</item>
+        <item>Diabase</item>
+        <item>Hyperite</item>
+        <item>Diorite</item>
+        <item>Amphibolite</item>
+        <item>Limestone</item>
+        <item>Hard bottom</item>
+        <item>Ground/Soil (terrestrial)</item>
+        <item>Mineral soil</item>
+        <item>Moraine</item>
+        <item>Boulder (&gt; 200 mm)</item>
+        <item>Stone (60 - 200 mm)</item>
+        <item>Gravel (2-60 mm)</item>
+        <item>Sand (0.06-2 mm)</item>
+        <item>Silt/Fine sand (0.002-0.06 mm)</item>
+        <item>Clay (&lt; 0.002 mm)</item>
+        <item>Organic soil</item>
+        <item>Humus</item>
+        <item>Acidic humic mud</item>
+        <item>Mull</item>
+        <item>Organic mud</item>
+        <item>Peat</item>
+        <item>Litter</item>
+        <item>Seaweed bank or wrack line</item>
+        <item>Shell gravel</item>
+        <item>Soft bottom</item>
+        <item>Inorganic bottom material</item>
+        <item>Boulder on bottom (&gt; 200 mm)</item>
+        <item>Stone on bottom (60 - 200 mm)</item>
+        <item>Gravel on bottom (2-60 mm)</item>
+        <item>Sand on bottom (0.06-2 mm)</item>
+        <item>Fine sediment on bottom</item>
+        <item>Organic material on bottom</item>
+        <item>Fine detritus on bottom</item>
+        <item>Coarse detritus on bottom</item>
+        <item>Organisms as substrate</item>
+        <item>Fungus, fruitbody etc.</item>
+        <item>Plant</item>
+        <item>Herb/Grass</item>
+        <item>Living part of herb/grass</item>
+        <item>Flower on living herb</item>
+        <item>Fruit</item>
+        <item>Seed from herb/grass</item>
+        <item>Leaf</item>
+        <item>Bud from herb/grass</item>
+        <item>Stem/Stalk</item>
+        <item>Root of herb/grass</item>
+        <item>Dead parts of herb/grass</item>
+        <item>Woody plant</item>
+        <item>Living woody plant</item>
+        <item>Flower on living tree/shrub</item>
+        <item>Seed from tree/shrub</item>
+        <item>Cone</item>
+        <item>Needle/Leaf</item>
+        <item>Bark on living tree</item>
+        <item>Cambium on living tree</item>
+        <item>Inside living wood</item>
+        <item>Bud from tree/shrub</item>
+        <item>Branch on living tree</item>
+        <item>Trunk of living tree</item>
+        <item>Tree base</item>
+        <item>Tree root</item>
+        <item>Hollow in living tree with/without wood mould</item>
+        <item>Sap flow</item>
+        <item>Fire-damaged living tree</item>
+        <item>Dead wood (woody plant)</item>
+        <item>Bark on dead tree</item>
+        <item>Under bark on dead wood</item>
+        <item>Wood surface on dead wood</item>
+        <item>Inside dead wood</item>
+        <item>Dead branch</item>
+        <item>Dead trunk</item>
+        <item>Standing dead trunk/High stump</item>
+        <item>Fallen dead trunk, without ground contact</item>
+        <item>Fallen dead trunk, ground contact</item>
+        <item>Hollow in dead tree with/without wood mould</item>
+        <item>Stump</item>
+        <item>Fire-killed tree</item>
+        <item>Submerged wood</item>
+        <item>Animal</item>
+        <item>Living animal</item>
+        <item>Adult animal</item>
+        <item>Pupa</item>
+        <item>Larva</item>
+        <item>Egg</item>
+        <item>Body part of living animal</item>
+        <item>Hair, fur, scales or feathers</item>
+        <item>Skin, shell</item>
+        <item>Dead animal, carcass</item>
+        <item>Animal sign/remains</item>
+        <item>Exposed nest</item>
+        <item>Burrow in the ground</item>
+        <item>Borehole in wood</item>
+        <item>Gall formation</item>
+        <item>Droppings</item>
+        <item>Man-made substrate</item>
+        <item>Post, wooden fence etc.</item>
+        <item>Stone wall and cairn</item>
+        <item>Bridge</item>
+        <item>Pier/Jetty</item>
+        <item>Roof</item>
+        <item>Wall</item>
+        <item>Manure heap</item>
+        <item>Compost</item>
+        <item>Sawdust</item>
+    </string-array>
+</resources>

@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="life_stage_sv_values">
+        <item>Vilstadium</item>
+        <item>Knoppbristning</item>
+        <item>Fullt utvecklade blad</item>
+        <item>Blomknopp</item>
+        <item>Blomning</item>
+        <item>Överblommad</item>
+        <item>I frukt</item>
+        <item>Gulnande löv/blad</item>
+        <item>Bladfällning, vissnar</item>
+        <item>Frukt-/fröspridning</item>
+        <item>Vinterståndare</item>
+        <item>Med kapsel</item>
+        <item>Utan kapsel</item>
+        <item>Med groddkorn</item>
+        <item>Med honorgan</item>
+        <item>Med hanorgan</item>
+        <item>Med apothecier</item>
+        <item>Med perithecier</item>
+        <item>Med soral</item>
+        <item>Med isidier</item>
+        <item>Med schistisidier</item>
+        <item>Anamorph</item>
+        <item>Teleomorph</item>
+        <item>Ägg</item>
+        <item>Larv/Nymf</item>
+        <item>Puppa</item>
+        <item>Juvenil</item>
+        <item>Imago/Adult</item>
+        <item>Årsunge</item>
+        <item>Fjolårsunge</item>
+        <item>Adult</item>
+        <item>pulli</item>
+        <item>1K</item>
+        <item>1K+</item>
+        <item>2K</item>
+        <item>2K+</item>
+        <item>2K-</item>
+        <item>3K</item>
+        <item>3K+</item>
+        <item>3K-</item>
+        <item>4K</item>
+        <item>4K+</item>
+        <item>4K-</item>
+        <item>5K</item>
+        <item>5K+</item>
+        <item>5K-</item>
+        <item>6K</item>
+        <item>6K+</item>
+        <item>6K-</item>
+        <item>7K</item>
+        <item>7K+</item>
+        <item>7K-</item>
+    </string-array>
+
+    <string-array name="life_stage_en_values">
+        <item>Dormancy</item>
+        <item>Bud burst</item>
+        <item>Leaves fully developed</item>
+        <item>Flower bud</item>
+        <item>Flowering</item>
+        <item>Finished flowering</item>
+        <item>In fruit</item>
+        <item>Yellowing leaves</item>
+        <item>Leaf fall/Wilting</item>
+        <item>Fruit/Seed dispersal</item>
+        <item>Winter stalks</item>
+        <item>With capsule</item>
+        <item>Without capsule</item>
+        <item>With gemmae</item>
+        <item>With female organs</item>
+        <item>With male organs</item>
+        <item>With apothecia</item>
+        <item>With perithecia</item>
+        <item>With soralia</item>
+        <item>With isidia</item>
+        <item>With Schizidids</item>
+        <item>Anamorph</item>
+        <item>Teleomorph</item>
+        <item>Egg</item>
+        <item>Larva/Nymph</item>
+        <item>Pupa</item>
+        <item>Juvenile</item>
+        <item>Imago/Adult</item>
+        <item>Young of the year</item>
+        <item>Last year\'s young</item>
+        <item>Adult</item>
+        <item>Pullus</item>
+        <item>1CY</item>
+        <item>1CY+</item>
+        <item>2CY</item>
+        <item>2CY+</item>
+        <item>2CY-</item>
+        <item>3CY</item>
+        <item>3CY+</item>
+        <item>3CY-</item>
+        <item>4CY</item>
+        <item>4CY+</item>
+        <item>4CY-</item>
+        <item>5CY</item>
+        <item>5CY+</item>
+        <item>5CY-</item>
+        <item>6CY</item>
+        <item>6CY+</item>
+        <item>6CY-</item>
+        <item>7CY</item>
+        <item>7CY+</item>
+        <item>7CY-</item>
+    </string-array>
+</resources>

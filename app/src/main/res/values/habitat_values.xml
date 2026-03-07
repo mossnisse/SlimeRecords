@@ -1,0 +1,1360 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="habitat_sv_values">
+        <item>MARKSLAG</item>
+        <item>Öppen fastmark - med eller utan enstaka träd</item>
+        <item>Blottat mark - utan träd och ej slutet växttäcke</item>
+        <item>Glaciär och glaciärförland</item>
+        <item>Glaciär</item>
+        <item>Glaciärförland</item>
+        <item>Öppen klippa</item>
+        <item>Klippa vid havet</item>
+        <item>Kusthäll</item>
+        <item>Kustbrant</item>
+        <item>Klippa vid sötvatten</item>
+        <item>Klippa vid fors</item>
+        <item>Öppen blockmark</item>
+        <item>Blockstrand vid havet</item>
+        <item>Blockstrand vid sötvatten</item>
+        <item>Öppen sten-/grusmark</item>
+        <item>Sten/grusstrand vid havet</item>
+        <item>Sten/grusstrand vid sötvatten</item>
+        <item>Öppen sand</item>
+        <item>Vit dyn</item>
+        <item>Vit kustdyn</item>
+        <item>Vit inlandsdyn</item>
+        <item>Sandstrand vid havet</item>
+        <item>Sandstrand vid sötvatten</item>
+        <item>Öppen finjord</item>
+        <item>Lerstrand vid havet</item>
+        <item>Lerstrand vid sötvatten</item>
+        <item>Öppen moränmark</item>
+        <item>Moränstrand vid havet</item>
+        <item>Moränstrand vid sötvatten</item>
+        <item>Öppen rasmark</item>
+        <item>Blockrasmark</item>
+        <item>Sten/grusrasmark</item>
+        <item>Sandrasmark</item>
+        <item>Öppen jordbrant</item>
+        <item>Öppen jordbrant vid havet</item>
+        <item>Öppen jordbrant vid sötvatten</item>
+        <item>Grotta</item>
+        <item>Öppen kemisk avlagring</item>
+        <item>Kalkblekefält</item>
+        <item>Kalktuff</item>
+        <item>Öppen organisk avlagring</item>
+        <item>Blottad torv</item>
+        <item>Driftvall vid havet</item>
+        <item>Driftvall vid sötvatten</item>
+        <item>Gräs- och rismark i låglandet</item>
+        <item>Hällmarksmosaik</item>
+        <item>Hällmarksmosaik med tall</item>
+        <item>Hällmarksmosaik med ek</item>
+        <item>Hällmarksmosaik med björk</item>
+        <item>Hällmarksmosaik med enbuskar</item>
+        <item>Klipphed</item>
+        <item>Klipphed med tall</item>
+        <item>Klipphed med ek</item>
+        <item>Klipphed med björk</item>
+        <item>Klipphed med enbuskar</item>
+        <item>Klippäng</item>
+        <item>Klippäng med tall</item>
+        <item>Klippäng with ek</item>
+        <item>Klippäng med enbuskar</item>
+        <item>Alvarmark</item>
+        <item>Alvarmark med tall</item>
+        <item>Alvar med enbuskar</item>
+        <item>Hed</item>
+        <item>Hed med tall</item>
+        <item>Hed med ek</item>
+        <item>Hed med bok</item>
+        <item>Hed med björk</item>
+        <item>Hed med buskar</item>
+        <item>Hed med enbuskar</item>
+        <item>Torr-frisk hed</item>
+        <item>Ljunghed</item>
+        <item>Lavhed</item>
+        <item>Torr-frisk hed med tall</item>
+        <item>Torr-frisk hed med ek</item>
+        <item>Torr-frisk hed med bok</item>
+        <item>Torr-frisk hed med björk</item>
+        <item>Torr-frisk hed med buskar</item>
+        <item>Torr-frisk hed med enbuskar</item>
+        <item>Fukthed</item>
+        <item>Klockljungshed</item>
+        <item>Fukthed med björk</item>
+        <item>Fukted med buskar</item>
+        <item>Fukthed med enbuskar</item>
+        <item>Torr gräsmark</item>
+        <item>Torr gräsmark med tall</item>
+        <item>Torr gräsmark med ek</item>
+        <item>Torr gräsmark med björk</item>
+        <item>Torr gräsmark med buskar</item>
+        <item>Torr gräsmark med enbuskar</item>
+        <item>Sandgräsmark</item>
+        <item>Silikatgräsmark på sand</item>
+        <item>Sandstäpp</item>
+        <item>Grå dyn</item>
+        <item>Dynhed</item>
+        <item>Sandgräsmark med tall</item>
+        <item>Sandgräsmark med ek</item>
+        <item>Sandgräsmark med björk</item>
+        <item>Sandgräsmark med buskar</item>
+        <item>Sandgräsmark med enbuskar</item>
+        <item>Torr silikatgräsmark</item>
+        <item>Torr silikatgräsmark med tall</item>
+        <item>Torr silikatgräsmark med ek</item>
+        <item>Torr silikatgräsmark med bok</item>
+        <item>Torr silikatgräsmark med björk</item>
+        <item>Torr silikatgräsmark med buskar</item>
+        <item>Torr silikatgräsmark med slån</item>
+        <item>Torr silikatgräsmark med rosor</item>
+        <item>Torr silikatgräsmark med enbuskar</item>
+        <item>Torr kalkgräsmark</item>
+        <item>Torr kalkgräsmark med tall</item>
+        <item>Torr kalkgräsmark med ek</item>
+        <item>Torr kalkgräsmark med buskar</item>
+        <item>Torr kalkgräsmark med slån</item>
+        <item>Torr kalkgräsmark med rosor</item>
+        <item>Torr kalkgräsmark med enbuskar</item>
+        <item>Frisk gräsmark</item>
+        <item>Frisk gräsmark med gran</item>
+        <item>Frisk gräsmark med lövträd</item>
+        <item>Frisk gräsmark med ädellövträd</item>
+        <item>Frisk gräsmark med ek</item>
+        <item>Frisk gräsmark med bok</item>
+        <item>Frisk gräsmark med triviallövträd</item>
+        <item>Frisk gräsmark med björk</item>
+        <item>Frisk gräsmark med buskar</item>
+        <item>Frisk gräsmark med slån</item>
+        <item>Frisk gräsmark med rosor</item>
+        <item>Frisk gräsmark med björnbär</item>
+        <item>Frisk gräsmark med enbuskar</item>
+        <item>Frisk silikatgräsmark</item>
+        <item>Frisk silikatgräsmark med gran</item>
+        <item>Frisk silikatgräsmark med lövträd</item>
+        <item>Frisk silikatgräsmark med ädellövträd</item>
+        <item>Frisk silikatgräsmark med ek</item>
+        <item>Frisk silikatgräsmark med bok</item>
+        <item>Frisk silikatgräsmark med hassel</item>
+        <item>Frisk silikatgräsmark med triviallövträd</item>
+        <item>Frisk silikatgräsmark med björk</item>
+        <item>Frisk silikatgräsmark med buskar</item>
+        <item>Frisk silikatgräsmark med slån</item>
+        <item>Frisk silikatgräsmark med rosor</item>
+        <item>Frisk silikatgräsmark med björnbär</item>
+        <item>Frisk silikatgräsmark med enbuskar</item>
+        <item>Frisk kalkgräsmark</item>
+        <item>Frisk kalkgräsmark med gran</item>
+        <item>Frisk kalkgräsmark med lövträd</item>
+        <item>Frisk kalkgräsmark med ädellövträd</item>
+        <item>Frisk kalkgräsmark med ek</item>
+        <item>Frisk kalkgräsmark med ask</item>
+        <item>Frisk kalkgräsmark med alm</item>
+        <item>Frisk kalkgräsmark med hassel</item>
+        <item>Frisk kalkgräsmark med triviallövträd</item>
+        <item>Frisk kalkgräsmark med björk</item>
+        <item>Frisk kalkgräsmark med buskar</item>
+        <item>Frisk kalkgräsmark med slån</item>
+        <item>Frisk kalkgräsmark med rosor</item>
+        <item>Frisk kalkgräsmark med björnbär</item>
+        <item>Frisk kalkgräsmark med enbuskar</item>
+        <item>Fuktig gräsmark</item>
+        <item>Fuktig gräsmark med gran</item>
+        <item>Fuktig gräsmark med lövträd</item>
+        <item>Fuktig gräsmark med ädellövträd</item>
+        <item>Fuktig gräsmark med triviallövträd</item>
+        <item>Fuktig gräsmark med björk</item>
+        <item>Fuktig gräsmark med al</item>
+        <item>Fuktig gräsmark med buskar</item>
+        <item>Fuktig gräsmark med vide</item>
+        <item>Sandfuktmark</item>
+        <item>Silikatsandfuktmark</item>
+        <item>Kalksandfuktmark</item>
+        <item>Sandfuktmark med tall</item>
+        <item>Sandfuktmark med lövträd</item>
+        <item>Sandfuktmark med ädellöv</item>
+        <item>Sandfuktmark med triviallövträd</item>
+        <item>Sandfuktmark med björk</item>
+        <item>Sandfuktmark med al</item>
+        <item>Sandfuktmark med buskar</item>
+        <item>Sandfuktmark med vide</item>
+        <item>Fuktig silikatgräsmark</item>
+        <item>Fuktig silikatgräsmark med lövträd</item>
+        <item>Fuktig silikatgräsmark med ädellövträd</item>
+        <item>Fuktig silikatgräsmark med triviallövträd</item>
+        <item>Fuktig silikatgräsmark med björk</item>
+        <item>Fuktig silikatgräsmark med al</item>
+        <item>Fuktig silikatgräsmark med buskar</item>
+        <item>Fuktig silikatgräsmark med björnbär</item>
+        <item>Fuktig silikatgräsmark med vide</item>
+        <item>Fuktig kalkgräsmark</item>
+        <item>Fuktig kalkgräsmark med gran</item>
+        <item>Fuktig kalkgräsmark med lövträd</item>
+        <item>Fuktig kalkgräsmark med ädellövträd</item>
+        <item>Fuktig kalkgräsmark med triviallövträd</item>
+        <item>Fuktig kalkgräsmark med björk</item>
+        <item>Fuktig kalkgräsmark med al</item>
+        <item>Fuktig kalkgräsmark med buskar</item>
+        <item>Fuktig kalkgräsmark med björnbär</item>
+        <item>Fuktig kalkgräsmark med vide</item>
+        <item>Högörtäng i låglandet</item>
+        <item>Högörtäng med buskar</item>
+        <item>Högörtäng med vide</item>
+        <item>Översvämningspräglad äng</item>
+        <item>Svämäng vid havet</item>
+        <item>Svämäng vid sötvatten</item>
+        <item>Alpin gräs- och rismark</item>
+        <item>Alpin hed</item>
+        <item>Alpin hed med björk</item>
+        <item>Alpin hed med buskar</item>
+        <item>Alpin hed med enbuskar</item>
+        <item>Alpin hed med björkbuskar</item>
+        <item>Alpin busklavhed</item>
+        <item>Alpin busklavhed med björk</item>
+        <item>Alpin rished</item>
+        <item>Alpin kalkrished</item>
+        <item>Alpin blåbärhed</item>
+        <item>Alpin rished med björk</item>
+        <item>Alpin rished med buskar</item>
+        <item>Alpin rished med enbuskar</item>
+        <item>Alpin rished med björkbuskar</item>
+        <item>Alpin kråkrished</item>
+        <item>Alpin vide/dvärgbjörkshed</item>
+        <item>Alpin vide/dvärgbjörkhed med björk</item>
+        <item>Alpin vide/dvärbjörkshed med buskar</item>
+        <item>Alpin vide/dvärbjörkshed med enbuskar</item>
+        <item>Alpin vide/dvärbjörkshed med björkbuskar</item>
+        <item>Alpin gräsmark</item>
+        <item>Alpin gräsmark med björk</item>
+        <item>Alpin gräsmark med buskar</item>
+        <item>Alpin gräsmark med enbuskar</item>
+        <item>Alpin gräsmark med björkbuskar</item>
+        <item>Alpin gräsmark med vide</item>
+        <item>Sur alpin gräsmark</item>
+        <item>Sur alpin gräsmark med björk</item>
+        <item>Sur alpin gräsmark med buskar</item>
+        <item>Sur alpin gräsmark med enbuskar</item>
+        <item>Sur alpin gräsmark med björkbuskar</item>
+        <item>Sur alpin gräsmark med vide</item>
+        <item>Kalkrik alpin gräsmark</item>
+        <item>Kalkrik alpin gräsmark med björk</item>
+        <item>Kalkrik alpin gräsmark med buskar</item>
+        <item>Kalkrik alpin gräsmark med enbuskar</item>
+        <item>Kalkrik alpin gräsmark med björkbuskar</item>
+        <item>Kalkrik alpin gräsmark med vide</item>
+        <item>Alpin högörtäng</item>
+        <item>Alpin högörtäng med björk</item>
+        <item>Alpin högörtäng med buskar</item>
+        <item>Alpin högörtäng med björkbuskar</item>
+        <item>Alpin högörtäng med vide</item>
+        <item>Högfjällsmosaik</item>
+        <item>Snölega</item>
+        <item>Tidig snölega</item>
+        <item>Intermediär snölega</item>
+        <item>Sen snölega</item>
+        <item>Skogsmark</item>
+        <item>Häll- och blockskog</item>
+        <item>Hällmarksskog</item>
+        <item>Hällmarksbarrskog</item>
+        <item>Hällmarkstallskog</item>
+        <item>Hällmarksblandskog</item>
+        <item>Hällmarkslövskog</item>
+        <item>Hällmarksekskog</item>
+        <item>Hällmarksbjörkskog</item>
+        <item>Hällmarksaspskog</item>
+        <item>Skog på kalkhällmark</item>
+        <item>Hällmarksbarrskog</item>
+        <item>Hällmarkstallskog</item>
+        <item>Hällmarksblandskog</item>
+        <item>Hällmarkslövskog</item>
+        <item>Hällmarksekskog</item>
+        <item>Hällmarksbjörkskog</item>
+        <item>Hällmarksaspskog</item>
+        <item>Skog på blockmark</item>
+        <item>Barrskog på blockmark</item>
+        <item>Tallskog på blockmark</item>
+        <item>Blandskog på blockmark</item>
+        <item>Lövskog på blockmark</item>
+        <item>Sandskog</item>
+        <item>Sandbarrskog</item>
+        <item>Sandgranskog</item>
+        <item>Sandtallskog</item>
+        <item>Sandblandskog</item>
+        <item>Sandlövskog</item>
+        <item>Sandädellövskog</item>
+        <item>Sandekskog</item>
+        <item>Sandtriviallövskog</item>
+        <item>Sandbjörkskog</item>
+        <item>Sandalskog</item>
+        <item>Sanddynskog</item>
+        <item>Dynbarrskog</item>
+        <item>Dyntallskog</item>
+        <item>Dynblandskog</item>
+        <item>Dynlövskog</item>
+        <item>Dynekskog</item>
+        <item>Dyntriviallövskog</item>
+        <item>Dynbjörkskog</item>
+        <item>Brantskog</item>
+        <item>Barrskog i branter</item>
+        <item>Granskog i branter</item>
+        <item>Tallskog i branter</item>
+        <item>Blandskog i branter</item>
+        <item>Lövskog i branter</item>
+        <item>Ädellövskog i branter</item>
+        <item>Ekskog i branter</item>
+        <item>Bokskog i branter</item>
+        <item>Triviallövskog i branter</item>
+        <item>Hedskog</item>
+        <item>Hedbarrskog</item>
+        <item>Hedgranskog</item>
+        <item>Hedtallskog</item>
+        <item>Hedblandskog</item>
+        <item>Hedlövskog</item>
+        <item>Hedekskog</item>
+        <item>Hedbokskog</item>
+        <item>Hedtriviallövskog</item>
+        <item>Hedbjörkskog</item>
+        <item>Hedaspskog</item>
+        <item>Lavhedskog</item>
+        <item>Lavtallskog</item>
+        <item>Gräshedskog</item>
+        <item>Gräsbarrskog</item>
+        <item>Gräsgranskog</item>
+        <item>Grästallskog</item>
+        <item>Gräsblandskog</item>
+        <item>Gräslövskog</item>
+        <item>Gräsekskog</item>
+        <item>Gräsbokskog</item>
+        <item>Grästriviallövskog</item>
+        <item>Gräsbjörkskog</item>
+        <item>Gräsaspskog</item>
+        <item>Rishedskog</item>
+        <item>Blåbärsbarrskog</item>
+        <item>Blåbärsgranskog</item>
+        <item>Lingontallskog</item>
+        <item>Blåbärsblandskog</item>
+        <item>Blåbärslövskog</item>
+        <item>Blåbärsekskog</item>
+        <item>Blåbärsbokskog</item>
+        <item>Blåbärstriviallövskog</item>
+        <item>Blåbärsbjörkskog</item>
+        <item>Blåbärsaspskog</item>
+        <item>Ängsskog</item>
+        <item>Ängsbarrskog</item>
+        <item>Ängsgranskog</item>
+        <item>Ängstallskog</item>
+        <item>Ängsblandskog</item>
+        <item>Ängslövskog</item>
+        <item>Ängsädellövskog</item>
+        <item>Ängsekskog</item>
+        <item>Ängsbokskog</item>
+        <item>Ängsaskskog</item>
+        <item>Ängsalmskog</item>
+        <item>Ängstriviallövskog</item>
+        <item>Ängsbjörkskog</item>
+        <item>Ängsalskog</item>
+        <item>Ängsaspskog</item>
+        <item>Lågörtängsskog</item>
+        <item>Lågörtbarrskog</item>
+        <item>Lågörtgranskog</item>
+        <item>Lågörttallskog</item>
+        <item>Lågörtblandskog</item>
+        <item>Lågörtlövskog</item>
+        <item>Lågörtädellövskog</item>
+        <item>Lågörtekskog</item>
+        <item>Lågörtbokskog</item>
+        <item>Lågörtaskskog</item>
+        <item>Lågörtalmskog</item>
+        <item>Högörtängsskog</item>
+        <item>Högörtbarrskog</item>
+        <item>Högörtgranskog</item>
+        <item>Högörttallskog</item>
+        <item>Högörtblandskog</item>
+        <item>Högörtlövskog</item>
+        <item>Högörtädellövskog</item>
+        <item>Högörtekskog</item>
+        <item>Högörtbokskog</item>
+        <item>Högörtaskskog</item>
+        <item>Högörtalmskog</item>
+        <item>Fjällskog</item>
+        <item>Fjällblandskog</item>
+        <item>Fjällbjörkskog</item>
+        <item>Fjällskog av lav-ristyp</item>
+        <item>Fjällblandskog av lav-ristyp</item>
+        <item>Fjällbjörkskog av lav-ristyp</item>
+        <item>Fjällskog av lågörtstyp</item>
+        <item>Fjällblandskog av lågörttyp</item>
+        <item>Fjällbjörkskog av lågörttyp</item>
+        <item>Fjällskog av högörtstyp</item>
+        <item>Fjällblandskog av högörttyp</item>
+        <item>Fjällbjörkskog av högörttyp</item>
+        <item>Sumpskog</item>
+        <item>Barrsumpskog</item>
+        <item>Gransumpskog</item>
+        <item>Tallsumpskog</item>
+        <item>Blandsumpskog</item>
+        <item>Lövsumpskog</item>
+        <item>Ädellövsumpskog</item>
+        <item>Asksumpskog</item>
+        <item>Björksumpskog</item>
+        <item>Alsumpskog</item>
+        <item>Landhöjningsskog</item>
+        <item>Landhöjningsblandskog</item>
+        <item>Landhöjningslövskog</item>
+        <item>Landhöjningstriviallövskog</item>
+        <item>Landhöjningsbjörkskog</item>
+        <item>Landhöjningsalskog</item>
+        <item>Svämskog</item>
+        <item>Svämgranskog</item>
+        <item>Svämblandskog</item>
+        <item>Svämlövskog</item>
+        <item>Svämädellövskog</item>
+        <item>Svämekskog</item>
+        <item>Svämaskskog</item>
+        <item>Svämtriviallövskog</item>
+        <item>Svämbjörkskog</item>
+        <item>Svämalskog</item>
+        <item>Våtmark</item>
+        <item>Myr</item>
+        <item>Mosse</item>
+        <item>Mosse med tall</item>
+        <item>Mosse med björk</item>
+        <item>Kärr</item>
+        <item>Kärr med barrträd</item>
+        <item>Kärr med gran</item>
+        <item>Kärr med tall</item>
+        <item>Kärr med lövträd</item>
+        <item>Kärr med ädellövträd</item>
+        <item>Kärr med ask</item>
+        <item>Kärr med trivallövträd</item>
+        <item>Kärr med björk</item>
+        <item>Kärr med al</item>
+        <item>Kärr med buskar</item>
+        <item>Kärr med vide</item>
+        <item>Fattigkärr</item>
+        <item>Fattigkärr med barrträd</item>
+        <item>Fattigkärr med gran</item>
+        <item>Fattigkärr med tall</item>
+        <item>Fattigkärr med lövträd</item>
+        <item>Fattigkärr med trivallövträd</item>
+        <item>Fattigkärr med björk</item>
+        <item>Fattigkärr med al</item>
+        <item>Fattigkärr med buskar</item>
+        <item>Fattigkärr med vide</item>
+        <item>Intermediärt kärr</item>
+        <item>Intermediärt kärr med barrträd</item>
+        <item>Intermediärt kärr med gran</item>
+        <item>Intermediärt kärr med tall</item>
+        <item>Intermediärt kärr med lövträd</item>
+        <item>Intermediärt kärr med ädellövträd</item>
+        <item>Intermediärt kärr med trivallövträd</item>
+        <item>Intermediärt kärr med björk</item>
+        <item>Intermediärt kärr med al</item>
+        <item>Intermediärt kärr med buskar</item>
+        <item>Intermediärt kärr med vide</item>
+        <item>Rikkärr</item>
+        <item>Rikkärr med barrträd</item>
+        <item>Rikkärr med gran</item>
+        <item>Rikkärr med tall</item>
+        <item>Rikkärr med lövträd</item>
+        <item>Rikkärr med ädellövträd</item>
+        <item>Rikkärr med trivallövträd</item>
+        <item>Rikkärr med björk</item>
+        <item>Rikkärr med al</item>
+        <item>Rikkärr med buskar</item>
+        <item>Rikkärr med vide</item>
+        <item>Extremrikkärr</item>
+        <item>Extremrikkärr med barrträd</item>
+        <item>Extremrikkärr med gran</item>
+        <item>Extremrikkärr med tall</item>
+        <item>Extremrikkärr med lövträd</item>
+        <item>Extremrikkärr med ädellövträd</item>
+        <item>Extremrikkärr med trivallövträd</item>
+        <item>Extremrikkärr med björk</item>
+        <item>Extremrikkärr med al</item>
+        <item>Extremrikkärr med buskar</item>
+        <item>Extremrikkärr med vide</item>
+        <item>Källkärr</item>
+        <item>Blandmyr (Aapamyr)</item>
+        <item>Blandmyr med barrträd</item>
+        <item>Blandmyr med gran</item>
+        <item>Blandmyr med tall</item>
+        <item>Blandmyr med trivallövträd</item>
+        <item>Blandmyr med björk</item>
+        <item>Blandmyr med al</item>
+        <item>Blandmyr med buskar</item>
+        <item>Blandmyr med vide</item>
+        <item>Sträng-flarkmyr</item>
+        <item>Sträng-flarkmyr med barrträd</item>
+        <item>Sträng-flarkmyr med gran</item>
+        <item>Sträng-flarkmyr med tall</item>
+        <item>Sträng-flarkmyr med trivallövträd</item>
+        <item>Sträng-flarkmyr med björk</item>
+        <item>Sträng-flarkmyr med al</item>
+        <item>Palsmyr</item>
+        <item>Strandvåtmark</item>
+        <item>Limnisk strandvåtmark</item>
+        <item>Mad (strandkärr)</item>
+        <item>Gungfly</item>
+        <item>Marin strandvåtmark</item>
+        <item>Våtmark,ej i anknytning till sötvattenstränder</item>
+        <item>Ej torvbildande våtmark i fjällen</item>
+        <item>Alpint översilningskärr</item>
+        <item>Småvatten (&lt;1 ha)</item>
+        <item>Småvatten i jordbrukslandskapet</item>
+        <item>Småvatten i skogen</item>
+        <item>Småvatten i fjällen</item>
+        <item>Källa</item>
+        <item>Hällkar</item>
+        <item>Glup</item>
+        <item>Vät</item>
+        <item>Småvatten i myr</item>
+        <item>Sjö (&gt;1 ha)</item>
+        <item>Sjöbotten</item>
+        <item>Vattenstrand</item>
+        <item>Vattensstrandshårdbotten</item>
+        <item>Hårdbottenstrand i näringsfattig sjö</item>
+        <item>Hårdbottenstrand i klarvattensjö</item>
+        <item>Hårdbottenstrand i brunvattensjö</item>
+        <item>Hårdbottenstrand i kalkblekesjö</item>
+        <item>Hårdbottenstrand i kransalgssjö</item>
+        <item>Hårdbottenstrand i intermediär sjö</item>
+        <item>Hårdbottenstrand i näringsrik sjö</item>
+        <item>Vattensstrand på sand/grus</item>
+        <item>Sand/grusstrand i näringsfattig sjö</item>
+        <item>Sand/grusstrand i klarvattensjö</item>
+        <item>Sand/grusstrand i brunvattensjö</item>
+        <item>Sand/grusstrand i kalkblekesjö</item>
+        <item>Sand/grusstrand i kransalgssjö</item>
+        <item>Sand/grusstrand i intermediär sjö</item>
+        <item>Sand/grusstrand i näringsrik sjö</item>
+        <item>Vattensstrand mjukbotten</item>
+        <item>Mjukbottenstrand i näringsfattig sjö</item>
+        <item>Mjukbottenstrand i klarvattensjö</item>
+        <item>Mjukbottenstrand i brunvattensjö</item>
+        <item>Mjukbottenstrand i kalkblekesjö</item>
+        <item>Mjukbottenstrand i kransalgssjö</item>
+        <item>Mjukbottenstrand i intermediär sjö</item>
+        <item>Mjukbottenstrand i näringsrik sjö</item>
+        <item>Grundbotten</item>
+        <item>Grund hårdbotten</item>
+        <item>Grund hårdbotten i näringsfattig sjö</item>
+        <item>Grund hårdbotten i klarvattensjö</item>
+        <item>Grund hårdbotten i brunvattensjö</item>
+        <item>Grund hårdbotten i kalkblekesjö</item>
+        <item>Grund hårdbotten i kransalgssjö</item>
+        <item>Grund hårdbotten i intermediär sjö</item>
+        <item>Grund hårdbotten i näringsrik sjö</item>
+        <item>Grund sand/grusbotten</item>
+        <item>Grund sand/grusbotten i näringsfattig sjö</item>
+        <item>Grund sand/grusbotten i klarvattensjö</item>
+        <item>Grund sand/grusbotten i brunvattensjö</item>
+        <item>Grund sand/grusbotten i kalkblekesjö</item>
+        <item>Grund sand/grusbotten i kransalgssjö</item>
+        <item>Grund sand/grusbotten i intermediär sjö</item>
+        <item>Grund sand/grusbotten i näringsrik sjö</item>
+        <item>Grund mjukbotten</item>
+        <item>Grund mjukbotten i näringsfattig sjö</item>
+        <item>Grund mjukbotten i klarvattensjö</item>
+        <item>Grund mjukbotten i brunvattensjö</item>
+        <item>Grund mjukbotten i kalkblekesjö</item>
+        <item>Grund mjukbotten i kransalgssjö</item>
+        <item>Grund mjukbotten i intermediär sjö</item>
+        <item>Grund mjukbotten i näringsrik sjö</item>
+        <item>Djupbotten</item>
+        <item>Djup hårdbotten</item>
+        <item>Djup hårdbotten i näringsfattig sjö</item>
+        <item>Djup hårdbotten i klarvattensjö</item>
+        <item>Djup hårdbotten i brunvattensjö</item>
+        <item>Djup hårdbotten i kalkblekesjö</item>
+        <item>Djup hårdbotten i kransalgssjö</item>
+        <item>Djup hårdbotten i intermediär sjö</item>
+        <item>Djup hårdbotten i näringsrik sjö</item>
+        <item>Djup sand/grusbotten</item>
+        <item>Djup sand/grusbotten i näringsfattig sjö</item>
+        <item>Djup sand/grusbotten i klarvattensjö</item>
+        <item>Djup sand/grusbotten i brunvattensjö</item>
+        <item>Djup sand/grusbotten i kalkblekesjö</item>
+        <item>Djup sand/grusbotten i kransalgssjö</item>
+        <item>Djup sand/grusbotten i intermediär sjö</item>
+        <item>Djup sand/grusbotten i näringsrik sjö</item>
+        <item>Djup mjukbotten</item>
+        <item>Djup mjukbotten i näringsfattig sjö</item>
+        <item>Djup mjukbotten i klarvattensjö</item>
+        <item>Djup mjukbotten i brunvattensjö</item>
+        <item>Djup mjukbotten i kalkblekesjö</item>
+        <item>Djup mjukbotten i kransalgssjö</item>
+        <item>Djup mjukbotten i intermediär sjö</item>
+        <item>Djup mjukbotten i näringsrik sjö</item>
+        <item>Sjöpelagial</item>
+        <item>Ytnära vatten</item>
+        <item>Ytvatten i näringsfattig sjö</item>
+        <item>Ytvatten i klarvattensjö</item>
+        <item>Ytvatten i brunvattensjö</item>
+        <item>Ytvatten i kalkblekesjö</item>
+        <item>Ytvatten i kransalgssjö</item>
+        <item>Ytvatten i intermediär sjö</item>
+        <item>Ytvatten i näringsrik sjö</item>
+        <item>Djupvatten</item>
+        <item>Djupvatten i näringsfattig sjö</item>
+        <item>Djupvatten i klarvattensjö</item>
+        <item>Djupvatten i brunvattensjö</item>
+        <item>Djupvatten i kalkblekesjö</item>
+        <item>Djupvatten i kransalgssjö</item>
+        <item>Djupvatten i intermediär sjö</item>
+        <item>Djupvatten i näringsrik sjö</item>
+        <item>Sjövattenyta</item>
+        <item>Vattenyta i näringsfattig sjö</item>
+        <item>Vattenyta i klarvattensjö</item>
+        <item>Vattenyta i brunvattensjö</item>
+        <item>Vattenyta i kalkblekesjö</item>
+        <item>Vattenyta i kransalgssjö</item>
+        <item>Vattenyta i intermediär sjö</item>
+        <item>Vattenyta i näringsrik sjö</item>
+        <item>Vattendrag</item>
+        <item>Vattendragsbotten</item>
+        <item>Vattendragsbotten av häll</item>
+        <item>Hällbotten i älv</item>
+        <item>Hällbotten i å</item>
+        <item>Hällbotten i bäck</item>
+        <item>Vattendragsbotten av block-sten</item>
+        <item>Block-stenbotten i älv</item>
+        <item>Block-stenbotten i å</item>
+        <item>Block-stenbotten i bäck</item>
+        <item>Vattendragsbotten av sand-grus</item>
+        <item>Sand-grusbotten i älv</item>
+        <item>Sand-grusbotten i å</item>
+        <item>Sand-grusbotten i bäck</item>
+        <item>Vattendragsbotten - mjukbotten</item>
+        <item>Mjukbotten i älv</item>
+        <item>Mjukbotten i å</item>
+        <item>Mjukbotten i bäck</item>
+        <item>Vatten i vattendrag</item>
+        <item>Vatten i älv</item>
+        <item>Vatten i å</item>
+        <item>Vatten i bäck</item>
+        <item>Vattenyta i vattendrag</item>
+        <item>Vattenyta i älv</item>
+        <item>Vattenyta i å</item>
+        <item>Vattenyta i bäck</item>
+        <item>Hav</item>
+        <item>Havsbotten</item>
+        <item>Grund havsbotten</item>
+        <item>Grund marin hårdbotten</item>
+        <item>Grund marin hårdbotten - berg/häll</item>
+        <item>Grund marin hårdbotten - block/sten</item>
+        <item>Grund marin hårdbotten - hård lera</item>
+        <item>Grund marin hårdbotten - organisk</item>
+        <item>Grund marin hårdbotten - artificell</item>
+        <item>Grund marin mjukbotten</item>
+        <item>Grund marin mjukbotten - grus</item>
+        <item>Grund marin mjukbotten - sand</item>
+        <item>Grund marin mjukbotten - lera/silt</item>
+        <item>Grund marin mjukbotten - blandat sediment</item>
+        <item>Grund marin mjukbotten - gyttja</item>
+        <item>Grund marin mjukbotten - skalgrus</item>
+        <item>Grunda gasstrukturer</item>
+        <item>Djup havsbotten</item>
+        <item>Djup marin hårdbotten</item>
+        <item>Djup marin hårdbotten - berg/häll</item>
+        <item>Djup marin hårdbotten - block/sten</item>
+        <item>Djup marin hårdbotten - hård lera</item>
+        <item>Djup marin hårdbotten - organisk</item>
+        <item>Djup marin hårdbotten - artificell</item>
+        <item>Djup marin mjukbotten</item>
+        <item>Djup marin mjukbotten - grus</item>
+        <item>Djup marin mjukbotten - sand</item>
+        <item>Djup marin mjukbotten - lera</item>
+        <item>Djup marin mjukbotten - blandat sediment</item>
+        <item>Djup marin mjukbotten - gyttja/detritus</item>
+        <item>Djup marin mjukbotten - skalgrus</item>
+        <item>Djupa gasstrukturer</item>
+        <item>Havsgrotta</item>
+        <item>Havspelagial</item>
+        <item>Ytnära havsvattenmassa</item>
+        <item>Djupvatten i havet</item>
+        <item>Havsyta</item>
+        <item>Artificiell miljö</item>
+        <item>Kultiverad mark</item>
+        <item>Öppen odling</item>
+        <item>Åker</item>
+        <item>Vall</item>
+        <item>Anlagd gräsmark</item>
+        <item>Träd/buskodling</item>
+        <item>Julgransodling</item>
+        <item>Energiskog</item>
+        <item>Buskodling</item>
+        <item>Salix-odling</item>
+        <item>Konstruerad mark</item>
+        <item>Anläggning på land</item>
+        <item>Parkmiljö</item>
+        <item>Park med barrträd</item>
+        <item>Park med barr-/lövträd</item>
+        <item>Park med lövträd</item>
+        <item>Park med ädellöv</item>
+        <item>Park med triviallöv</item>
+        <item>Trädgård</item>
+        <item>Allé</item>
+        <item>Barrträdsallé</item>
+        <item>Ädellövallé</item>
+        <item>Ekallé</item>
+        <item>Bokallé</item>
+        <item>Askallé</item>
+        <item>Alm allé</item>
+        <item>Lindallé</item>
+        <item>Triviallövallé</item>
+        <item>Björkallé</item>
+        <item>Kyrkogård</item>
+        <item>Kyrkogård med barrträd</item>
+        <item>Kyrkogård med barr-/lövträd</item>
+        <item>Kyrkogård med lövträd</item>
+        <item>Kyrkogård med ädellöv</item>
+        <item>Kyrkogård med triviallöv</item>
+        <item>Stadsmiljö</item>
+        <item>Industriområde</item>
+        <item>Hamn</item>
+        <item>Fabrik</item>
+        <item>Byggnad</item>
+        <item>Grustag</item>
+        <item>Torvtäkt</item>
+        <item>Gruva</item>
+        <item>Stenmur</item>
+        <item>Dike</item>
+        <item>Damm/viltvatten</item>
+        <item>Kanal</item>
+        <item>Reglerat vattenmagasin</item>
+        <item>Väg</item>
+        <item>Vägkant</item>
+        <item>Järnväg/banvall</item>
+        <item>Bangård</item>
+        <item>Soptipp</item>
+        <item>Slaggdeponi/varphög</item>
+        <item>Trädgårdsdeponi/utkast</item>
+        <item>Anläggning i sjö och vattendrag</item>
+        <item>Artificiell hårdbotten i sjö</item>
+        <item>Artificiell hårdbotten i vattendrag</item>
+        <item>Anläggning i hav</item>
+        <item>Artificiell marin hårdbotten</item>
+        <item>Grund marin hårdbotten - artificell</item>
+        <item>Djup marin hårdbotten - artificell</item>
+        <item>Restmarker</item>
+        <item>Ruderatmark</item>
+        <item>Övergivet industriområde</item>
+        <item>Ödetomt</item>
+        <item>Utfyllnad</item>
+        <item>Torvgrav</item>
+        <item>SJÖTYP</item>
+        <item>Näringsfattig sjö</item>
+        <item>Vattenyta i näringsfattig sjö</item>
+        <item>Vattensstrand i näringsfattig sjö</item>
+        <item>Hårdbottenstrand i näringsfattig sjö</item>
+        <item>Sand/grusstrand i näringsfattig sjö</item>
+        <item>Mjukbottenstrand i näringsfattig sjö</item>
+        <item>Grundbotten i näringsfattig sjö</item>
+        <item>Grund hårdbotten i näringsfattig sjö</item>
+        <item>Grund sand/grusbotten i näringsfattig sjö</item>
+        <item>Grund mjukbotten i näringsfattig sjö</item>
+        <item>Djupbotten i näringsfattig sjö</item>
+        <item>Djup hårdbotten i näringsfattig sjö</item>
+        <item>Djup sand/grusbotten i näringsfattig sjö</item>
+        <item>Djup mjukbotten i näringsfattig sjö</item>
+        <item>Pelagial i näringsfattig sjö</item>
+        <item>Ytvatten i näringsfattig sjö</item>
+        <item>Djupvatten i näringsfattig sjö</item>
+        <item>Klarvattensjö</item>
+        <item>Vattenyta i klarvattensjö</item>
+        <item>Vattensstrand i klarvattensjö</item>
+        <item>Hårdbottenstrand i klarvattensjö</item>
+        <item>Sand/grusstrand i klarvattensjö</item>
+        <item>Mjukbottenstrand i klarvattensjö</item>
+        <item>Grundbotten i klarvattensjö</item>
+        <item>Grund hårdbotten i klarvattensjö</item>
+        <item>Grund sand/grusbotten i klarvattensjö</item>
+        <item>Grund mjukbotten i klarvattensjö</item>
+        <item>Djupbotten i klarvattensjö</item>
+        <item>Djup hårdbotten i klarvattensjö</item>
+        <item>Djup sand/grusbotten i klarvattensjö</item>
+        <item>Djup mjukbotten i klarvattensjö</item>
+        <item>Pelagial i klarvattensjö</item>
+        <item>Ytvatten i klarvattensjö</item>
+        <item>Djupvatten i klarvattensjö</item>
+        <item>Brunvattensjö</item>
+        <item>Vattenyta i brunvattensjö</item>
+        <item>Vattensstrand i brunvattensjö</item>
+        <item>Hårdbottenstrand i brunvattensjö</item>
+        <item>Sand/grusstrand i brunvattensjö</item>
+        <item>Mjukbottenstrand i brunvattensjö</item>
+        <item>Grundbotten i brunvattensjö</item>
+        <item>Grund hårdbotten i brunvattensjö</item>
+        <item>Grund sand/grusbotten i brunvattensjö</item>
+        <item>Grund mjukbotten i brunvattensjö</item>
+        <item>Djupbotten i brunvattensjö</item>
+        <item>Djup hårdbotten i brunvattensjö</item>
+        <item>Djup sand/grusbotten i brunvattensjö</item>
+        <item>Djup mjukbotten i brunvattensjö</item>
+        <item>Pelagial i brunvattensjö</item>
+        <item>Ytvatten i brunvattensjö</item>
+        <item>Djupvatten i brunvattensjö</item>
+        <item>Kalkblekesjö</item>
+        <item>Vattenyta i kalkblekesjö</item>
+        <item>Vattensstrand i kalkblekesjö</item>
+        <item>Hårdbottenstrand i kalkblekesjö</item>
+        <item>Sand/grusstrand i kalkblekesjö</item>
+        <item>Mjukbottenstrand i kalkblekesjö</item>
+        <item>Grundbotten i kalkblekesjö</item>
+        <item>Grund hårdbotten i kalkblekesjö</item>
+        <item>Grund sand/grusbotten i kalkblekesjö</item>
+        <item>Grund mjukbotten i kalkblekesjö</item>
+        <item>Djupbotten i kalkblekesjö</item>
+        <item>Djup hårdbotten i kalkblekesjö</item>
+        <item>Djup sand/grusbotten i kalkblekesjö</item>
+        <item>Djup mjukbotten i kalkblekesjö</item>
+        <item>Pelagial i kalkblekesjö</item>
+        <item>Ytvatten i kalkblekesjö</item>
+        <item>Djupvatten i kalkblekesjö</item>
+        <item>Kransalgsjö</item>
+        <item>Vattenyta i kransalgssjö</item>
+        <item>Vattensstrand i kransalgssjö</item>
+        <item>Hårdbottenstrand i kransalgssjö</item>
+        <item>Sand/grusstrand i kransalgssjö</item>
+        <item>Mjukbottenstrand i kransalgssjö</item>
+        <item>Grundbotten i kransalgssjö</item>
+        <item>Grund hårdbotten i kransalgssjö</item>
+        <item>Grund sand/grusbotten i kransalgssjö</item>
+        <item>Grund mjukbotten i kransalgssjö</item>
+        <item>Djupbotten i kransalgssjö</item>
+        <item>Djup hårdbotten i kransalgssjö</item>
+        <item>Djup sand/grusbotten i kransalgssjö</item>
+        <item>Djup mjukbotten i kransalgssjö</item>
+        <item>Pelagial i kransalgssjö</item>
+        <item>Ytvatten i kransalgssjö</item>
+        <item>Djupvatten i kransalgssjö</item>
+        <item>Intermediär sjö</item>
+        <item>Vattenyta i intermediär sjö</item>
+        <item>Vattensstrand i intermediär sjö</item>
+        <item>Hårdbottenstrand i intermediär sjö</item>
+        <item>Sand/grusstrand i intermediär sjö</item>
+        <item>Mjukbottenstrand i intermediär sjö</item>
+        <item>Grundbotten i intermediär sjö</item>
+        <item>Grund hårdbotten i intermediär sjö</item>
+        <item>Grund sand/grusbotten i intermediär sjö</item>
+        <item>Grund mjukbotten i intermediär sjö</item>
+        <item>Djupbotten i intermediär sjö</item>
+        <item>Djup hårdbotten i intermediär sjö</item>
+        <item>Djup sand/grusbotten i intermediär sjö</item>
+        <item>Djup mjukbotten i intermediär sjö</item>
+        <item>Pelagial i intermediär sjö</item>
+        <item>Ytvatten i intermediär sjö</item>
+        <item>Djupvatten i intermediär sjö</item>
+        <item>Näringsrik sjö</item>
+        <item>Vattenyta i näringsrik sjö</item>
+        <item>Vattensstrand i näringsrik sjö</item>
+        <item>Hårdbottenstrand i näringsrik sjö</item>
+        <item>Sand/grusstrand i näringsrik sjö</item>
+        <item>Mjukbottenstrand i näringsrik sjö</item>
+        <item>Grundbotten i näringsrik sjö</item>
+        <item>Grund hårdbotten i näringsrik sjö</item>
+        <item>Grund sand/grusbotten i näringsrik sjö</item>
+        <item>Grund mjukbotten i näringsrik sjö</item>
+        <item>Djupbotten i näringsrik sjö</item>
+        <item>Djup hårdbotten i näringsrik sjö</item>
+        <item>Djup sand/grusbotten i näringsrik sjö</item>
+        <item>Djup mjukbotten i näringsrik sjö</item>
+        <item>Pelagial i näringsrik sjö</item>
+        <item>Ytvatten i näringsrik sjö</item>
+        <item>Djupvatten i näringsrik sjö</item>
+        <item>VATTENDRAGSTYP</item>
+        <item>Älv</item>
+        <item>Vatten i älv</item>
+        <item>Vattenyta i älv</item>
+        <item>Vattendragsbotten i älv</item>
+        <item>Hällbotten i älv</item>
+        <item>Block-stenbotten i älv</item>
+        <item>Sand-grusbotten i älv</item>
+        <item>Mjukbotten i älv</item>
+        <item>Å</item>
+        <item>Vatten i å</item>
+        <item>Vattenyta i å</item>
+        <item>Vattendragsbotten i å</item>
+        <item>Hällbotten i å</item>
+        <item>Block-stenbotten i å</item>
+        <item>Sand-grusbotten i å</item>
+        <item>Mjukbotten i å</item>
+        <item>Bäck</item>
+        <item>Vatten i bäck</item>
+        <item>Vattenyta i bäck</item>
+        <item>Vattendragsbotten i bäck</item>
+        <item>Hällbotten i bäck</item>
+        <item>Block-stenbotten i bäck</item>
+        <item>Sand-grusbotten i bäck</item>
+        <item>Mjukbotten i bäck</item>
+        <item>TRÄDSLAG/BUSKAR</item>
+        <item>Barrträd</item>
+        <item>Barrskog</item>
+        <item>Hällmarksbarrskog</item>
+        <item>Barrskog på kalkhällmark</item>
+        <item>Barrskog på blockmark</item>
+        <item>Sandbarrskog</item>
+        <item>Dynbarrskog</item>
+        <item>Barrskog i branter</item>
+        <item>Hedbarrskog</item>
+        <item>Gräsbarrskog</item>
+        <item>Blåbärsbarrskog</item>
+        <item>Ängsbarrskog</item>
+        <item>Lågörtbarrskog</item>
+        <item>Högörtbarrskog</item>
+        <item>Barrsumpskog</item>
+        <item>Våtmark med barrträd</item>
+        <item>Kärr med barrträd</item>
+        <item>Fattigkärr med barrträd</item>
+        <item>Intermediärt kärr med barrträd</item>
+        <item>Rikkärr med barrträd</item>
+        <item>Extremrikkärr med barrträd</item>
+        <item>Blandmyr med barrträd</item>
+        <item>Sträng-flarkmyr med barrträd</item>
+        <item>Artificiell miljö med barrträd</item>
+        <item>Park med barrträd</item>
+        <item>Barrträdsallé</item>
+        <item>Kyrkogård med barrträd</item>
+        <item>Gran</item>
+        <item>Granskog</item>
+        <item>Sandgranskog</item>
+        <item>Granskog i branter</item>
+        <item>Hedgranskog</item>
+        <item>Gräsgranskog</item>
+        <item>Blåbärsgranskog</item>
+        <item>Ängsgranskog</item>
+        <item>Lågörtgranskog</item>
+        <item>Högörtgranskog</item>
+        <item>Gransumpskog</item>
+        <item>Svämgranskog</item>
+        <item>Öppen mark med gran</item>
+        <item>Frisk gräsmark med gran</item>
+        <item>Frisk silikatgräsmark med gran</item>
+        <item>Frisk kalkgräsmark med gran</item>
+        <item>Fuktig gräsmark med gran</item>
+        <item>Fuktig kalkgräsmark med gran</item>
+        <item>Våtmark med gran</item>
+        <item>Kärr med gran</item>
+        <item>Fattigkärr med gran</item>
+        <item>Intermediärt kärr med gran</item>
+        <item>Rikkärr med gran</item>
+        <item>Extremrikkärr med gran</item>
+        <item>Blandmyr med gran</item>
+        <item>Sträng-flarkmyr med gran</item>
+        <item>Artificiell miljö med gran</item>
+        <item>Julgransodling</item>
+        <item>Tall</item>
+        <item>Tallskog</item>
+        <item>Hällmarkstallskog</item>
+        <item>Tallskog på kalkhällmark</item>
+        <item>Tallskog på blockmark</item>
+        <item>Sandtallskog</item>
+        <item>Dyntallskog</item>
+        <item>Tallskog i branter</item>
+        <item>Hedtallskog</item>
+        <item>Lavtallskog</item>
+        <item>Grästallskog</item>
+        <item>Lingontallskog</item>
+        <item>Ängstallskog</item>
+        <item>Lågörttallskog</item>
+        <item>Högörttallskog</item>
+        <item>Tallsumpskog</item>
+        <item>Öppen mark med tall</item>
+        <item>Hällmarksmosaik med tall</item>
+        <item>Klipphed med tall</item>
+        <item>Klippäng med tall</item>
+        <item>Alvarmark med tall</item>
+        <item>Hed med tall</item>
+        <item>Torr-frisk hed med tall</item>
+        <item>Torr gräsmark med tall</item>
+        <item>Sandgräsmark med tall</item>
+        <item>Torr silikatgräsmark med tall</item>
+        <item>Torr kalkgräsmark med tall</item>
+        <item>Sandfuktmark med tall</item>
+        <item>Våtmark med tall</item>
+        <item>Mosse med tall</item>
+        <item>Kärr med tall</item>
+        <item>Fattigkärr med tall</item>
+        <item>Intermediärt kärr med tall</item>
+        <item>Rikkärr med tall</item>
+        <item>Extremrikkärr med tall</item>
+        <item>Blandmyr med tall</item>
+        <item>Sträng-flarkmyr med tall</item>
+        <item>Barr-/lövbland</item>
+        <item>Blandskog</item>
+        <item>Hällmarksblandskog</item>
+        <item>Blandskog på kalkhällmark</item>
+        <item>Blandskog på blockmark</item>
+        <item>Sandblandskog</item>
+        <item>Dynblandskog</item>
+        <item>Blandskog i branter</item>
+        <item>Hedblandskog</item>
+        <item>Gräsblandskog</item>
+        <item>Blåbärsblandskog</item>
+        <item>Ängsblandskog</item>
+        <item>Lågörtblandskog</item>
+        <item>Högörtblandskog</item>
+        <item>Fjällblandskog</item>
+        <item>Fjällblandskog av lav-ristyp</item>
+        <item>Fjällblandskog av lågörttyp</item>
+        <item>Fjällblandskog av högörttyp</item>
+        <item>Blandsumpskog</item>
+        <item>Landhöjningsblandskog</item>
+        <item>Svämblandskog</item>
+        <item>Artificiell miljö med barr-/lövträd</item>
+        <item>Park med barr-/lövträd</item>
+        <item>Kyrkogård med barr-/lövträd</item>
+        <item>Lövträd</item>
+        <item>Lövskog</item>
+        <item>Hällmarkslövskog</item>
+        <item>Lövskog på kalkhällmark</item>
+        <item>Lövskog på blockmark</item>
+        <item>Sandlövskog</item>
+        <item>Dynlövskog</item>
+        <item>Lövskog i branter</item>
+        <item>Hedlövskog</item>
+        <item>Gräslövskog</item>
+        <item>Blåbärslövskog</item>
+        <item>Ängslövskog</item>
+        <item>Lågörtlövskog</item>
+        <item>Högörtlövskog</item>
+        <item>Lövsumpskog</item>
+        <item>Landhöjningslövskog</item>
+        <item>Svämlövskog</item>
+        <item>Öppen mark med lövträd</item>
+        <item>Frisk gräsmark med lövträd</item>
+        <item>Frisk silikatgräsmark med lövträd</item>
+        <item>Frisk kalkgräsmark med lövträd</item>
+        <item>Fuktig gräsmark med lövträd</item>
+        <item>Sandfuktmark med lövträd</item>
+        <item>Fuktig silikatgräsmark med lövträd</item>
+        <item>Fuktig kalkgräsmark med lövträd</item>
+        <item>Våtmark med lövträd</item>
+        <item>Kärr med lövträd</item>
+        <item>Fattigkärr med lövträd</item>
+        <item>Intermediärt kärr med lövträd</item>
+        <item>Rikkärr med lövträd</item>
+        <item>Extremrikkärr med lövträd</item>
+        <item>Artificiell miljö med lövträd</item>
+        <item>Park med lövträd</item>
+        <item>Kyrkogård med lövträd</item>
+        <item>Ädellöv</item>
+        <item>Ädellövskog</item>
+        <item>Ädellövskog på kalkhällmark</item>
+        <item>Sandädellövskog</item>
+        <item>Ädellövskog i branter</item>
+        <item>Ängsädellövskog</item>
+        <item>Lågörtädellövskog</item>
+        <item>Högörtädellövskog</item>
+        <item>Ädellövsumpskog</item>
+        <item>Svämädellövskog</item>
+        <item>Öppen mark med ädellövträd</item>
+        <item>Frisk gräsmark med ädellövträd</item>
+        <item>Frisk silikatgräsmark med ädellövträd</item>
+        <item>Frisk kalkgräsmark med ädellövträd</item>
+        <item>Fuktig gräsmark med ädellövträd</item>
+        <item>Sandfuktmark med ädellöv</item>
+        <item>Fuktig silikatgräsmark med ädellövträd</item>
+        <item>Fuktig kalkgräsmark med ädellövträd</item>
+        <item>Våtmark med äldelövträd</item>
+        <item>Kärr med ädellövträd</item>
+        <item>Intermediärt kärr med ädellövträd</item>
+        <item>Rikkärr med ädellövträd</item>
+        <item>Extremrikkärr med ädellövträd</item>
+        <item>Artificiell miljö med ädellövträd</item>
+        <item>Park med ädellöv</item>
+        <item>Ädellövallé</item>
+        <item>Kyrkogård med ädellöv</item>
+        <item>Ek</item>
+        <item>Ekskog</item>
+        <item>Hällmarksekskog</item>
+        <item>Sandekskog</item>
+        <item>Dynekskog</item>
+        <item>Ekskog i branter</item>
+        <item>Hedekskog</item>
+        <item>Gräsekskog</item>
+        <item>Blåbärsekskog</item>
+        <item>Ängsekskog</item>
+        <item>Lågörtekskog</item>
+        <item>Högörtekskog</item>
+        <item>Svämekskog</item>
+        <item>Öppen mark med ek</item>
+        <item>Hällmarksmosaik med ek</item>
+        <item>Klipphed med ek</item>
+        <item>Klippäng med ek</item>
+        <item>Hed med ek</item>
+        <item>Torr-frisk hed med ek</item>
+        <item>Torr gräsmark med ek</item>
+        <item>Sandgräsmark med ek</item>
+        <item>Torr silikatgräsmark med ek</item>
+        <item>Torr kalkgräsmark med ek</item>
+        <item>Frisk gräsmark med ek</item>
+        <item>Frisk silikatgräsmark med ek</item>
+        <item>Frisk kalkgräsmark med ek</item>
+        <item>Artificiell miljö med ek</item>
+        <item>Ekallé</item>
+        <item>Bok</item>
+        <item>Bokskog</item>
+        <item>Bokskog i branter</item>
+        <item>Hedbokskog</item>
+        <item>Gräsbokskog</item>
+        <item>Blåbärsbokskog</item>
+        <item>Ängsbokskog</item>
+        <item>Lågörtbokskog</item>
+        <item>Högörtbokskog</item>
+        <item>Öppen mark med bok</item>
+        <item>Hed med bok</item>
+        <item>Torr-frisk hed med bok</item>
+        <item>Torr silikatgräsmark med bok</item>
+        <item>Frisk gräsmark med bok</item>
+        <item>Frisk silikatgräsmark med bok</item>
+        <item>Artificiell miljö med bok</item>
+        <item>Bokallé</item>
+        <item>Ask</item>
+        <item>Askskog</item>
+        <item>Ängsaskskog</item>
+        <item>Lågörtaskskog</item>
+        <item>Högörtaskskog</item>
+        <item>Asksumpskog</item>
+        <item>Svämaskskog</item>
+        <item>Öppen mark med ask</item>
+        <item>Frisk kalkgräsmark med ask</item>
+        <item>Våtmark med ask</item>
+        <item>Kärr med ask</item>
+        <item>Artificiell miljö med ask</item>
+        <item>Askallé</item>
+        <item>Alm</item>
+        <item>Almskog</item>
+        <item>Ängsalmskog</item>
+        <item>Lågörtalmskog</item>
+        <item>Högörtalmskog</item>
+        <item>Öppen mark med alm</item>
+        <item>Frisk kalkgräsmark med alm</item>
+        <item>Artificiell miljö alm</item>
+        <item>Alm allé</item>
+        <item>Lind</item>
+        <item>Artificiell miljö med lind</item>
+        <item>Lindallé</item>
+        <item>Hassel</item>
+        <item>Öppen mark med hassel</item>
+        <item>Frisk silikatgräsmark med hassel</item>
+        <item>Frisk kalkgräsmark med hassel</item>
+        <item>Triviallöv</item>
+        <item>Triviallövskog</item>
+        <item>Triviallövskog på kalkhällmark</item>
+        <item>Sandtriviallövskog</item>
+        <item>Dyntriviallövskog</item>
+        <item>Triviallövskog i branter</item>
+        <item>Hedtriviallövskog</item>
+        <item>Grästriviallövskog</item>
+        <item>Blåbärstriviallövskog</item>
+        <item>Ängstriviallövskog</item>
+        <item>Landhöjningstriviallövskog</item>
+        <item>Svämtriviallövskog</item>
+        <item>Öppen mark med triviallövträd</item>
+        <item>Frisk gräsmark med triviallövträd</item>
+        <item>Frisk silikatgräsmark med triviallövträd</item>
+        <item>Frisk kalkgräsmark med triviallövträd</item>
+        <item>Fuktig gräsmark med triviallövträd</item>
+        <item>Sandfuktmark med triviallövträd</item>
+        <item>Fuktig silikatgräsmark med triviallövträd</item>
+        <item>Fuktig kalkgräsmark med triviallövträd</item>
+        <item>Våtmark med triviallövträd</item>
+        <item>Kärr med trivallövträd</item>
+        <item>Fattigkärr med trivallövträd</item>
+        <item>Intermediärt kärr med trivallövträd</item>
+        <item>Rikkärr med trivallövträd</item>
+        <item>Extremrikkärr med trivallövträd</item>
+        <item>Blandmyr med trivallövträd</item>
+        <item>Sträng-flarkmyr med trivallövträd</item>
+        <item>Artificiell miljö med triviallövträd</item>
+        <item>Park med triviallöv</item>
+        <item>Triviallövallé</item>
+        <item>Kyrkogård med triviallöv</item>
+        <item>Björk</item>
+        <item>Björkskog</item>
+        <item>Hällmarksbjörkskog</item>
+        <item>Sandbjörkskog</item>
+        <item>Dynbjörkskog</item>
+        <item>Hedbjörkskog</item>
+        <item>Gräsbjörkskog</item>
+        <item>Blåbärsbjörkskog</item>
+        <item>Ängsbjörkskog</item>
+        <item>Fjällbjörkskog</item>
+        <item>Fjällbjörkskog av lav-ristyp</item>
+        <item>Fjällbjörkskog av lågörttyp</item>
+        <item>Fjällbjörkskog av högörttyp</item>
+        <item>Björksumpskog</item>
+        <item>Landhöjningsbjörkskog</item>
+        <item>Svämbjörkskog</item>
+        <item>Öppen mark med björk</item>
+        <item>Hällmarksmosaik med björk</item>
+        <item>Klipphed med björk</item>
+        <item>Hed med björk</item>
+        <item>Torr-frisk hed med björk</item>
+        <item>Fukthed med björk</item>
+        <item>Torr gräsmark med björk</item>
+        <item>Sandgräsmark med björk</item>
+        <item>Torr silikatgräsmark med björk</item>
+        <item>Frisk gräsmark med björk</item>
+        <item>Frisk silikatgräsmark med björk</item>
+        <item>Frisk kalkgräsmark med björk</item>
+        <item>Fuktig gräsmark med björk</item>
+        <item>Sandfuktmark med björk</item>
+        <item>Fuktig silikatgräsmark med björk</item>
+        <item>Fuktig kalkgräsmark med björk</item>
+        <item>Alpin hed med björk</item>
+        <item>Alpin busklavhed med björk</item>
+        <item>Alpin rished med björk</item>
+        <item>Alpin vide/dvärgbjörkhed med björk</item>
+        <item>Alpin gräsmark med björk</item>
+        <item>Sur alpin gräsmark med björk</item>
+        <item>Kalkrik alpin gräsmark med björk</item>
+        <item>Alpin högörtäng med björk</item>
+        <item>Våtmark med björk</item>
+        <item>Mosse med björk</item>
+        <item>Kärr med björk</item>
+        <item>Fattigkärr med björk</item>
+        <item>Intermediärt kärr med björk</item>
+        <item>Rikkärr med björk</item>
+        <item>Extremrikkärr med björk</item>
+        <item>Blandmyr med björk</item>
+        <item>Sträng-flarkmyr med björk</item>
+        <item>Artificiell miljö med björk</item>
+        <item>Björkallé</item>
+        <item>Al</item>
+        <item>Alskog</item>
+        <item>Sandalskog</item>
+        <item>Ängsalskog</item>
+        <item>Alsumpskog</item>
+        <item>Landhöjningsalskog</item>
+        <item>Svämalskog</item>
+        <item>Öppen mark med al</item>
+        <item>Fuktig gräsmark med al</item>
+        <item>Sandfuktmark med al</item>
+        <item>Fuktig silikatgräsmark med al</item>
+        <item>Fuktig kalkgräsmark med al</item>
+        <item>Våtmark med al</item>
+        <item>Kärr med al</item>
+        <item>Fattigkärr med al</item>
+        <item>Intermediärt kärr med al</item>
+        <item>Rikkärr med al</item>
+        <item>Extremrikkärr med al</item>
+        <item>Blandmyr med al</item>
+        <item>Sträng-flarkmyr med al</item>
+        <item>Asp</item>
+        <item>Aspskog</item>
+        <item>Hällmarksaspskog</item>
+        <item>Hedaspskog</item>
+        <item>Gräsaspskog</item>
+        <item>Blåbärsaspskog</item>
+        <item>Ängsaspskog</item>
+        <item>Buskar</item>
+        <item>Öppen mark med buskar</item>
+        <item>Hed med buskar</item>
+        <item>Torr-frisk hed med buskar</item>
+        <item>Fukted med buskar</item>
+        <item>Torr gräsmark med buskar</item>
+        <item>Sandgräsmark med buskar</item>
+        <item>Torr silikatgräsmark med buskar</item>
+        <item>Torr kalkgräsmark med buskar</item>
+        <item>Frisk gräsmark med buskar</item>
+        <item>Frisk silikatgräsmark med buskar</item>
+        <item>Frisk kalkgräsmark med buskar</item>
+        <item>Fuktig gräsmark med buskar</item>
+        <item>Sandfuktmark med buskar</item>
+        <item>Fuktig silikatgräsmark med buskar</item>
+        <item>Fuktig kalkgräsmark med buskar</item>
+        <item>Högörtäng med buskar</item>
+        <item>Alpin hed med buskar</item>
+        <item>Alpin rished med buskar</item>
+        <item>Alpin vide/dvärbjörkshed med buskar</item>
+        <item>Alpin gräsmark med buskar</item>
+        <item>Sur alpin gräsmark med buskar</item>
+        <item>Kalkrik alpin gräsmark med buskar</item>
+        <item>Alpin högörtäng med buskar</item>
+        <item>Våtmark med buskar</item>
+        <item>Kärr med buskar</item>
+        <item>Fattigkärr med buskar</item>
+        <item>Intermediärt kärr med buskar</item>
+        <item>Rikkärr med buskar</item>
+        <item>Extremrikkärr med buskar</item>
+        <item>Blandmyr med buskar</item>
+        <item>Artificiell miljö med buskar</item>
+        <item>Buskodling</item>
+        <item>Slån</item>
+        <item>Öppen mark med slån</item>
+        <item>Torr silikatgräsmark med slån</item>
+        <item>Torr kalkgräsmark med slån</item>
+        <item>Frisk gräsmark med slån</item>
+        <item>Frisk silikatgräsmark med slån</item>
+        <item>Frisk kalkgräsmark med slån</item>
+        <item>Rosor</item>
+        <item>Öppen mark med rosor</item>
+        <item>Torr silikatgräsmark med rosor</item>
+        <item>Torr kalkgräsmark med rosor</item>
+        <item>Frisk gräsmark med rosor</item>
+        <item>Frisk silikatgräsmark med rosor</item>
+        <item>Frisk kalkgräsmark med rosor</item>
+        <item>Björnbär</item>
+        <item>Öppen mark med björnbär</item>
+        <item>Frisk gräsmark med björnbär</item>
+        <item>Frisk silikatgräsmark med björnbär</item>
+        <item>Frisk kalkgräsmark med björnbär</item>
+        <item>Fuktig silikatgräsmark med björnbär</item>
+        <item>Fuktig kalkgräsmark med björnbär</item>
+        <item>Enbuskar</item>
+        <item>Öppen mark med enbuskar</item>
+        <item>Hällmarksmosaik with enbuskar</item>
+        <item>Klipphed med enbuskar</item>
+        <item>Klippäng med enbuskar</item>
+        <item>Alvar med enbuskar</item>
+        <item>Hed med enbuskar</item>
+        <item>Torr-frisk hed med enbuskar</item>
+        <item>Fukthed med enbuskar</item>
+        <item>Torr gräsmark med enbuskar</item>
+        <item>Sandgräsmark med enbuskar</item>
+        <item>Torr silikatgräsmark med enbuskar</item>
+        <item>Torr kalkgräsmark med enbuskar</item>
+        <item>Frisk gräsmark med enbuskar</item>
+        <item>Frisk silikatgräsmark med enbuskar</item>
+        <item>Frisk kalkgräsmark med enbuskar</item>
+        <item>Alpin hed med enbuskar</item>
+        <item>Alpin rished med enbuskar</item>
+        <item>Alpin vide/dvärbjörkshed med enbuskar</item>
+        <item>Alpin gräsmark med enbuskar</item>
+        <item>Sur alpin gräsmark med enbuskar</item>
+        <item>Kalkrik alpin gräsmark med enbuskar</item>
+        <item>Björkbuskar</item>
+        <item>Öppen mark med börkbuskar</item>
+        <item>Alpin hed med björkbuskar</item>
+        <item>Alpin rished med björkbuskar</item>
+        <item>Alpin vide/dvärbjörkshed med björkbuskar</item>
+        <item>Alpin gräsmark med björkbuskar</item>
+        <item>Sur alpin gräsmark med björkbuskar</item>
+        <item>Kalkrik alpin gräsmark med björkbuskar</item>
+        <item>Alpin högörtäng med björkbuskar</item>
+        <item>Vide</item>
+        <item>Öppen mark med vide</item>
+        <item>Fuktig gräsmark med vide</item>
+        <item>Sandfuktmark med vide</item>
+        <item>Fuktig silikatgräsmark med vide</item>
+        <item>Fuktig kalkgräsmark med vide</item>
+        <item>Högörtäng med vide</item>
+        <item>Alpin gräsmark med vide</item>
+        <item>Sur alpin gräsmark med vide</item>
+        <item>Kalkrik alpin gräsmark med vide</item>
+        <item>Alpin högörtäng med vide</item>
+        <item>Våtmark med vide</item>
+        <item>Kärr med vide</item>
+        <item>Fattigkärr med vide</item>
+        <item>Intermediärt kärr med vide</item>
+        <item>Rikkärr med vide</item>
+        <item>Extremrikkärr med vide</item>
+        <item>Blandmyr med vide</item>
+        <item>Artificiell miljö med vide</item>
+        <item>Salix-odling</item>
+    </string-array>
+</resources>

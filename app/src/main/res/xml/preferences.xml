@@ -8,7 +8,7 @@
             android:key="show_altitude"
             android:title="Altitude"
             android:summary="Show altitude, meters above sea level"
-            android:defaultValue="true" />
+            android:defaultValue="false" />
 
         <CheckBoxPreference
             android:key="show_wgs84"
@@ -20,7 +20,7 @@
             android:key="show_rt90"
             android:title="RT90"
             android:summary="Show Swedish Grid (RT90)"
-            android:defaultValue="true" />
+            android:defaultValue="false" />
 
         <CheckBoxPreference
             android:key="show_sweref"
@@ -32,7 +32,7 @@
             android:key="show_rubin"
             android:title="RUBIN"
             android:summary="Show RUBIN grid reference"
-            android:defaultValue="true" />
+            android:defaultValue="false" />
 
         <CheckBoxPreference
             android:key="show_date"
@@ -54,7 +54,6 @@
     </PreferenceCategory>
 
     <PreferenceCategory android:title="Species &amp; Collection Fields">
-
         <CheckBoxPreference
             android:key="show_species_field"
             android:title="Species name"
@@ -64,7 +63,7 @@
         <CheckBoxPreference
             android:key="show_locality_description"
             android:title="Locality"
-            android:summary="An text that describes where the collection/observation is done, should be written so it's possible to figure out the location from a map"
+            android:summary="Text describing the location"
             android:defaultValue="true" />
 
         <CheckBoxPreference
@@ -80,6 +79,36 @@
             android:defaultValue="true" />
 
         <CheckBoxPreference
+            android:key="show_quantity_field"
+            android:title="Quantity"
+            android:summary="Show field for number of individuals"
+            android:defaultValue="false" />
+
+        <CheckBoxPreference
+            android:key="show_life_stage_field"
+            android:title="Life Stage"
+            android:summary="Show field for Stage (Adult, Larva, Flowering...)"
+            android:defaultValue="false" />
+
+        <CheckBoxPreference
+            android:key="show_gender_field"
+            android:title="Gender"
+            android:summary="Show field for gender"
+            android:defaultValue="false" />
+
+        <CheckBoxPreference
+            android:key="show_activity_field"
+            android:title="Activity"
+            android:summary="Show field for activity/behavior"
+            android:defaultValue="false" />
+
+        <CheckBoxPreference
+            android:key="show_method_field"
+            android:title="Method"
+            android:summary="Show field for observation/sampling method"
+            android:defaultValue="false" />
+
+        <CheckBoxPreference
             android:key="show_collector_field"
             android:title="Collector"
             android:summary="Show field for Collector(s) / Observer(s)"
@@ -87,8 +116,8 @@
 
         <CheckBoxPreference
             android:key="show_is_collection"
-            android:title="Is collection and collection nr"
-            android:summary="show Collection nr to connect data to the physical specimen"
+            android:title="Is collection"
+            android:summary="Show Collection nr to connect data to physical specimen"
             android:defaultValue="true" />
 
         <EditTextPreference
@@ -96,10 +125,8 @@
             android:title="Next Specimen Number"
             android:defaultValue="1"
             android:summary="Manually set the next number to be used"
-            android:dialogTitle="Set Next Number"
-            android:selectAllOnFocus="true"
-            android:inputType="number" />
-
+            app:useSimpleSummaryProvider="true"
+            android:selectAllOnFocus="true" />
     </PreferenceCategory>
 
     <PreferenceCategory android:title="Taxonomy &amp; Language">
@@ -112,7 +139,7 @@
         <ListPreference
             android:key="preferred_species_language"
             android:title="Target Language"
-            android:summary="Translate lookup to this language"
+            android:summary="Language for species lookup and attribute dropdowns"
             android:entries="@array/language_names"
             android:entryValues="@array/language_values"
             android:defaultValue="sv" />
@@ -143,11 +170,10 @@
     </PreferenceCategory>
 
     <PreferenceCategory android:title="Utilities">
-
         <CheckBoxPreference
             android:key="show_map_link"
             android:title="Map Button"
-            android:summary="Button that links to Lantmäteriets Min Karta"
+            android:summary="Link to Lantmäteriets Min Karta"
             android:defaultValue="true" />
 
         <CheckBoxPreference
@@ -155,7 +181,6 @@
             android:title="Photo Button"
             android:summary="Show Photo button and gallery"
             android:defaultValue="true" />
-
     </PreferenceCategory>
 
 </PreferenceScreen>

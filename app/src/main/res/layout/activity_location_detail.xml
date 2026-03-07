@@ -57,21 +57,142 @@
                 android:completionThreshold="0" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <EditText
-            android:id="@+id/input_substrate"
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/layout_substrate"
+            style="@style/Widget.Design.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="18sp"
-            android:hint="Substrate"
-            android:inputType="textCapSentences" />
+            android:layout_marginTop="4dp">
 
-        <EditText
-            android:id="@+id/input_habitat"
+            <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                android:id="@+id/input_substrate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Substrate"
+                android:textSize="18sp"
+                android:paddingStart="4dp"
+                android:inputType="textPersonName"
+                android:completionThreshold="0" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/layout_habitat"
+            style="@style/Widget.Design.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="18sp"
-            android:hint="Habitat/Biotope"
-            android:inputType="textCapSentences" />
+            android:layout_marginTop="4dp">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/input_habitat"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Habitat / Biotope"
+                android:textSize="18sp"
+                android:inputType="textCapSentences" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/layout_quantity"
+            style="@style/Widget.Design.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/input_quantity"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Quantity / Number of individuals"
+                android:textSize="18sp"
+                android:inputType="number" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/layout_life_stage"
+            style="@style/Widget.Design.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp">
+
+            <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                android:id="@+id/input_life_stage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Life Stage"
+                android:textSize="18sp"
+                android:inputType="textCapSentences"
+                android:completionThreshold="0" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/layout_gender"
+            style="@style/Widget.Design.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp">
+
+            <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                android:id="@+id/input_gender"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Gender"
+                android:textSize="18sp"
+                android:inputType="textCapSentences"
+                android:completionThreshold="0" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/layout_activity"
+            style="@style/Widget.Design.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp">
+
+            <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                android:id="@+id/input_activity"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Activity/Behavior"
+                android:textSize="18sp"
+                android:inputType="textCapSentences"
+                android:completionThreshold="0" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/layout_method"
+            style="@style/Widget.Design.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp">
+
+            <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                android:id="@+id/input_method"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Sampling Method"
+                android:textSize="18sp"
+                android:inputType="textCapSentences"
+                android:completionThreshold="0" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/layout_notes"
+            style="@style/Widget.Design.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/detail_note_input"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="18sp"
+                android:hint="General notes..."
+                android:minLines="2"
+                android:gravity="top"
+                android:inputType="textMultiLine|textCapSentences" />
+        </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/layout_collector"
@@ -90,15 +211,6 @@
                 android:inputType="textPersonName"
                 android:completionThreshold="0" />
         </com.google.android.material.textfield.TextInputLayout>
-
-        <EditText
-            android:id="@+id/detail_note_input"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textSize="18sp"
-            android:hint="General notes..."
-            android:minLines="2"
-            android:gravity="top"/>
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -173,7 +285,6 @@
                 android:layout_weight="1"
                 android:text="Save Location"
                 android:layout_marginStart="4dp"/>
-
         </LinearLayout>
 
     </LinearLayout>

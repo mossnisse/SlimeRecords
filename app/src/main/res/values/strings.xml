@@ -26,4 +26,26 @@
         <item>la</item>
         <item>en</item>
     </string-array>
+
+    <string-array name="gender_sv_values">
+        <item>Hane</item>
+        <item>Hona</item>
+        <item>I par</item>
+        <item>Arbetare</item>
+        <item>Honfärgad</item>
+    </string-array>
+
+    <string-array name="gender_en_values">
+        <item>Male</item>
+        <item>Female</item>
+        <item>In pair</item>
+        <item>Worker</item>
+        <item>Female-colored</item>
+    </string-array>
+    
+    <string-array name="determine_method_sv">
+        <item>Mikroskoperad</item>
+        <item>Stereolupp</item>
+        <item>Barcode</item>
+    </string-array>
 </resources>

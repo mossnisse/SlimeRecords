@@ -55,20 +55,20 @@ public class LocationDetailActivity extends AppCompatActivity {
         binding = ActivityLocationDetailBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        // Data/Models
         searchViewModel = new ViewModelProvider(this).get(SearchViewModel.class);
         historyViewModel = new ViewModelProvider(this).get(HistoryViewModel.class);
 
-        initUI();
-        initLocalityView();
+        // UI Setup
+        initUI();           // Buttons, Visibility, Recycler
+        initAutocomplete();  // ALL adapters and listeners for input fields
+
+        // Data Loading
         setupObservers();
-        setupSpeciesAutocomplete();
 
         isNew = getIntent().getBooleanExtra("is_new", false);
-        if (isNew) {
-            setupNewLocation();
-        } else {
-            setupExistingLocation();
-        }
+        if (isNew) setupNewLocation();
+        else setupExistingLocation();
     }
 
     private void setupObservers() {
@@ -115,16 +115,21 @@ public class LocationDetailActivity extends AppCompatActivity {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
 
         boolean showSpecies = prefs.getBoolean("show_species_field", true);
-        binding.inputSpecies.setVisibility(showSpecies ? View.VISIBLE : View.GONE);
+        binding.layoutSpecies.setVisibility(showSpecies ? View.VISIBLE : View.GONE);
         boolean showLocality = prefs.getBoolean( "show_locality_description", true);
-        binding.editLocalityDescription.setVisibility(showLocality ? View.VISIBLE : View.GONE);
+        binding.layoutLocality.setVisibility(showLocality ? View.VISIBLE : View.GONE);
         boolean showSubstrate = prefs.getBoolean("show_substrate_field", true);
-        binding.inputSubstrate.setVisibility(showSubstrate ? View.VISIBLE : View.GONE);
+        binding.layoutSubstrate.setVisibility(showSubstrate ? View.VISIBLE : View.GONE);
         boolean showHabitat = prefs.getBoolean("show_habitat_field", true);
-        binding.inputHabitat.setVisibility(showHabitat ? View.VISIBLE : View.GONE);
+        binding.layoutHabitat.setVisibility(showHabitat ? View.VISIBLE : View.GONE);
         boolean showCollector = prefs.getBoolean("show_collector_field", true);
-        binding.inputCollector.setVisibility(showCollector ? View.VISIBLE : View.GONE);
+        binding.layoutCollector.setVisibility(showCollector ? View.VISIBLE : View.GONE);
         boolean showIsCollection = prefs.getBoolean("show_is_collection", true);
+        binding.layoutQuantity.setVisibility(prefs.getBoolean("show_quantity_field", true) ? View.VISIBLE : View.GONE);
+        binding.layoutLifeStage.setVisibility(prefs.getBoolean("show_life_stage_field", true) ? View.VISIBLE : View.GONE);
+        binding.layoutGender.setVisibility(prefs.getBoolean("show_gender_field", true) ? View.VISIBLE : View.GONE);
+        binding.layoutActivity.setVisibility(prefs.getBoolean("show_activity_field", true) ? View.VISIBLE : View.GONE);
+        binding.layoutMethod.setVisibility(prefs.getBoolean("show_method_field", true) ? View.VISIBLE : View.GONE);
         binding.checkboxIsSpecimen.setVisibility(showIsCollection ? View.VISIBLE : View.GONE);
         boolean showMapLink = prefs.getBoolean("show_map_link", true);
         binding.btnOpenMap.setVisibility(showMapLink ? View.VISIBLE : View.GONE);
@@ -173,29 +178,6 @@ public class LocationDetailActivity extends AppCompatActivity {
         binding.rvPhotoGallery.setAdapter(photoAdapter);
     }
 
-    private void initLocalityView() {
-        AutoCompleteTextView editLocality = binding.editLocalityDescription;
-
-        // Initialize the adapter
-        localityAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, new ArrayList<>());
-        editLocality.setAdapter(localityAdapter);
-
-        // Allow the dropdown to show even without typing
-        editLocality.setThreshold(0);
-
-        editLocality.setOnClickListener(v -> {
-            if (localityAdapter.getCount() > 0) {
-                editLocality.showDropDown();
-            }
-        });
-
-        editLocality.setOnFocusChangeListener((v, hasFocus) -> {
-            if (hasFocus && localityAdapter.getCount() > 0) {
-                editLocality.showDropDown();
-            }
-        });
-    }
-
     private void loadLocalitySuggestions() {
         // Only fetch if we actually have coordinates
         if (lat == 0 && lon == 0) return;
@@ -218,9 +200,7 @@ public class LocationDetailActivity extends AppCompatActivity {
         lon = getIntent().getDoubleExtra("lon", 0);
         accuracy = getIntent().getFloatExtra("acc", 0);
         altitude = getIntent().getDoubleExtra("altitude", 0);
-        triggerSpatialLookups();
-        refreshCoordinateDisplay();
-        loadLocalitySuggestions();
+        onCoordinatesLoaded();
     }
 
     private void setupExistingLocation() {
@@ -248,6 +228,15 @@ public class LocationDetailActivity extends AppCompatActivity {
                 binding.inputSubstrate.setText(currentRecord.attributes.substrate);
                 binding.inputHabitat.setText(currentRecord.attributes.habitat);
                 binding.inputCollector.setText(currentRecord.attributes.collector);
+                if (currentRecord.attributes.quantity != null) {
+                    binding.inputQuantity.setText(String.valueOf(currentRecord.attributes.quantity));
+                } else {
+                    binding.inputQuantity.setText(""); // Keep it empty
+                }
+                binding.inputLifeStage.setText(currentRecord.attributes.life_stage);
+                binding.inputGender.setText(currentRecord.attributes.gender);
+                binding.inputActivity.setText(currentRecord.attributes.activity);
+                binding.inputMethod.setText(currentRecord.attributes.method);
                 binding.checkboxIsSpecimen.setChecked(currentRecord.attributes.isSpecimen);
                 binding.tvSpecimenNr.setVisibility(currentRecord.attributes.isSpecimen ? View.VISIBLE : View.GONE);
                 binding.tvSpecimenNr.setText("No: " + (currentRecord.attributes.specimenNr != null ?
@@ -261,11 +250,14 @@ public class LocationDetailActivity extends AppCompatActivity {
             } else {
                 binding.rvPhotoGallery.setVisibility(View.GONE);
             }
-
-            triggerSpatialLookups();
-            refreshCoordinateDisplay();
-            loadLocalitySuggestions();
+            onCoordinatesLoaded();
         });
+    }
+
+    private void onCoordinatesLoaded() {
+        triggerSpatialLookups();
+        refreshCoordinateDisplay();
+        loadLocalitySuggestions();
     }
 
     private void onCommitClicked() {
@@ -273,43 +265,65 @@ public class LocationDetailActivity extends AppCompatActivity {
         String localityText = binding.editLocalityDescription.getText().toString().trim();
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
 
-        SpeciesAttributes attrs;
-        if (isNew || currentRecord == null || currentRecord.attributes == null) {
-            attrs = new SpeciesAttributes();
+        // Initialize or retrieve attributes
+        SpeciesAttributes attrs = (currentRecord != null && currentRecord.attributes != null)
+                ? currentRecord.attributes
+                : new SpeciesAttributes();
+
+        // Helper to check if a field is enabled in settings
+        // This ensures that if a field is hidden, we set its value to null/empty
+        // instead of keeping old data from a previous edit.
+
+        // Quantity logic (squashing the "0" bug)
+        if (prefs.getBoolean("show_quantity_field", false)) {
+            String q = binding.inputQuantity.getText().toString().trim();
+            try {
+                attrs.quantity = q.isEmpty() ? null : Integer.parseInt(q);
+            } catch (NumberFormatException e) {
+                attrs.quantity = null;
+            }
         } else {
-            attrs = currentRecord.attributes;
+            attrs.quantity = null;
         }
 
-        // Logic for updating attributes...
+        // Standard string fields
+        attrs.life_stage = prefs.getBoolean("show_life_stage_field", false) ? binding.inputLifeStage.getText().toString().trim() : null;
+        attrs.gender = prefs.getBoolean("show_gender_field", false) ? binding.inputGender.getText().toString().trim() : null;
+        attrs.activity = prefs.getBoolean("show_activity_field", false) ? binding.inputActivity.getText().toString().trim() : null;
+        attrs.method = prefs.getBoolean("show_method_field", false) ? binding.inputMethod.getText().toString().trim() : null;
+        attrs.substrate = prefs.getBoolean("show_substrate_field", true) ? binding.inputSubstrate.getText().toString().trim() : null;
+        attrs.habitat = prefs.getBoolean("show_habitat_field", true) ? binding.inputHabitat.getText().toString().trim() : null;
+
+        // Species and ID
         if (prefs.getBoolean("show_species_field", true)) {
             attrs.species = binding.inputSpecies.getText().toString().trim();
-            attrs.dyntaxaID = selectedDyntaxaID; // Save the captured ID here!
+            attrs.dyntaxaID = selectedDyntaxaID;
         }
-        if (prefs.getBoolean("show_substrate_field", true)) attrs.substrate = binding.inputSubstrate.getText().toString().trim();
-        if (prefs.getBoolean("show_habitat_field", true)) attrs.habitat = binding.inputHabitat.getText().toString().trim();
 
-        String collector;
-        if (prefs.getBoolean("show_collector_field", true)) {
-            collector = binding.inputCollector.getText().toString().trim();
-        } else {
-            collector = latestCollectorName;
-        }
+        // Collector logic
+        String collector = prefs.getBoolean("show_collector_field", true)
+                ? binding.inputCollector.getText().toString().trim()
+                : latestCollectorName;
         attrs.collector = collector;
 
-        //if (prefs.getBoolean("show_locality_description", true)) attrs.localityDescription = binding.editLocalityDescription.getText().toString();
+        // Specimen Logic
         attrs.isSpecimen = binding.checkboxIsSpecimen.isChecked();
-
         if (attrs.isSpecimen) {
             String nrText = binding.tvSpecimenNr.getText().toString().replace("No: ", "").trim();
             attrs.specimenNr = nrText;
-            try {
-                int currentNr = Integer.parseInt(nrText);
-                prefs.edit().putString("last_specimen_number", String.valueOf(currentNr + 1)).apply();
-            } catch (NumberFormatException ignored) {}
+
+            // Only increment the global "next number" if this is a NEW record
+            if (isNew) {
+                try {
+                    int currentNr = Integer.parseInt(nrText);
+                    prefs.edit().putString("last_specimen_number", String.valueOf(currentNr + 1)).apply();
+                } catch (NumberFormatException ignored) {}
+            }
         } else {
             attrs.specimenNr = null;
         }
 
+        // Save/Update Execution
         if (isNew) {
             String localTime = java.time.LocalDateTime.now().format(
                     java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
@@ -318,14 +332,14 @@ public class LocationDetailActivity extends AppCompatActivity {
             record.localityDescription = localityText;
             record.attributes = attrs;
             historyViewModel.saveLocationWithPhotos(record, tempPhotoPaths);
-        } else if (currentRecord != null) {
+        } else {
             currentRecord.note = noteText;
             currentRecord.localityDescription = localityText;
             currentRecord.attributes = attrs;
             historyViewModel.updateLocation(currentRecord);
         }
 
-        // Fix: Call matching ViewModel method name
+        // Update the recent collectors list in background
         if (collector != null && !collector.isEmpty()) {
             historyViewModel.updateRecentCollector(collector);
         }
@@ -452,34 +466,6 @@ public class LocationDetailActivity extends AppCompatActivity {
         else currentDistrict = null;
     }
 
-    private void setupLocalityAutocomplete(double currentLat, double currentLon) {
-        // Corrected ID to match the XML change above
-        AutoCompleteTextView editLocality = binding.editLocalityDescription;
-
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
-                android.R.layout.simple_dropdown_item_1line, new ArrayList<>());
-        editLocality.setAdapter(adapter);
-
-        double delta = 0.018;
-        // Calling the renamed ViewModel method
-        historyViewModel.getNearbyLocalitySuggestions(
-                currentLat - delta,
-                currentLon - delta
-        ).observe(this, suggestions -> {
-            if (suggestions != null) {
-                adapter.clear();
-                adapter.addAll(suggestions);
-                adapter.notifyDataSetChanged();
-            }
-        });
-
-        editLocality.setOnClickListener(v -> editLocality.showDropDown());
-        // Also show when focus is gained
-        editLocality.setOnFocusChangeListener((v, hasFocus) -> {
-            if (hasFocus) editLocality.showDropDown();
-        });
-    }
-
     private void setupSpeciesAutocomplete() {
         AutoCompleteTextView speciesInput = binding.inputSpecies;
 
@@ -563,17 +549,63 @@ public class LocationDetailActivity extends AppCompatActivity {
                 if ((selected.getIsSynonym() == 1 && autoResolve) || !selected.species.language.equals(targetLang)) {
                     if (selected.acceptedName != null) {
                         speciesInput.setText(selected.acceptedName);
-                        selectedDyntaxaID = selected.getTaxonID();
                     } else {
                         // If no translation found, fall back to current
                         speciesInput.setText(selected.getName());
-                        selectedDyntaxaID = selected.getTaxonID();
                     }
                 } else {
                     speciesInput.setText(selected.getName());
-                    selectedDyntaxaID = selected.getTaxonID();
                 }
+                selectedDyntaxaID = selected.getTaxonID();
                 speciesInput.setSelection(speciesInput.getText().length());
+            }
+        });
+    }
+
+    private void initAutocomplete() {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        String lang = prefs.getString("preferred_species_language", "sv");
+
+        // Static Dropdowns (from strings.xml arrays)
+        // We pick the array resource based on the user's preferred language
+        setupStaticDropdown(binding.inputLifeStage, lang.equals("sv") ? R.array.life_stage_sv_values : R.array.life_stage_en_values);
+        setupStaticDropdown(binding.inputGender, lang.equals("sv") ? R.array.gender_sv_values : R.array.gender_en_values);
+        setupStaticDropdown(binding.inputActivity, lang.equals("sv") ? R.array.activity_sv_values : R.array.activity_en_values);
+        setupStaticDropdown(binding.inputMethod, lang.equals("sv") ? R.array.method_sv_values : R.array.method_en_values);
+        setupStaticDropdown(binding.inputSubstrate, lang.equals("sv") ? R.array.substrate_sv_values : R.array.substrate_en_values);
+
+        // Setup Locality (The one that gets updated later with nearby suggestions)
+        localityAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, new ArrayList<>());
+        binding.editLocalityDescription.setAdapter(localityAdapter);
+        binding.editLocalityDescription.setThreshold(0);
+
+        // Keep the UX consistent with other dropdowns
+        binding.editLocalityDescription.setOnClickListener(v -> {
+            if (localityAdapter.getCount() > 0) binding.editLocalityDescription.showDropDown();
+        });
+
+        // setup Species Search (The complex one with DB lookups)
+        setupSpeciesAutocomplete();
+
+        // Setup Collector (Recent names)
+        binding.inputCollector.setOnClickListener(v -> binding.inputCollector.showDropDown());
+        binding.inputCollector.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) binding.inputCollector.showDropDown();
+        });
+    }
+
+    private void setupStaticDropdown(AutoCompleteTextView textView, int arrayResId) {
+        String[] items = getResources().getStringArray(arrayResId);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_dropdown_item_1line, items);
+
+        textView.setAdapter(adapter);
+
+        // Ensure the dropdown shows immediately when clicked or focused
+        textView.setOnClickListener(v -> textView.showDropDown());
+        textView.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) {
+                textView.showDropDown();
             }
         });
     }

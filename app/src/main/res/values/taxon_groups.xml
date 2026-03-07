@@ -35,4 +35,22 @@
         <item>kärlväxter</item>
         <item>alger</item>
     </string-array>
+
+    <string-array name="taxon_group_en_values">
+        <item>Birds</item>
+        <item>Mammals</item>
+        <item>Amphibians &amp; Reptiles</item>
+        <item>Fish</item>
+        <item>Flies/Dipterans</item>
+        <item>Beetles</item>
+        <item>Butterflies &amp; Moths</item>
+        <item>Hymenopterans</item>
+        <item>Other insects</item>
+        <item>Spiders</item>
+        <item>Other invertebrates</item>
+        <item>Fungi</item>
+        <item>Mosses</item>
+        <item>Vascular plants</item>
+        <item>Algae</item>
+    </string-array>
 </resources>
