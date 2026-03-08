@@ -22,14 +22,14 @@
             android:text="Coordinates..."/>
 
         <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/layout_species"
+            android:id="@+id/layout_taxon_name"
             style="@style/Widget.Design.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp">
 
             <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                android:id="@+id/input_species"
+                android:id="@+id/input_taxon_name"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="Species name (Latin or Swedish)"
@@ -47,7 +47,7 @@
             android:layout_marginTop="4dp">
 
             <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                android:id="@+id/edit_locality_description"
+                android:id="@+id/edit_locality"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="Description of where the location is"
@@ -93,14 +93,14 @@
 
 
         <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/layout_quantity"
+            android:id="@+id/layout_organism_quantity"
             style="@style/Widget.Design.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp">
 
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/input_quantity"
+                android:id="@+id/input_organism_quantity"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="Quantity / Number of individuals"
@@ -126,17 +126,17 @@
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/layout_gender"
+            android:id="@+id/layout_sex"
             style="@style/Widget.Design.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp">
 
             <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                android:id="@+id/input_gender"
+                android:id="@+id/input_sex"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Gender"
+                android:hint="sex / gender or caste"
                 android:textSize="18sp"
                 android:inputType="textCapSentences"
                 android:completionThreshold="0" />
@@ -153,21 +153,21 @@
                 android:id="@+id/input_activity"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Activity/Behavior"
+                android:hint="Activity/Behavior, vitality or cause of death"
                 android:textSize="18sp"
                 android:inputType="textCapSentences"
                 android:completionThreshold="0" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/layout_method"
+            android:id="@+id/layout_sampling_protocol"
             style="@style/Widget.Design.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp">
 
             <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                android:id="@+id/input_method"
+                android:id="@+id/input_sampling_protocol"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="Sampling Method"
@@ -184,11 +184,11 @@
             android:layout_marginTop="4dp">
 
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/detail_note_input"
+                android:id="@+id/input_note"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textSize="18sp"
-                android:hint="General notes..."
+                android:hint="General notes / occurrence remarks..."
                 android:minLines="2"
                 android:gravity="top"
                 android:inputType="textMultiLine|textCapSentences" />

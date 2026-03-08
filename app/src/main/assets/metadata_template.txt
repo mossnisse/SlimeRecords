@@ -1,0 +1,30 @@
+SLIME RECORDS - DATA EXPORT METADATA
+====================================
+Export data from the SlimeRecords Android app.
+
+TECHNICAL FORMAT DETAILS:
+[TECHNICAL_DETAILS]
+
+COLUMN DEFINITIONS:
+- ID: Local identifier, should not be used as an global identifier
+- decimalLatitude: Coordinates in WGS84.
+- decimalLongitude: Coordinates in WGS84.
+- coordinateUncertaintyInMeters: GPS horizontal accuracy.
+- verbatimElevation: Altitude in meters above WGS84 ellipsoid.
+- geodeticDatum
+- verticalDatum
+- eventDate: The local time when the record was added to the phone. In the timezone the phone used when record was added.
+- taxonName: Scientific or vernacular name of the taxon/species
+- organismQuantity: Number of individuals or other units for organism that don't have clear individuals
+- lifeStage
+- sex: including DwC caste
+- activity: DwC behavior, vitality and causeOfDeath. Artportalen: Aktivitet
+- samplingProtocol: Method of observing / collecting
+- Substrate: Often part of Habitat in DwC
+- Habitat
+- recordedBy: Name of the primary collector/observer. Can be flowed by more persons name
+- locality
+- isSpecimen:  DwC eventType but is only true / false depending of it's a collected specimen or observation
+- SpecimenNr: DwC recordNumber / fieldNumber but is only used for collected specimens
+- occurrenceRemarks
+- photos: Pipe-separated (|) filenames of attached images.

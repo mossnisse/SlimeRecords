@@ -114,22 +114,17 @@ public class LocationDetailActivity extends AppCompatActivity {
 
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
 
-        boolean showSpecies = prefs.getBoolean("show_species_field", true);
-        binding.layoutSpecies.setVisibility(showSpecies ? View.VISIBLE : View.GONE);
-        boolean showLocality = prefs.getBoolean( "show_locality_description", true);
-        binding.layoutLocality.setVisibility(showLocality ? View.VISIBLE : View.GONE);
-        boolean showSubstrate = prefs.getBoolean("show_substrate_field", true);
-        binding.layoutSubstrate.setVisibility(showSubstrate ? View.VISIBLE : View.GONE);
-        boolean showHabitat = prefs.getBoolean("show_habitat_field", true);
-        binding.layoutHabitat.setVisibility(showHabitat ? View.VISIBLE : View.GONE);
-        boolean showCollector = prefs.getBoolean("show_collector_field", true);
-        binding.layoutCollector.setVisibility(showCollector ? View.VISIBLE : View.GONE);
+        binding.layoutTaxonName.setVisibility(prefs.getBoolean("show_taxon_name_field", true) ? View.VISIBLE : View.GONE);
+        binding.layoutLocality.setVisibility(prefs.getBoolean("show_locality_field", true) ? View.VISIBLE : View.GONE);
+        binding.layoutSubstrate.setVisibility(prefs.getBoolean("show_substrate_field", true) ? View.VISIBLE : View.GONE);
+        binding.layoutHabitat.setVisibility(prefs.getBoolean("show_habitat_field", true) ? View.VISIBLE : View.GONE);
+        binding.layoutCollector.setVisibility(prefs.getBoolean("show_collector_field", true) ? View.VISIBLE : View.GONE);
+        binding.layoutOrganismQuantity.setVisibility(prefs.getBoolean("show_organism_quantity_field", false) ? View.VISIBLE : View.GONE);
+        binding.layoutLifeStage.setVisibility(prefs.getBoolean("show_life_stage_field", false) ? View.VISIBLE : View.GONE);
+        binding.layoutSex.setVisibility(prefs.getBoolean("show_sex_field", false) ? View.VISIBLE : View.GONE);
+        binding.layoutActivity.setVisibility(prefs.getBoolean("show_activity_field", false) ? View.VISIBLE : View.GONE);
+        binding.layoutSamplingProtocol.setVisibility(prefs.getBoolean("show_sampling_protocol_field", false) ? View.VISIBLE : View.GONE);
         boolean showIsCollection = prefs.getBoolean("show_is_collection", true);
-        binding.layoutQuantity.setVisibility(prefs.getBoolean("show_quantity_field", true) ? View.VISIBLE : View.GONE);
-        binding.layoutLifeStage.setVisibility(prefs.getBoolean("show_life_stage_field", true) ? View.VISIBLE : View.GONE);
-        binding.layoutGender.setVisibility(prefs.getBoolean("show_gender_field", true) ? View.VISIBLE : View.GONE);
-        binding.layoutActivity.setVisibility(prefs.getBoolean("show_activity_field", true) ? View.VISIBLE : View.GONE);
-        binding.layoutMethod.setVisibility(prefs.getBoolean("show_method_field", true) ? View.VISIBLE : View.GONE);
         binding.checkboxIsSpecimen.setVisibility(showIsCollection ? View.VISIBLE : View.GONE);
         boolean showMapLink = prefs.getBoolean("show_map_link", true);
         binding.btnOpenMap.setVisibility(showMapLink ? View.VISIBLE : View.GONE);
@@ -186,7 +181,7 @@ public class LocationDetailActivity extends AppCompatActivity {
             if (suggestions != null && localityAdapter != null) {
                 localityAdapter.clear();
                 // Filter out the current text to avoid suggesting what's already typed
-                String currentText = binding.editLocalityDescription.getText().toString();
+                String currentText = binding.editLocality.getText().toString();
                 for (String s : suggestions) {
                     if (!s.equals(currentText)) localityAdapter.add(s);
                 }
@@ -219,28 +214,33 @@ public class LocationDetailActivity extends AppCompatActivity {
             altitude = currentRecord.altitude;
 
             // Set General Note
-            binding.detailNoteInput.setText(currentRecord.note);
-            binding.editLocalityDescription.setText(currentRecord.localityDescription);
+            binding.inputNote.setText(currentRecord.note);
+            binding.editLocality.setText(currentRecord.locality);
 
             // Set flexible attributes
             if (currentRecord.attributes != null) {
-                binding.inputSpecies.setText(currentRecord.attributes.species);
-                binding.inputSubstrate.setText(currentRecord.attributes.substrate);
-                binding.inputHabitat.setText(currentRecord.attributes.habitat);
-                binding.inputCollector.setText(currentRecord.attributes.collector);
-                if (currentRecord.attributes.quantity != null) {
-                    binding.inputQuantity.setText(String.valueOf(currentRecord.attributes.quantity));
+                SpeciesAttributes a = currentRecord.attributes;
+
+                binding.inputTaxonName.setText(a.taxonName);
+                binding.inputSubstrate.setText(a.substrate);
+                binding.inputHabitat.setText(a.habitat);
+                binding.inputCollector.setText(a.collector);
+
+                // Fix: Use organismQuantity
+                if (a.organismQuantity != null) {
+                    binding.inputOrganismQuantity.setText(String.valueOf(a.organismQuantity));
                 } else {
-                    binding.inputQuantity.setText(""); // Keep it empty
+                    binding.inputOrganismQuantity.setText("");
                 }
-                binding.inputLifeStage.setText(currentRecord.attributes.life_stage);
-                binding.inputGender.setText(currentRecord.attributes.gender);
-                binding.inputActivity.setText(currentRecord.attributes.activity);
-                binding.inputMethod.setText(currentRecord.attributes.method);
-                binding.checkboxIsSpecimen.setChecked(currentRecord.attributes.isSpecimen);
-                binding.tvSpecimenNr.setVisibility(currentRecord.attributes.isSpecimen ? View.VISIBLE : View.GONE);
-                binding.tvSpecimenNr.setText("No: " + (currentRecord.attributes.specimenNr != null ?
-                        currentRecord.attributes.specimenNr : "--"));
+
+                binding.inputLifeStage.setText(a.lifeStage);
+                binding.inputSex.setText(a.sex);             // Fix: was .sex
+                binding.inputActivity.setText(a.activity);      // Fix: check if you use .activity or .behavior
+                binding.inputSamplingProtocol.setText(a.samplingProtocol); // Fix: was .samplingProtocol
+
+                binding.checkboxIsSpecimen.setChecked(a.isSpecimen);
+                binding.tvSpecimenNr.setVisibility(a.isSpecimen ? View.VISIBLE : View.GONE);
+                binding.tvSpecimenNr.setText("No: " + (a.specimenNr != null ? a.specimenNr : "--"));
             }
             if (showPhoto) {
                 tempPhotoPaths.clear();
@@ -261,87 +261,98 @@ public class LocationDetailActivity extends AppCompatActivity {
     }
 
     private void onCommitClicked() {
-        String noteText = binding.detailNoteInput.getText().toString().trim();
-        String localityText = binding.editLocalityDescription.getText().toString().trim();
+        // Get UI text values first
+        String noteText = binding.inputNote.getText().toString().trim();
+        String localityText = binding.editLocality.getText().toString().trim();
+
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
 
-        // Initialize or retrieve attributes
+        // Initialize or retrieve existing attributes to preserve hidden fields
         SpeciesAttributes attrs = (currentRecord != null && currentRecord.attributes != null)
                 ? currentRecord.attributes
                 : new SpeciesAttributes();
 
-        // Helper to check if a field is enabled in settings
-        // This ensures that if a field is hidden, we set its value to null/empty
-        // instead of keeping old data from a previous edit.
-
-        // Quantity logic (squashing the "0" bug)
-        if (prefs.getBoolean("show_quantity_field", false)) {
-            String q = binding.inputQuantity.getText().toString().trim();
-            try {
-                attrs.quantity = q.isEmpty() ? null : Integer.parseInt(q);
-            } catch (NumberFormatException e) {
-                attrs.quantity = null;
-            }
-        } else {
-            attrs.quantity = null;
-        }
-
-        // Standard string fields
-        attrs.life_stage = prefs.getBoolean("show_life_stage_field", false) ? binding.inputLifeStage.getText().toString().trim() : null;
-        attrs.gender = prefs.getBoolean("show_gender_field", false) ? binding.inputGender.getText().toString().trim() : null;
-        attrs.activity = prefs.getBoolean("show_activity_field", false) ? binding.inputActivity.getText().toString().trim() : null;
-        attrs.method = prefs.getBoolean("show_method_field", false) ? binding.inputMethod.getText().toString().trim() : null;
-        attrs.substrate = prefs.getBoolean("show_substrate_field", true) ? binding.inputSubstrate.getText().toString().trim() : null;
-        attrs.habitat = prefs.getBoolean("show_habitat_field", true) ? binding.inputHabitat.getText().toString().trim() : null;
-
-        // Species and ID
-        if (prefs.getBoolean("show_species_field", true)) {
-            attrs.species = binding.inputSpecies.getText().toString().trim();
+        // ONLY overwrite the attribute if the field was visible/active
+        if (prefs.getBoolean("show_taxon_name_field", true)) {
+            attrs.taxonName = binding.inputTaxonName.getText().toString().trim();
             attrs.dyntaxaID = selectedDyntaxaID;
         }
 
-        // Collector logic
-        String collector = prefs.getBoolean("show_collector_field", true)
-                ? binding.inputCollector.getText().toString().trim()
-                : latestCollectorName;
-        attrs.collector = collector;
-
-        // Specimen Logic
-        attrs.isSpecimen = binding.checkboxIsSpecimen.isChecked();
-        if (attrs.isSpecimen) {
-            String nrText = binding.tvSpecimenNr.getText().toString().replace("No: ", "").trim();
-            attrs.specimenNr = nrText;
-
-            // Only increment the global "next number" if this is a NEW record
-            if (isNew) {
-                try {
-                    int currentNr = Integer.parseInt(nrText);
-                    prefs.edit().putString("last_specimen_number", String.valueOf(currentNr + 1)).apply();
-                } catch (NumberFormatException ignored) {}
-            }
-        } else {
-            attrs.specimenNr = null;
+        if (prefs.getBoolean("show_substrate_field", true)) {
+            attrs.substrate = binding.inputSubstrate.getText().toString().trim();
         }
 
-        // Save/Update Execution
+        if (prefs.getBoolean("show_habitat_field", true)) {
+            attrs.habitat = binding.inputHabitat.getText().toString().trim();
+        }
+
+        if (prefs.getBoolean("show_organism_quantity_field", false)) {
+            String q = binding.inputOrganismQuantity.getText().toString().trim();
+            try {
+                attrs.organismQuantity = q.isEmpty() ? null : Integer.parseInt(q);
+            } catch (NumberFormatException e) { /* Keep existing value in attrs */ }
+        }
+
+        if (prefs.getBoolean("show_life_stage_field", false)) {
+            attrs.lifeStage = binding.inputLifeStage.getText().toString().trim();
+        }
+
+        if (prefs.getBoolean("show_sex_field", false)) {
+            attrs.sex = binding.inputSex.getText().toString().trim();
+        }
+
+        if (prefs.getBoolean("show_activity_field", false)) {
+            attrs.activity = binding.inputActivity.getText().toString().trim();
+        }
+
+        if (prefs.getBoolean("show_sampling_protocol_field", false)) {
+            attrs.samplingProtocol = binding.inputSamplingProtocol.getText().toString().trim();
+        }
+
+        String collectorName = attrs.collector; // Default to existing
+        if (prefs.getBoolean("show_collector_field", true)) {
+            collectorName = binding.inputCollector.getText().toString().trim();
+            attrs.collector = collectorName;
+        }
+
+        // Specimen logic
+        if (prefs.getBoolean("show_is_specimen_field", true)) {
+            attrs.isSpecimen = binding.checkboxIsSpecimen.isChecked();
+            if (attrs.isSpecimen) {
+                String nrText = binding.tvSpecimenNr.getText().toString().replace("No: ", "").trim();
+                attrs.specimenNr = nrText;
+
+                // Increment logic for new records
+                if (isNew) {
+                    try {
+                        int currentNr = Integer.parseInt(nrText);
+                        prefs.edit().putString("last_specimen_number", String.valueOf(currentNr + 1)).apply();
+                    } catch (NumberFormatException ignored) {}
+                }
+            } else {
+                attrs.specimenNr = null;
+            }
+        }
+
+        // Save or Update Execution
         if (isNew) {
             String localTime = java.time.LocalDateTime.now().format(
                     java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
             LocationRecord record = new LocationRecord(lat, lon, altitude, System.currentTimeMillis(), accuracy, localTime, noteText);
-            record.localityDescription = localityText;
+            record.locality = localityText;
             record.attributes = attrs;
             historyViewModel.saveLocationWithPhotos(record, tempPhotoPaths);
         } else {
             currentRecord.note = noteText;
-            currentRecord.localityDescription = localityText;
+            currentRecord.locality = localityText;
             currentRecord.attributes = attrs;
             historyViewModel.updateLocation(currentRecord);
         }
 
-        // Update the recent collectors list in background
-        if (collector != null && !collector.isEmpty()) {
-            historyViewModel.updateRecentCollector(collector);
+        // Update the recent collectors list
+        if (collectorName != null && !collectorName.isEmpty()) {
+            historyViewModel.updateRecentCollector(collectorName);
         }
     }
 
@@ -433,7 +444,7 @@ public class LocationDetailActivity extends AppCompatActivity {
     }
 
     private void openLantmaterietMap() {
-        String noteText = binding.detailNoteInput.getText().toString().trim();
+        String noteText = binding.inputNote.getText().toString().trim();
         if (noteText.isEmpty()) noteText = "Saved Location";
         else if (noteText.length() > 10) noteText = noteText.substring(0, 10) + "...";
 
@@ -467,7 +478,7 @@ public class LocationDetailActivity extends AppCompatActivity {
     }
 
     private void setupSpeciesAutocomplete() {
-        AutoCompleteTextView speciesInput = binding.inputSpecies;
+        AutoCompleteTextView speciesInput = binding.inputTaxonName;
 
         // Set threshold to 1 so it starts immediately
         speciesInput.setThreshold(1);
@@ -569,19 +580,19 @@ public class LocationDetailActivity extends AppCompatActivity {
         // Static Dropdowns (from strings.xml arrays)
         // We pick the array resource based on the user's preferred language
         setupStaticDropdown(binding.inputLifeStage, lang.equals("sv") ? R.array.life_stage_sv_values : R.array.life_stage_en_values);
-        setupStaticDropdown(binding.inputGender, lang.equals("sv") ? R.array.gender_sv_values : R.array.gender_en_values);
+        setupStaticDropdown(binding.inputSex, lang.equals("sv") ? R.array.gender_sv_values : R.array.gender_en_values);
         setupStaticDropdown(binding.inputActivity, lang.equals("sv") ? R.array.activity_sv_values : R.array.activity_en_values);
-        setupStaticDropdown(binding.inputMethod, lang.equals("sv") ? R.array.method_sv_values : R.array.method_en_values);
+        setupStaticDropdown(binding.inputSamplingProtocol, lang.equals("sv") ? R.array.method_sv_values : R.array.method_en_values);
         setupStaticDropdown(binding.inputSubstrate, lang.equals("sv") ? R.array.substrate_sv_values : R.array.substrate_en_values);
 
         // Setup Locality (The one that gets updated later with nearby suggestions)
         localityAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, new ArrayList<>());
-        binding.editLocalityDescription.setAdapter(localityAdapter);
-        binding.editLocalityDescription.setThreshold(0);
+        binding.editLocality.setAdapter(localityAdapter);
+        binding.editLocality.setThreshold(0);
 
         // Keep the UX consistent with other dropdowns
-        binding.editLocalityDescription.setOnClickListener(v -> {
-            if (localityAdapter.getCount() > 0) binding.editLocalityDescription.showDropDown();
+        binding.editLocality.setOnClickListener(v -> {
+            if (localityAdapter.getCount() > 0) binding.editLocality.showDropDown();
         });
 
         // setup Species Search (The complex one with DB lookups)

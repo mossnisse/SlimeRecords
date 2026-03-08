@@ -55,15 +55,15 @@
 
     <PreferenceCategory android:title="Species &amp; Collection Fields">
         <CheckBoxPreference
-            android:key="show_species_field"
-            android:title="Species name"
-            android:summary="Show field for species name"
+            android:key="show_taxon_name_field"
+            android:title="Taxon Name"
+            android:summary="Show field for species name/taxon name"
             android:defaultValue="true" />
 
         <CheckBoxPreference
-            android:key="show_locality_description"
+            android:key="show_locality_field"
             android:title="Locality"
-            android:summary="Text describing the location"
+            android:summary="Text describing where the location is. Should be possible to locate on a map from the text"
             android:defaultValue="true" />
 
         <CheckBoxPreference
@@ -79,7 +79,7 @@
             android:defaultValue="true" />
 
         <CheckBoxPreference
-            android:key="show_quantity_field"
+            android:key="show_organism_quantity_field"
             android:title="Quantity"
             android:summary="Show field for number of individuals"
             android:defaultValue="false" />
@@ -87,31 +87,31 @@
         <CheckBoxPreference
             android:key="show_life_stage_field"
             android:title="Life Stage"
-            android:summary="Show field for Stage (Adult, Larva, Flowering...)"
+            android:summary="Show field for Stage (Adult, Larva, Flowering, et c.)"
             android:defaultValue="false" />
 
         <CheckBoxPreference
-            android:key="show_gender_field"
-            android:title="Gender"
-            android:summary="Show field for gender"
+            android:key="show_sex_field"
+            android:title="Sex / Gender"
+            android:summary="Show field for sex or caste"
             android:defaultValue="false" />
 
         <CheckBoxPreference
             android:key="show_activity_field"
             android:title="Activity"
-            android:summary="Show field for activity/behavior"
+            android:summary="Show field for activity, behavior, vitality or cause of death"
             android:defaultValue="false" />
 
         <CheckBoxPreference
-            android:key="show_method_field"
-            android:title="Method"
-            android:summary="Show field for observation/sampling method"
+            android:key="show_sampling_protocol_field"
+            android:title="Sampling Method"
+            android:summary="Show field for observation / sampling method"
             android:defaultValue="false" />
 
         <CheckBoxPreference
             android:key="show_collector_field"
             android:title="Collector"
-            android:summary="Show field for Collector(s) / Observer(s)"
+            android:summary="Show field for Collector(s) or Observer(s)"
             android:defaultValue="true" />
 
         <CheckBoxPreference

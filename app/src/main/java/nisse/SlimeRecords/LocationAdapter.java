@@ -52,8 +52,8 @@ public class LocationAdapter extends PagingDataAdapter<LocationWithPhotos, Locat
         if (item != null) {
             // Set Note
             String title = "Unknown Species";
-            if (item.location.attributes != null && item.location.attributes.species != null && !item.location.attributes.species.isEmpty()) {
-                title = item.location.attributes.species;
+            if (item.location.attributes != null && item.location.attributes.taxonName != null && !item.location.attributes.taxonName.isEmpty()) {
+                title = item.location.attributes.taxonName;
             } else if (item.location.note != null && !item.location.note.isEmpty()) {
                 title = item.location.note;
             }

@@ -9,7 +9,15 @@ public class Converters {
 
     @TypeConverter
     public static SpeciesAttributes fromString(String value) {
-        return value == null ? null : gson.fromJson(value, SpeciesAttributes.class);
+        if (value == null) return null;
+
+        SpeciesAttributes attrs = gson.fromJson(value, SpeciesAttributes.class);
+
+        // Defensive check: ensure the Map is never null after loading
+        if (attrs != null && attrs.extraData == null) {
+            attrs.extraData = new java.util.HashMap<>();
+        }
+        return attrs;
     }
 
     @TypeConverter

@@ -8,19 +8,19 @@ import androidx.annotation.NonNull;
 @Entity(tableName = "location_table")
 public class LocationRecord {
     @PrimaryKey(autoGenerate = true)
-    public long id;
-    public double latitude;
-    public double longitude;
+    public long id;          // local identifier in the db it's not an global id.
+    public double latitude;  // DwC decimalLatitude
+    public double longitude;  // DwC decimalLongitude  DwC geodeticDatum?
     public long timestamp;
-    public float accuracy;
-    public double altitude;
+    public float accuracy;  // DwC coordinateUncertaintyInMeters
+    public double altitude;  // DwC verbatimElevation  DwC verticalDatum?
     public boolean hasAltitude;
     @NonNull
-    public String localTime ="";
+    public String localTime ="";  // DwC eventDate
     @NonNull
-    public String note = "";
+    public String note = "";  // DwC occurrenceRemarks
     @NonNull
-    public String localityDescription = "";
+    public String locality = "";  // DwC Ok
     @Nullable
     public SpeciesAttributes attributes;
 

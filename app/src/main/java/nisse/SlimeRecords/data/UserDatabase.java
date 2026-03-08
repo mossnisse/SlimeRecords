@@ -15,7 +15,7 @@ import java.util.concurrent.Executors;
 
 import nisse.SlimeRecords.Converters;
 
-@Database(entities = {LocationRecord.class, PhotoRecord.class, RecentCollector.class}, version = 2, exportSchema = false)
+@Database(entities = {LocationRecord.class, PhotoRecord.class, RecentCollector.class}, version = 3, exportSchema = false)
 @TypeConverters({Converters.class}) // Add this line
 public abstract class UserDatabase extends RoomDatabase {
 
@@ -33,7 +33,7 @@ public abstract class UserDatabase extends RoomDatabase {
                                     "user_locations.db"
                             )
                             .addMigrations(MIGRATION_1_2)
-                            //.fallbackToDestructiveMigration()
+                            .fallbackToDestructiveMigration()
                             .build();
                 }
             }

@@ -58,10 +58,10 @@ public class LabelHtmlGenerator {
                         "  </div>" +
                         "</div>",
                 item.id, // Database ID
-                clean(attrs.species),
+                clean(attrs.taxonName),
                 clean(prov),
                 clean(dist),
-                clean(item.localityDescription),
+                clean(item.locality),
                 clean(attrs.substrate),
                 clean(attrs.habitat),
                 item.latitude,

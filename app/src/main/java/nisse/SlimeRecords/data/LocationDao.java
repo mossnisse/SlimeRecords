@@ -46,10 +46,10 @@ public abstract class LocationDao {
     @Delete
     public abstract void deleteLocation(LocationRecord location);
 
-    @Query("SELECT DISTINCT localityDescription FROM location_table " +
+    @Query("SELECT DISTINCT locality FROM location_table " +
             "WHERE latitude BETWEEN :minLat AND :maxLat " +
             "AND longitude BETWEEN :minLon AND :maxLon " +
-            "AND localityDescription IS NOT NULL AND localityDescription != ''")
+            "AND locality IS NOT NULL AND locality != ''")
     public abstract LiveData<List<String>> getNearbyLocalitySuggestions(
             double minLat, double maxLat, double minLon, double maxLon);
 

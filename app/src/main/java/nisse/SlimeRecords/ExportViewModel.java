@@ -70,7 +70,8 @@ public class ExportViewModel extends AndroidViewModel {
                     } else {
                         writeCsv(zos, allData, ",", false);
                     }
-
+                    //add metadata readme
+                    writeReadme(zos, format);
                     // Write Photos (Resilient Loop)
                     for (LocationWithPhotos item : allData) {
                         if (item.photos != null) {
@@ -109,9 +110,9 @@ public class ExportViewModel extends AndroidViewModel {
         }
 
         // Build Header
-        String header = String.join(d, "ID", "Latitude", "Longitude", "Accuracy", "Altitude",
-                "Time", "Species", "quantity", "life_stage", "gender", "activity", "method", "Substrate", "Habitat", "Collector", "Locality",
-                "IsSpecimen", "SpecimenNr", "Note", "Photos") + "\n";
+        String header = String.join(d, "ID", "decimalLatitude", "decimalLongitude", "coordinateUncertaintyInMeters", "verbatimElevation", "geodeticDatum", "verticalDatum",
+                "eventDate", "taxonName", "organismQuantity", "lifeStage", "sex", "activity", "samplingProtocol", "Substrate", "Habitat", "recordedBy", "locality",
+                "isSpecimen", "SpecimenNr", "occurrenceRemarks", "photos") + "\n";
 
         zos.write(header.getBytes(StandardCharsets.UTF_8));
 
@@ -149,17 +150,19 @@ public class ExportViewModel extends AndroidViewModel {
         sb.append(String.format(Locale.US, "%.6f", r.longitude)).append(d);
         sb.append((int)Math.ceil(r.accuracy)).append(d);
         sb.append((int)Math.round(r.altitude)).append(d);
+        sb.append("WGS84").append(d);
+        sb.append("WGS84").append(d);
         sb.append("\"").append(clean(r.localTime)).append("\"").append(d);
-        sb.append("\"").append(clean(attr.species)).append("\"").append(d);
-        sb.append(attr.quantity != null ? attr.quantity : "").append(d);
-        sb.append("\"").append(clean(attr.life_stage)).append("\"").append(d);
-        sb.append("\"").append(clean(attr.gender)).append("\"").append(d);
+        sb.append("\"").append(clean(attr.taxonName)).append("\"").append(d);
+        sb.append(attr.organismQuantity != null ? attr.organismQuantity : "").append(d);
+        sb.append("\"").append(clean(attr.lifeStage)).append("\"").append(d);
+        sb.append("\"").append(clean(attr.sex)).append("\"").append(d);
         sb.append("\"").append(clean(attr.activity)).append("\"").append(d);
-        sb.append("\"").append(clean(attr.method)).append("\"").append(d);
+        sb.append("\"").append(clean(attr.samplingProtocol)).append("\"").append(d);
         sb.append("\"").append(clean(attr.substrate)).append("\"").append(d);
         sb.append("\"").append(clean(attr.habitat)).append("\"").append(d);
         sb.append("\"").append(clean(attr.collector)).append("\"").append(d);
-        sb.append("\"").append(clean(r.localityDescription)).append("\"").append(d);
+        sb.append("\"").append(clean(r.locality)).append("\"").append(d);
         sb.append(attr.isSpecimen).append(d);
         sb.append("\"").append(clean(attr.specimenNr)).append("\"").append(d);
         sb.append("\"").append(clean(r.note)).append("\"").append(d);
@@ -243,15 +246,15 @@ public class ExportViewModel extends AndroidViewModel {
 
         // Build the row (matching the 59 columns in the header)
         StringBuilder sb = new StringBuilder();
-        sb.append(clean(a.species)).append(";");              // Artnamn
-        sb.append(a.quantity != null ? a.quantity : "").append(";"); // Antal
+        sb.append(clean(a.taxonName)).append(";");              // Artnamn
+        sb.append(a.organismQuantity != null ? a.organismQuantity : "").append(";"); // Antal
         sb.append(";");                                       // Enhet
         sb.append(";");                                       // Antal substrat
-        sb.append(clean(a.life_stage)).append(";");           // Ålder-Stadium
-        sb.append(clean(a.gender)).append(";");               // Kön
+        sb.append(clean(a.lifeStage)).append(";");           // Ålder-Stadium
+        sb.append(clean(a.sex)).append(";");               // Kön
         sb.append(clean(a.activity)).append(";");             // Aktivitet
-        sb.append(clean(a.method)).append(";");               // Metod
-        sb.append(truncate(clean(r.localityDescription), 75)).append(";"); // Lokalnamn
+        sb.append(clean(a.samplingProtocol)).append(";");               // Metod
+        sb.append(truncate(clean(r.locality), 75)).append(";"); // Lokalnamn
         sb.append(ost).append(";");                           // Ost
         sb.append(nord).append(";");                          // Nord
         sb.append(mapArtportalenAccuracy(r.accuracy)).append(";"); // Noggrannhet
@@ -304,10 +307,55 @@ public class ExportViewModel extends AndroidViewModel {
         }
         return selected + " m";
     }
+
+    private void writeReadme(ZipOutputStream zos, String format) throws IOException {
+        zos.putNextEntry(new ZipEntry("readme.txt"));
+
+        boolean isExcel = format.contains("Excel");
+        boolean isArtportalen = format.contains("Artportalen");
+
+        // Build the Technical Specification block dynamically
+        StringBuilder tech = new StringBuilder();
+        tech.append("Character Encoding: UTF-8\n");
+        tech.append("Byte Order Mark (BOM): ").append((isExcel || isArtportalen) ? "Present" : "Absent").append("\n");
+        tech.append("Line Endings: LF (Unix style)\n");
+        tech.append("Field Separator: ").append(isExcel || isArtportalen ? "Semicolon (;)" : "Comma (,)").append("\n");
+        tech.append("Text Fields Enclosed by: Double Quotes (\")\n");
+        tech.append("Escape Character: Double Quote (\"\")\n");
+
+        // Load template and replace placeholder
+        String template = loadFromAssets("metadata_template.txt");
+        String finalContent = template.replace("[TECHNICAL_DETAILS]", tech.toString());
+
+        // Prepend the export date
+        String timestamp = "Export Date: " + java.text.DateFormat.getDateTimeInstance().format(new java.util.Date()) + "\n\n";
+
+        zos.write((timestamp + finalContent).getBytes(StandardCharsets.UTF_8));
+        zos.closeEntry();
+    }
+
+    private String loadFromAssets(String fileName) {
+        StringBuilder sb = new StringBuilder();
+        try (java.io.InputStream is = getApplication().getAssets().open(fileName);
+             java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(is, StandardCharsets.UTF_8))) {
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line).append("\n");
+            }
+        } catch (IOException e) {
+            Log.e("Export", "Could not load metadata template from assets", e);
+            return "Metadata template missing.";
+        }
+        return sb.toString();
+    }
+
     public LiveData<List<LocationRecord>> getSpecimenLocations() {
         return locationDao.getSpecimenLocations();
     }
 
     public LiveData<ExportState> getExportStatus() { return exportStatus; }
     public Uri getLastExportUri() { return lastExportUri; }
+
+
 }

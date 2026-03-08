@@ -33,9 +33,19 @@ public class ExportActivity extends AppCompatActivity {
         HistoryViewModel historyViewModel = new ViewModelProvider(this).get(HistoryViewModel.class);
         // Observe Item Count
         historyViewModel.getLocationCount().observe(this, count -> {
+            int oldCount = this.currentLocationCount;
             this.currentLocationCount = (count != null) ? count : 0;
-            // Only update status text if we are idle
-            if (exportViewModel.getExportStatus().getValue() == ExportViewModel.ExportState.IDLE) {
+
+            // Check if the count changed while we were in a SUCCESS state
+            ExportViewModel.ExportState currentState = exportViewModel.getExportStatus().getValue();
+
+            if (currentState == ExportViewModel.ExportState.SUCCESS && oldCount != currentLocationCount) {
+                // Data changed! The old export is now "stale".
+                // We don't reset the ViewModel, but we tell the UI to show the Ready message again.
+                updateUiForState(ExportViewModel.ExportState.IDLE);
+            }
+            else if (currentState == ExportViewModel.ExportState.IDLE) {
+                // Standard refresh of the count message
                 binding.tvExportStatus.setText(getString(R.string.export_ready_format, currentLocationCount));
             }
         });
@@ -75,15 +85,13 @@ public class ExportActivity extends AppCompatActivity {
 
         binding.btnStartUsbExport.setEnabled(!isLoading);
         binding.exportProgress.setVisibility(isLoading ? View.VISIBLE : View.GONE);
-
-        // Only show share button if export was successful
         binding.btnShareExport.setVisibility(state == ExportViewModel.ExportState.SUCCESS ? View.VISIBLE : View.GONE);
 
         switch (state) {
             case IDLE -> binding.tvExportStatus.setText(getString(R.string.export_ready_format, currentLocationCount));
-            case LOADING -> binding.tvExportStatus.setText("Creating ZIP file...");
-            case SUCCESS -> binding.tvExportStatus.setText("Export finished! File saved to Downloads.");
-            case ERROR -> binding.tvExportStatus.setText("An error occurred during export.");
+            case LOADING -> binding.tvExportStatus.setText(R.string.export_loading);
+            case SUCCESS -> binding.tvExportStatus.setText(R.string.export_success);
+            case ERROR -> binding.tvExportStatus.setText(R.string.export_error);
         }
     }
 
@@ -91,13 +99,14 @@ public class ExportActivity extends AppCompatActivity {
         Intent intent = new Intent(Intent.ACTION_SEND);
         intent.setType("application/zip");
         intent.putExtra(Intent.EXTRA_STREAM, zipUri);
-
-        // Grant temporary read permission to the receiving app
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
-        intent.putExtra(Intent.EXTRA_SUBJECT, "WhatsMySocken Export: " + System.currentTimeMillis());
+        // Use a human-readable date for the subject
+        String date = java.text.DateFormat.getDateTimeInstance().format(new java.util.Date());
+        intent.putExtra(Intent.EXTRA_SUBJECT, "SlimeRecords Export - " + date);
+        intent.putExtra(Intent.EXTRA_TEXT, "Attached is the data export including photos.");
 
-        startActivity(Intent.createChooser(intent, "Share ZIP via..."));
+        startActivity(Intent.createChooser(intent, "Send Export..."));
     }
 
     @Override

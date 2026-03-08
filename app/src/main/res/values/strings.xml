@@ -1,19 +1,10 @@
 <resources>
     <string name="app_name">SlimeRecords</string>
-
     <string name="title_settings">Settings</string>
     <string name="title_saved_locations">Saved Locations</string>
     <string name="title_export_data">Export Data</string>
-
     <string name="get_coordinate">Find Location</string>
     <string name="action_settings">Settings</string>
-
-    <string name="export_ready_format">Found %1$d locations to export.</string>
-    <string-array name="export_formats">
-        <item>Standard CSV (Comma)</item>
-        <item>Excel CSV (Semicolon + BOM)</item>
-        <item>Artportalen (Semicolon + SWEREF)</item>
-    </string-array>
 
     <string-array name="language_names">
         <item>Swedish</item>
@@ -27,6 +18,7 @@
         <item>en</item>
     </string-array>
 
+    <!-- field lookup values -->
     <string-array name="gender_sv_values">
         <item>Hane</item>
         <item>Hona</item>
@@ -48,4 +40,16 @@
         <item>Stereolupp</item>
         <item>Barcode</item>
     </string-array>
+
+    <!--Export activity-->
+    <string-array name="export_formats">
+        <item>Standard CSV (Comma)</item>
+        <item>Excel CSV (Semicolon + BOM)</item>
+        <item>Artportalen (Semicolon + SWEREF)</item>
+    </string-array>
+
+    <string name="export_ready_format">Ready to export %1$d records.</string>
+    <string name="export_loading">Creating ZIP file containing photos...</string>
+    <string name="export_success">Export finished! File saved to Downloads.</string>
+    <string name="export_error">An error occurred during export.</string>
 </resources>
