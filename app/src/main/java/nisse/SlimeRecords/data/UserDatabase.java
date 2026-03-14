@@ -32,7 +32,6 @@ public abstract class UserDatabase extends RoomDatabase {
                                     UserDatabase.class,
                                     "user_locations.db"
                             )
-                            .addMigrations(MIGRATION_1_2)
                             .fallbackToDestructiveMigration()
                             .build();
                 }
@@ -44,12 +43,4 @@ public abstract class UserDatabase extends RoomDatabase {
     public static ExecutorService getDbExecutor() {
         return dbExecutor;
     }
-
-    static final Migration MIGRATION_1_2 = new Migration(1, 2) {
-        @Override
-        public void migrate(@NonNull SupportSQLiteDatabase database) {
-            // Add the new column to the table
-            database.execSQL("ALTER TABLE location_table ADD COLUMN localityDescription TEXT NOT NULL DEFAULT ''");
-        }
-    };
 }

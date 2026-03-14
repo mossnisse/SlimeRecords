@@ -22,6 +22,8 @@ import nisse.SlimeRecords.data.UserDatabase;
 public class SearchViewModel extends AndroidViewModel {
     private final MutableLiveData<Location> currentBestLocation = new MutableLiveData<>();
     private final MutableLiveData<Boolean> userWantsSearching = new MutableLiveData<>(false);
+
+    private final MutableLiveData<String> countryResult = new MutableLiveData<>();
     private final MutableLiveData<String> provinceResult = new MutableLiveData<>();
     private final MutableLiveData<String> districtResult = new MutableLiveData<>();
     private final MutableLiveData<List<SpeciesReferenceWithAccepted>> speciesSuggestions = new MutableLiveData<>();
@@ -61,8 +63,32 @@ public class SearchViewModel extends AndroidViewModel {
         return new int[]{(int)Math.round(sweref.getNorth()), (int)Math.round(sweref.getEast())};
     }
 
+    public LiveData<String> getCountryResult() { return countryResult; }
     public LiveData<String> getProvinceResult() { return provinceResult; }
     public LiveData<String> getDistrictResult() { return districtResult; }
+
+    public void fetchLocationNames(double lat, double lon) {
+        // We pass getApplication() as the Context
+        GeoResolver.resolve(getApplication(), lat, lon, new GeoResolver.GeoCallback() {
+            @Override
+            public void onResolved(String country, String province, String district, String countryCode) {
+                // Post values to LiveData - thread safe
+                countryResult.postValue(country);
+                provinceResult.postValue(province);
+                districtResult.postValue(district);
+            }
+
+            @Override
+            public void onManualEntryRequired() {
+                countryResult.postValue("Unknown");
+            }
+
+            @Override
+            public void onError(Exception e) {
+                Log.e("Geo", "Lookup failed", e);
+            }
+        });
+    }
 
     public LiveData<List<SpeciesReferenceWithAccepted>> getSpeciesSuggestions() {
         return speciesSuggestions;

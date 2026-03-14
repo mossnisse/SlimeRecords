@@ -41,7 +41,11 @@
         <item>Barcode</item>
     </string-array>
 
-    <!--Export activity-->
+    <!-- Main activity -->
+    <!-- Detail activity -->
+    <!-- History activity -->
+    <!-- Settings activity -->
+    <!-- Export activity -->
     <string-array name="export_formats">
         <item>Standard CSV (Comma)</item>
         <item>Excel CSV (Semicolon + BOM)</item>
@@ -52,4 +56,5 @@
     <string name="export_loading">Creating ZIP file containing photos...</string>
     <string name="export_success">Export finished! File saved to Downloads.</string>
     <string name="export_error">An error occurred during export.</string>
+    <!-- Import activity -->
 </resources>

@@ -39,6 +39,15 @@
             android:title="Date"
             android:summary="Show date in the ISO format"
             android:defaultValue="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="Species &amp; Collection Fields">
+
+        <CheckBoxPreference
+            android:key="show_country"
+            android:title="Country"
+            android:summary="Look up country with geo referencing"
+            android:defaultValue="true" />
 
         <CheckBoxPreference
             android:key="show_province"
@@ -51,9 +60,7 @@
             android:title="District / socken"
             android:summary="Look up socken with the borders from 1935"
             android:defaultValue="true" />
-    </PreferenceCategory>
 
-    <PreferenceCategory android:title="Species &amp; Collection Fields">
         <CheckBoxPreference
             android:key="show_taxon_name_field"
             android:title="Taxon Name"
@@ -115,8 +122,8 @@
             android:defaultValue="true" />
 
         <CheckBoxPreference
-            android:key="show_is_collection"
-            android:title="Is collection"
+            android:key="show_is_specimen"
+            android:title="Is collection of specimen?"
             android:summary="Show Collection nr to connect data to physical specimen"
             android:defaultValue="true" />
 

@@ -20,7 +20,16 @@ public class LocationRecord {
     @NonNull
     public String note = "";  // DwC occurrenceRemarks
     @NonNull
+    public String countryCode = "";
+    @NonNull
+    public String country ="";
+    @NonNull
+    public String province ="";
+    @NonNull
+    public String district ="";
+    @NonNull
     public String locality = "";  // DwC Ok
+
     @Nullable
     public SpeciesAttributes attributes;
 

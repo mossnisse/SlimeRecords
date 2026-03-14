@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
@@ -43,9 +44,8 @@ public class LocationDetailActivity extends AppCompatActivity {
     private LocationRecord currentRecord;
     private SearchViewModel searchViewModel;
     private HistoryViewModel historyViewModel;
-    private String currentProvince = "Loading...";
-    private String currentDistrict = "Loading...";
     private String latestCollectorName = "";
+    private String currentCountryCode = "";
     private Integer selectedDyntaxaID = null;
     private boolean showPhoto;
 
@@ -55,15 +55,11 @@ public class LocationDetailActivity extends AppCompatActivity {
         binding = ActivityLocationDetailBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        // Data/Models
         searchViewModel = new ViewModelProvider(this).get(SearchViewModel.class);
         historyViewModel = new ViewModelProvider(this).get(HistoryViewModel.class);
 
-        // UI Setup
-        initUI();           // Buttons, Visibility, Recycler
-        initAutocomplete();  // ALL adapters and listeners for input fields
-
-        // Data Loading
+        initUI();
+        initAutocomplete();
         setupObservers();
 
         isNew = getIntent().getBooleanExtra("is_new", false);
@@ -81,14 +77,16 @@ public class LocationDetailActivity extends AppCompatActivity {
             }
         });
 
+        searchViewModel.getCountryResult().observe(this, name -> {
+            binding.editCountry.setText(name);
+        });
+
         searchViewModel.getProvinceResult().observe(this, name -> {
-            currentProvince = name;
-            refreshCoordinateDisplay();
+            binding.editProvince.setText(name);
         });
 
         searchViewModel.getDistrictResult().observe(this, name -> {
-            currentDistrict = name;
-            refreshCoordinateDisplay();
+            binding.editDistrict.setText(name);
         });
 
         // Fix: Explicitly typing the list to resolve "isEmpty" errors
@@ -116,6 +114,9 @@ public class LocationDetailActivity extends AppCompatActivity {
 
         binding.layoutTaxonName.setVisibility(prefs.getBoolean("show_taxon_name_field", true) ? View.VISIBLE : View.GONE);
         binding.layoutLocality.setVisibility(prefs.getBoolean("show_locality_field", true) ? View.VISIBLE : View.GONE);
+        binding.layoutCountry.setVisibility(prefs.getBoolean("show_country", true) ? View.VISIBLE : View.GONE);
+        binding.layoutProvince.setVisibility(prefs.getBoolean("show_province", true) ? View.VISIBLE : View.GONE);
+        binding.layoutDistrict.setVisibility(prefs.getBoolean("show_district", true) ? View.VISIBLE : View.GONE);
         binding.layoutSubstrate.setVisibility(prefs.getBoolean("show_substrate_field", true) ? View.VISIBLE : View.GONE);
         binding.layoutHabitat.setVisibility(prefs.getBoolean("show_habitat_field", true) ? View.VISIBLE : View.GONE);
         binding.layoutCollector.setVisibility(prefs.getBoolean("show_collector_field", true) ? View.VISIBLE : View.GONE);
@@ -124,14 +125,15 @@ public class LocationDetailActivity extends AppCompatActivity {
         binding.layoutSex.setVisibility(prefs.getBoolean("show_sex_field", false) ? View.VISIBLE : View.GONE);
         binding.layoutActivity.setVisibility(prefs.getBoolean("show_activity_field", false) ? View.VISIBLE : View.GONE);
         binding.layoutSamplingProtocol.setVisibility(prefs.getBoolean("show_sampling_protocol_field", false) ? View.VISIBLE : View.GONE);
-        boolean showIsCollection = prefs.getBoolean("show_is_collection", true);
-        binding.checkboxIsSpecimen.setVisibility(showIsCollection ? View.VISIBLE : View.GONE);
         boolean showMapLink = prefs.getBoolean("show_map_link", true);
         binding.btnOpenMap.setVisibility(showMapLink ? View.VISIBLE : View.GONE);
         binding.btnOpenMap.setOnClickListener(v -> openLantmaterietMap());
 
+        boolean showIsSpecimen = prefs.getBoolean("show_is_specimen", true);
+        binding.checkboxIsSpecimen.setVisibility(showIsSpecimen ? View.VISIBLE : View.GONE);
+
         binding.checkboxIsSpecimen.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            binding.tvSpecimenNr.setVisibility(isChecked ? View.VISIBLE : View.GONE);
+            binding.tvSpecimenNr.setVisibility((isChecked && showIsSpecimen) ? View.VISIBLE : View.GONE);
 
             if (isNew && isChecked) {
                 String nextNrStr = prefs.getString("last_specimen_number", "1");
@@ -213,9 +215,11 @@ public class LocationDetailActivity extends AppCompatActivity {
             accuracy = currentRecord.accuracy;
             altitude = currentRecord.altitude;
 
-            // Set General Note
-            binding.inputNote.setText(currentRecord.note);
+            binding.inputNote.setText(currentRecord.note); // Set General Notes
             binding.editLocality.setText(currentRecord.locality);
+            binding.editCountry.setText(currentRecord.country);
+            binding.editProvince.setText(currentRecord.province);
+            binding.editDistrict.setText(currentRecord.district);
 
             // Set flexible attributes
             if (currentRecord.attributes != null) {
@@ -250,7 +254,8 @@ public class LocationDetailActivity extends AppCompatActivity {
             } else {
                 binding.rvPhotoGallery.setVisibility(View.GONE);
             }
-            onCoordinatesLoaded();
+            refreshCoordinateDisplay();
+            //onCoordinatesLoaded();
         });
     }
 
@@ -261,16 +266,22 @@ public class LocationDetailActivity extends AppCompatActivity {
     }
 
     private void onCommitClicked() {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+
         // Get UI text values first
         String noteText = binding.inputNote.getText().toString().trim();
         String localityText = binding.editLocality.getText().toString().trim();
+        String countryText = binding.editCountry.getText().toString().trim();
+        String provinceText = binding.editProvince.getText().toString().trim();
+        String districtText = binding.editDistrict.getText().toString().trim();
 
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+
 
         // Initialize or retrieve existing attributes to preserve hidden fields
         SpeciesAttributes attrs = (currentRecord != null && currentRecord.attributes != null)
                 ? currentRecord.attributes
                 : new SpeciesAttributes();
+
 
         // ONLY overwrite the attribute if the field was visible/active
         if (prefs.getBoolean("show_taxon_name_field", true)) {
@@ -319,18 +330,19 @@ public class LocationDetailActivity extends AppCompatActivity {
         if (prefs.getBoolean("show_is_specimen_field", true)) {
             attrs.isSpecimen = binding.checkboxIsSpecimen.isChecked();
             if (attrs.isSpecimen) {
-                String nrText = binding.tvSpecimenNr.getText().toString().replace("No: ", "").trim();
+                String rawText = binding.tvSpecimenNr.getText().toString();
+                String nrText = rawText.replace("No: ", "").trim();
                 attrs.specimenNr = nrText;
 
-                // Increment logic for new records
                 if (isNew) {
                     try {
+                        // Only increment if it's actually a number
                         int currentNr = Integer.parseInt(nrText);
                         prefs.edit().putString("last_specimen_number", String.valueOf(currentNr + 1)).apply();
-                    } catch (NumberFormatException ignored) {}
+                    } catch (NumberFormatException e) {
+                        Log.e("LocationDetail", "Could not parse specimen number: " + nrText);
+                    }
                 }
-            } else {
-                attrs.specimenNr = null;
             }
         }
 
@@ -339,17 +351,27 @@ public class LocationDetailActivity extends AppCompatActivity {
             String localTime = java.time.LocalDateTime.now().format(
                     java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
-            LocationRecord record = new LocationRecord(lat, lon, altitude, System.currentTimeMillis(), accuracy, localTime, noteText);
-            record.locality = localityText;
-            record.attributes = attrs;
-            historyViewModel.saveLocationWithPhotos(record, tempPhotoPaths);
+            currentRecord = new LocationRecord(lat, lon, altitude, System.currentTimeMillis(), accuracy, localTime, noteText);
         } else {
             currentRecord.note = noteText;
-            currentRecord.locality = localityText;
-            currentRecord.attributes = attrs;
-            historyViewModel.updateLocation(currentRecord);
         }
 
+        // Assign geo-fields directly to the Record object
+        currentRecord.locality = localityText;
+        currentRecord.country = countryText;
+        currentRecord.province = provinceText;
+        currentRecord.district = districtText;
+        // currentRecord.countryCode = countryCodeText;
+        // currentRecord.localityDescription = binding.editLocalityDescription.getText().toString();
+
+        currentRecord.attributes = attrs;
+
+        // 4. Persistence
+        if (isNew) {
+            historyViewModel.saveLocationWithPhotos(currentRecord, tempPhotoPaths);
+        } else {
+            historyViewModel.updateLocation(currentRecord);
+        }
         // Update the recent collectors list
         if (collectorName != null && !collectorName.isEmpty()) {
             historyViewModel.updateRecentCollector(collectorName);
@@ -357,7 +379,7 @@ public class LocationDetailActivity extends AppCompatActivity {
     }
 
     private void refreshCoordinateDisplay() {
-        displayFormattedCoordinates(currentProvince, currentDistrict);
+        displayFormattedCoordinates();
     }
 
     private void confirmPhotoDeletion(int position) {
@@ -375,7 +397,7 @@ public class LocationDetailActivity extends AppCompatActivity {
                 .setNegativeButton("Cancel", null).show();
     }
 
-    private void displayFormattedCoordinates(String province, String district) {
+    private void displayFormattedCoordinates() {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         StringBuilder sb = new StringBuilder();
         sb.append("Accuracy: ").append((int) Math.ceil(accuracy)).append("m\n");
@@ -405,14 +427,6 @@ public class LocationDetailActivity extends AppCompatActivity {
         if (prefs.getBoolean("show_date", true)) {
             String dateToShow = isNew ? LocalDate.now().toString() : currentRecord.localTime;
             sb.append("Date: ").append(dateToShow).append("\n");
-        }
-
-        if (prefs.getBoolean("show_province", true)) {
-            sb.append("Province: ").append(province != null ? province : "Not found").append("\n");
-        }
-
-        if (prefs.getBoolean("show_district", true)) {
-            sb.append("District: ").append(district != null ? district : "Not found").append("\n");
         }
 
         binding.tvDetailCoords.setText(sb.toString());
@@ -470,11 +484,10 @@ public class LocationDetailActivity extends AppCompatActivity {
 
     private void triggerSpatialLookups() {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        if (prefs.getBoolean("show_province", true)) searchViewModel.fetchProvinceName(lat, lon);
-        else currentProvince = null;
 
-        if (prefs.getBoolean("show_district", true)) searchViewModel.fetchDistrictName(lat, lon);
-        else currentDistrict = null;
+        searchViewModel.fetchLocationNames(lat, lon);
+        searchViewModel.fetchProvinceName(lat, lon);
+        searchViewModel.fetchDistrictName(lat, lon);
     }
 
     private void setupSpeciesAutocomplete() {

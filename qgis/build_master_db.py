@@ -13,9 +13,11 @@ print("--- SCRIPT STARTING ---", flush=True)
 try:
     import geography_processor
     import taxonomy_processor
+    import country_processor # NEW IMPORT
     import importlib
     importlib.reload(geography_processor)
     importlib.reload(taxonomy_processor)
+    importlib.reload(country_processor)
 except Exception:
     print("CRITICAL: Failed to import sub-modules!")
     print(traceback.format_exc())
@@ -35,15 +37,22 @@ def main():
     
     conn = sqlite3.connect(db_path)
     try:
-        print("--- Starting Geography Export ---", flush=True)
+        # 1. Geography
         geography_processor.process_geography(conn, EXPORT_FOLDER, LAYERS_CONFIG)
         
-        print("\n--- Starting Taxonomy Export ---", flush=True)
+        # 2. Taxonomy
         taxonomy_processor.process_taxonomy(
             conn, 
             os.path.join(EXPORT_FOLDER, "Taxon.csv"),
             os.path.join(EXPORT_FOLDER, "vernacularName.csv"),
             os.path.join(EXPORT_FOLDER, "groupDef.csv")
+        )
+
+        # 3. NEW: Countries
+        print("\n--- Starting Country Export ---", flush=True)
+        country_processor.process_countries(
+            conn,
+            os.path.join(EXPORT_FOLDER, "countries.csv") # Path to your prepared CSV
         )
         
         conn.commit()

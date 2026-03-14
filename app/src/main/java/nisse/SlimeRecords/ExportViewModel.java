@@ -356,6 +356,4 @@ public class ExportViewModel extends AndroidViewModel {
 
     public LiveData<ExportState> getExportStatus() { return exportStatus; }
     public Uri getLastExportUri() { return lastExportUri; }
-
-
 }

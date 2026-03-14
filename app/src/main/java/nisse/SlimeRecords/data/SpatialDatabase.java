@@ -5,11 +5,13 @@ import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
 
+// Added CountryEntity.class here and bumped version to 2
 @Database(entities = {
         ProvinceEntity.class, ProvinceGeometryEntity.class,
         DistrictEntity.class, DistrictGeometryEntity.class,
-        SpeciesReferenceEntity.class
-}, version = 1, exportSchema = false)
+        SpeciesReferenceEntity.class,
+        CountryEntity.class
+}, version = 3, exportSchema = false)
 public abstract class SpatialDatabase extends RoomDatabase {
 
     public abstract SpatialDao spatialDao();
@@ -25,8 +27,8 @@ public abstract class SpatialDatabase extends RoomDatabase {
                                     "spatial_lookup.db"
                             )
                             .createFromAsset("databases/spatial_lookup.db")
-                            // Asset DBs usually shouldn't migrate;
-                            // if the schema changes, you ship a new asset.
+                            // Fallback will wipe the local DB and copy the new asset
+                            // if version numbers don't match.
                             .fallbackToDestructiveMigration()
                             .build();
                 }
