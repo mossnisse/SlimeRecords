@@ -48,7 +48,13 @@ public class ImportActivity extends AppCompatActivity {
         importViewModel = new ViewModelProvider(this).get(ImportViewModel.class);
 
         binding.btnSelectFile.setOnClickListener(v ->
-                filePickerLauncher.launch(new String[]{"application/zip"}));
+                // Accept ZIPs, CSVs, and Plain text (sometimes CSVs are typed as text/plain)
+                filePickerLauncher.launch(new String[]{
+                        "application/zip",
+                        "text/comma-separated-values",
+                        "text/csv",
+                        "text/plain"
+                }));
 
         // Observe Status (Loading/Success/Error)
         importViewModel.getImportStatus().observe(this, state -> {

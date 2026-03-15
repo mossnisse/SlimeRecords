@@ -8,92 +8,9 @@
             padding: 20px;
             background-color: #f5f5f5;
             margin: 0;
-        }
-
-        .no-print {
-            text-align: center;
-            margin-bottom: 20px;
-            background: white;
-            padding: 15px;
-            border-bottom: 2px solid #2E7D32;
-        }
-
-        .label-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 9.2cm);
-            justify-content: center;
-            width: 100%;
-            gap: 0;
-        }
-
-        .label-container {
-            width: 9.2cm;
-            height: 6.5cm;
-            border: 1px solid #000;
-            margin-right: -1px;
-            margin-bottom: -1px;
-            padding: 12px;
-            line-height: 1.3;
-            background: white;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .header { font-weight: bold; font-size: 1.2em; text-align: center; margin-bottom: 5px; border-bottom: 1px solid #000;}
-
-        .species { font-style: italic; font-size: 1.1em; margin-bottom: 3px; }
-
-        .location { font-weight: bold; font-size: 1.0em; }
-
-        .description div {
-            margin-bottom: 2px;
-        }
-
-        .coordinates {
-            font-size: 0.9em;
-            margin-top: 4px;
-            font-family: monospace;
-        }
-
-        .spacer {
-            flex-grow: 1;
-        }
-
-        .footer {
-            display: flex;
-            justify-content: space-between;
-            font-size: 1.0em;
-        }
-
-        @media print {
-            @page {
-                size: A4;
-                margin: 12.7mm; /* 0.5 inch margins as requested */
-            }
-            body { background: white; padding: 0; }
-            .no-print { display: none; }
-            .label-grid {
-                display: grid;
-                grid-template-columns: repeat(2, 9.2cm);
-                justify-content: flex-start;
-                gap: 0;
-            }
-            .label-container {
-                page-break-inside: avoid;
-            }
-            [data-label]::before {
-                display: none !important;
-            }
-            /* Remove any background highlights used in editing */
-            [data-label] {
-                 background-color: transparent !important;
-            }
-        }
-
-        .btn-print {
-            background: #2E7D32; color: white; padding: 12px 24px;
-            border: none; cursor: pointer; border-radius: 4px; font-size: 16px;
+            /* Normalize font rendering across browsers */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         .no-print {
@@ -107,57 +24,120 @@
             z-index: 100;
         }
 
+        .label-grid {
+            display: grid;
+            /* Fixed width to ensure 2 columns fit exactly */
+            grid-template-columns: repeat(2, 9.2cm);
+            justify-content: center;
+            width: 100%;
+            gap: 0;
+        }
+
+        .label-container {
+            width: 9.2cm;
+            /* REDUCED height to 6.4cm to ensure 4 rows fit in Firefox */
+            height: 6.4cm; 
+            border: 1px solid #000;
+            margin-right: -1px;
+            margin-bottom: -1px;
+            padding: 10px; /* Slightly reduced padding */
+            line-height: 1.2; /* Tighter line height for Firefox compatibility */
+            background: white;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Prevents overflow from growing the container */
+        }
+
+        .header { font-weight: bold; font-size: 1.1em; text-align: center; margin-bottom: 4px; border-bottom: 1px solid #000;}
+
+        .species { font-style: italic; font-size: 1.05em; margin-bottom: 2px; }
+
+        .location { font-weight: bold; font-size: 0.95em; }
+
+        .description div {
+            margin-bottom: 1px;
+            font-size: 0.9em;
+        }
+
+        .coordinates {
+            font-size: 0.85em;
+            margin-top: 2px;
+            font-family: monospace;
+        }
+
+        .spacer {
+            flex-grow: 1;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9em;
+            margin-top: 2px;
+        }
+
+        @media print {
+            @page {
+                size: A4;
+                margin: 12.7mm;
+            }
+            body { background: white; padding: 0; }
+            .no-print { display: none !important; }
+            .label-grid {
+                display: grid;
+                grid-template-columns: repeat(2, 9.2cm);
+                justify-content: center;
+                gap: 0;
+            }
+            .label-container {
+                page-break-inside: avoid;
+                /* Force hardware to respect the dimensions */
+                min-height: 6.4cm;
+                max-height: 6.4cm;
+            }
+        }
+
+        /* UI Buttons */
+        .btn-print {
+            background: #2E7D32; color: white; padding: 12px 24px;
+            border: none; cursor: pointer; border-radius: 4px; font-size: 16px;
+        }
         .btn-save {
             background: #1976D2; color: white; padding: 12px 24px;
             border: none; cursor: pointer; border-radius: 4px; font-size: 16px;
             margin-left: 10px;
         }
 
-        @media print {
-            .no-print { display: none !important; }
-            body { background: white; padding: 0; }
-        }
-
         @media screen {
-        /* Identify which field is being edited */
-        [data-label] {
-            position: relative;
-            min-height: 1.2em; /* Ensures empty fields are still clickable/visible */
-            outline: none;
+            [data-label] {
+                position: relative;
+                min-height: 1.2em;
+                outline: none;
+            }
+            [data-label]:hover::before,
+            [data-label]:focus::before {
+                content: attr(data-label);
+                position: absolute;
+                top: -14px;
+                left: 0;
+                background: #e1f5fe;
+                color: #01579b;
+                font-size: 10px;
+                font-family: sans-serif;
+                padding: 1px 4px;
+                border-radius: 2px;
+                z-index: 10;
+                pointer-events: none;
+            }
         }
-
-        /* Show a small label above or beside the field when it's focused or hovered */
-        [data-label]:hover::before,
-        [data-label]:focus::before {
-            content: attr(data-label); /* Pulls text from the 'data-label' attribute */
-            position: absolute;
-            top: -14px;
-            left: 0;
-            background: #e1f5fe;
-            color: #01579b;
-            font-size: 10px;
-            font-family: sans-serif;
-            padding: 1px 4px;
-            border-radius: 2px;
-            font-style: normal;
-            font-weight: normal;
-            z-index: 10;
-            pointer-events: none; /* User can click "through" the label to the text */
-        }
-
-        /* Subtle highlight to show what is editable */
-        [contenteditable="true"] [data-label]:hover {
-            background-color: #fffde7;
-            cursor: text;
-        }
-    }
     </style>
 </head>
 <body>
 <div class="no-print">
     <button class="btn-print" onclick="window.print()">Print Labels</button>
     <button class="btn-save" onclick="saveEdits()">Save Edited Copy</button>
-    <p>Edit text directly below.</p>
+    <p>Edit text directly below. 8 labels fit per page.</p>
 </div>
 
 <div class="label-grid" contenteditable="true" id="main-grid">
@@ -166,24 +146,16 @@
 
 <script>
     function saveEdits() {
-        // Optional: Remove focus before saving to avoid saving cursor/selection states
         if (document.activeElement) document.activeElement.blur();
-
         const currentHtml = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
         const blob = new Blob([currentHtml], { type: 'text/html' });
-
         const a = document.createElement('a');
-        // Prettier filename format
         const now = new Date();
         const dateStr = now.getFullYear() + '-' + (now.getMonth()+1) + '-' + now.getDate();
-
         a.href = URL.createObjectURL(blob);
         a.download = 'Labels_Edited_' + dateStr + '.html';
-
         document.body.appendChild(a);
         a.click();
-
-        // Visual feedback
         const btn = document.querySelector('.btn-save');
         const originalText = btn.innerText;
         btn.innerText = "✓ Saved New File";
@@ -192,7 +164,6 @@
             btn.innerText = originalText;
             btn.style.background = "#1976D2";
         }, 2000);
-
         document.body.removeChild(a);
         URL.revokeObjectURL(a.href);
     }

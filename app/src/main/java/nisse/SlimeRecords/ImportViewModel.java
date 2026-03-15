@@ -14,8 +14,10 @@ import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import nisse.SlimeRecords.data.*;
@@ -37,29 +39,16 @@ public class ImportViewModel extends AndroidViewModel {
         importStatus.setValue(ImportState.LOADING);
         statusMessage.setValue("");
 
-        final ParcelFileDescriptor pfd;
-        try {
-            // "r" mode is critical for the Samsung MTP bug fix
-            pfd = getApplication().getContentResolver().openFileDescriptor(zipUri, "r");
-            if (pfd == null) throw new IOException("Could not open File Descriptor");
-        } catch (Exception e) {
-            Log.e("Import", "Security Error: Denied access on main thread", e);
-            statusMessage.setValue("System denied access to file.");
-            importStatus.setValue(ImportState.ERROR);
-            return;
-        }
-
+        // Heavy lifting on background thread
         UserDatabase.getDbExecutor().execute(() -> {
             File tempFile = new File(getApplication().getCacheDir(), "import_temp.zip");
-            try (ParcelFileDescriptor autoClosePfd = pfd;
-                 FileInputStream fis = new FileInputStream(autoClosePfd.getFileDescriptor());
+            try (ParcelFileDescriptor pfd = getApplication().getContentResolver().openFileDescriptor(zipUri, "r");
+                 FileInputStream fis = new FileInputStream(pfd.getFileDescriptor());
                  FileOutputStream fos = new FileOutputStream(tempFile)) {
 
                 byte[] buffer = new byte[8192];
                 int read;
-                while ((read = fis.read(buffer)) != -1) {
-                    fos.write(buffer, 0, read);
-                }
+                while ((read = fis.read(buffer)) != -1) fos.write(buffer, 0, read);
                 fos.flush();
 
                 processZipFile(tempFile);
@@ -77,18 +66,16 @@ public class ImportViewModel extends AndroidViewModel {
 
     private void processZipFile(File zipFile) throws IOException {
         File photoDir = getApplication().getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-        if (photoDir != null && !photoDir.exists()) photoDir.mkdirs();
-
         String csvContent = null;
+
         try (ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFile))) {
             ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
                 String name = entry.getName();
-                if (name.equals("data.csv")) {
+                if (name.endsWith(".csv")) { // Better: handle any CSV in the root
                     csvContent = readStreamToString(zis);
                 } else if (name.startsWith("photos/") && !entry.isDirectory()) {
-                    String fileName = new File(name).getName();
-                    File destFile = new File(photoDir, fileName);
+                    File destFile = new File(photoDir, new File(name).getName());
                     extractFile(zis, destFile);
                 }
                 zis.closeEntry();
@@ -98,65 +85,109 @@ public class ImportViewModel extends AndroidViewModel {
         if (csvContent != null) {
             parseAndSaveCsv(csvContent, photoDir);
         } else {
-            throw new IOException("ZIP archive is missing data.csv");
+            throw new IOException("ZIP archive is missing a data.csv file.");
         }
     }
 
     private void parseAndSaveCsv(String csv, File photoDir) {
+        // 1. Remove BOM if present
+        if (csv.startsWith("\uFEFF")) csv = csv.substring(1);
+
         String[] lines = csv.split("\\r?\\n");
+        if (lines.length < 2) return;
+
+        // 2. Detect Delimiter (Comma or Semicolon)
+        String headerLine = lines[0];
+        String d = headerLine.contains(";") ? ";" : ",";
+
+        // Regex to split while respecting quotes
+        String regex = d + "(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)";
+        String[] headers = headerLine.split(regex);
+        Map<String, Integer> colMap = new HashMap<>();
+        for (int i = 0; i < headers.length; i++) {
+            colMap.put(cleanQuotes(headers[i]).trim(), i);
+        }
+
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
 
         for (int i = 1; i < lines.length; i++) {
             String line = lines[i].trim();
             if (line.isEmpty()) continue;
-            String[] parts = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
-            if (parts.length < 15) continue;
+            String[] parts = line.split(regex);
 
             try {
                 LocationRecord record = new LocationRecord();
-                record.latitude = Double.parseDouble(parts[1]);
-                record.longitude = Double.parseDouble(parts[2]);
-                record.accuracy = Float.parseFloat(parts[3]);
-                record.altitude = Double.parseDouble(parts[4]);
-                record.localTime = cleanQuotes(parts[5]);
-                record.note = cleanQuotes(parts[13]);
-                record.locality = cleanQuotes(parts[10]);
 
-                // Set timestamp so it shows up in HistoryActivity
+                // Primary Location Data
+                record.latitude = parseDouble(parts, colMap, "decimalLatitude", 0);
+                record.longitude = parseDouble(parts, colMap, "decimalLongitude", 0);
+                record.accuracy = (float) parseDouble(parts, colMap, "coordinateUncertaintyInMeters", 0);
+                record.altitude = parseDouble(parts, colMap, "verbatimElevation", 0);
+                record.localTime = getString(parts, colMap, "eventDate", "");
+                record.note = getString(parts, colMap, "occurrenceRemarks", "");
+
+                // Geo fields
+                record.countryCode = getString(parts, colMap, "countryCode", "");
+                record.country = getString(parts, colMap, "country", "");
+                record.province = getString(parts, colMap, "province", "");
+                record.district = getString(parts, colMap, "district", "");
+                record.locality = getString(parts, colMap, "locality", "");
+
+                // Handle Timestamp for History
                 try {
                     Date date = sdf.parse(record.localTime);
                     if (date != null) record.timestamp = date.getTime();
-                } catch (Exception e) {
-                    record.timestamp = System.currentTimeMillis();
-                }
+                } catch (Exception e) { record.timestamp = System.currentTimeMillis(); }
 
+                // Attributes
                 SpeciesAttributes attr = new SpeciesAttributes();
-                attr.taxonName = cleanQuotes(parts[6]);
-                attr.substrate = cleanQuotes(parts[7]);
-                attr.habitat = cleanQuotes(parts[8]);
-                attr.collector = cleanQuotes(parts[9]);
-                attr.isSpecimen = Boolean.parseBoolean(parts[11]);
-                attr.specimenNr = cleanQuotes(parts[12]);
+                attr.taxonName = getString(parts, colMap, "taxonName", "");
+                attr.substrate = getString(parts, colMap, "Substrate", "");
+                attr.habitat = getString(parts, colMap, "Habitat", "");
+                attr.collector = getString(parts, colMap, "recordedBy", "");
+                attr.lifeStage = getString(parts, colMap, "lifeStage", "");
+                attr.sex = getString(parts, colMap, "sex", "");
+                attr.activity = getString(parts, colMap, "activity", "");
+                attr.samplingProtocol = getString(parts, colMap, "samplingProtocol", "");
+                attr.specimenNr = getString(parts, colMap, "SpecimenNr", "");
+                attr.isSpecimen = getString(parts, colMap, "isSpecimen", "false").equalsIgnoreCase("true");
+
+                String qStr = getString(parts, colMap, "organismQuantity", "");
+                if (!qStr.isEmpty()) attr.organismQuantity = Integer.parseInt(qStr);
+
                 record.attributes = attr;
 
-                String photoNamesStr = cleanQuotes(parts[14]);
+                // Photo Handling
+                String photoNamesStr = getString(parts, colMap, "photos", "");
                 List<String> photoPaths = new ArrayList<>();
                 if (!photoNamesStr.isEmpty()) {
                     for (String name : photoNamesStr.split("\\|")) {
                         File pFile = new File(photoDir, name.trim());
-                        if (pFile.exists()) {
-                            photoPaths.add(pFile.getAbsolutePath());
-                        }
+                        if (pFile.exists()) photoPaths.add(pFile.getAbsolutePath());
                     }
                 }
+
                 locationDao.insertLocationWithPhotos(record, photoPaths);
             } catch (Exception e) {
-                Log.e("Import", "Error parsing line " + i, e);
+                Log.e("Import", "Error parsing row " + i, e);
             }
         }
     }
 
-    // Helper methods...
+    // Helper: Safely get string from mapped column
+    private String getString(String[] parts, Map<String, Integer> map, String key, String fallback) {
+        Integer idx = map.get(key);
+        if (idx == null || idx >= parts.length) return fallback;
+        return cleanQuotes(parts[idx]);
+    }
+
+    // Helper: Safely get double from mapped column
+    private double parseDouble(String[] parts, Map<String, Integer> map, String key, double fallback) {
+        String val = getString(parts, map, key, "");
+        try { return val.isEmpty() ? fallback : Double.parseDouble(val); }
+        catch (Exception e) { return fallback; }
+    }
+
     private String cleanQuotes(String input) {
         if (input == null) return "";
         String s = input.trim();
@@ -180,7 +211,6 @@ public class ImportViewModel extends AndroidViewModel {
         return result.toString(StandardCharsets.UTF_8.name());
     }
 
-    // GETTERS
     public LiveData<ImportState> getImportStatus() { return importStatus; }
     public LiveData<String> getStatusMessage() { return statusMessage; }
 }

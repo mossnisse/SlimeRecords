@@ -5,23 +5,18 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.List;
 import java.util.Locale;
-import nisse.SlimeRecords.coords.Coordinates;
 import nisse.SlimeRecords.data.LocationRecord;
-import nisse.SlimeRecords.data.SpatialResolver;
 import nisse.SlimeRecords.data.SpeciesAttributes;
 
 public class LabelHtmlGenerator {
 
     public static String generateFullReport(Context context, List<LocationRecord> items) {
         StringBuilder allLabels = new StringBuilder();
-        SpatialResolver resolver = SpatialResolver.getInstance(context);
 
         for (LocationRecord item : items) {
             if (item.attributes != null && item.attributes.isSpecimen) {
-                Coordinates sweref = new Coordinates(item.latitude, item.longitude).convertToSweref99TMFromWGS84();
-                String province = resolver.getRegionName((int)Math.round(sweref.getNorth()), (int)Math.round(sweref.getEast()), false);
-                String district = resolver.getRegionName((int)Math.round(sweref.getNorth()), (int)Math.round(sweref.getEast()), true);
-                allLabels.append(generateSingleLabelHtml(item, province, district));
+                // Use stored fields instead of coordinate lookups
+                allLabels.append(generateSingleLabelHtml(item));
             }
         }
 
@@ -33,17 +28,31 @@ public class LabelHtmlGenerator {
         return template.replace("{{LABELS_HERE}}", allLabels.toString());
     }
 
-    private static String generateSingleLabelHtml(LocationRecord item, String prov, String dist) {
+    private static String generateSingleLabelHtml(LocationRecord item) {
         SpeciesAttributes attrs = item.attributes;
         String dateOnly = (item.localTime != null && item.localTime.length() >= 10)
                 ? item.localTime.substring(0, 10) : "____-____-____";
 
+        // Dynamic Header based on Country
+        String header = "Flora";
+        if ("Sverige".equalsIgnoreCase(item.country) || "Sweden".equalsIgnoreCase(item.country) || "SE".equalsIgnoreCase(item.countryCode)) {
+            header = "Flora Suecica";
+        } else if (item.country != null && !item.country.isEmpty()) {
+            header = "Flora of " + item.country;
+        }
+
+        // Handle "Socken" (District) label logic - only append "socken" if it's Sweden
+        String districtDisplay = clean(item.district);
+        if ("SE".equalsIgnoreCase(item.countryCode)) {
+            districtDisplay += " socken";
+        }
+
         return String.format(Locale.US,
                 "<div class='label-container' data-uid='%d'>" +
-                        "  <div class='header'>Flora Suecica</div>" +
+                        "  <div class='header'>%s</div>" + // Dynamic Header
                         "  <div class='species' data-label='Species Name'>%s</div>" +
                         "  <div> " +
-                        "      <span class='province' data-label='province'>%s</span>, <span class='district' data-label='district'>%s</span> socken" +
+                        "      <span class='province' data-label='province'>%s</span>, <span class='district' data-label='district'>%s</span>" +
                         "  </div>" +
                         "  <div class='description'>" +
                         "    <div class='locality' data-label='Locality Description'>%s</div>" +
@@ -57,10 +66,11 @@ public class LabelHtmlGenerator {
                         "    <span class='date' data-label='Date'>%s</span>" +
                         "  </div>" +
                         "</div>",
-                item.id, // Database ID
+                item.id,
+                header,
                 clean(attrs.taxonName),
-                clean(prov),
-                clean(dist),
+                clean(item.province),
+                districtDisplay,
                 clean(item.locality),
                 clean(attrs.substrate),
                 clean(attrs.habitat),

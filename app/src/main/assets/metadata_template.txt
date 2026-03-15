@@ -11,19 +11,23 @@ COLUMN DEFINITIONS:
 - decimalLongitude: Coordinates in WGS84.
 - coordinateUncertaintyInMeters: GPS horizontal accuracy.
 - verbatimElevation: Altitude in meters above WGS84 ellipsoid.
-- geodeticDatum
-- verticalDatum
+- geodeticDatum:
+- verticalDatum:
 - eventDate: The local time when the record was added to the phone. In the timezone the phone used when record was added.
 - taxonName: Scientific or vernacular name of the taxon/species
 - organismQuantity: Number of individuals or other units for organism that don't have clear individuals
-- lifeStage
+- lifeStage:
 - sex: including DwC caste
 - activity: DwC behavior, vitality and causeOfDeath. Artportalen: Aktivitet
 - samplingProtocol: Method of observing / collecting
 - Substrate: Often part of Habitat in DwC
-- Habitat
+- Habitat:
 - recordedBy: Name of the primary collector/observer. Can be flowed by more persons name
-- locality
+- countryCode: ISO 3166-1 alpha-2 – two-letter country code, from the geo referencer
+- country: Country name
+- province: Province name, in Sweden Landskap + lappmark.
+- district: District name, in Sweden socken/parish with the borders from 1935
+- locality: Description where the locality is, should be possible to find on a map
 - isSpecimen:  DwC eventType but is only true / false depending of it's a collected specimen or observation
 - SpecimenNr: DwC recordNumber / fieldNumber but is only used for collected specimens
 - occurrenceRemarks
