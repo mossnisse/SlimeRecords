@@ -68,7 +68,6 @@ public class LocationDetailActivity extends AppCompatActivity {
     }
 
     private void setupObservers() {
-        // Corrected: observe standard LiveData
         historyViewModel.getOperationFinished().observe(this, finished -> {
             if (Boolean.TRUE.equals(finished)) {
                 Toast.makeText(this, isNew ? "Saved!" : "Updated!", Toast.LENGTH_SHORT).show();
@@ -77,19 +76,18 @@ public class LocationDetailActivity extends AppCompatActivity {
             }
         });
 
-        searchViewModel.getCountryResult().observe(this, name -> {
-            binding.editCountry.setText(name);
+        searchViewModel.getCountryResult().observe(this, name -> binding.editCountry.setText(name));
+
+        searchViewModel.getCountryCodeResult().observe(this, code -> {
+            if (code != null) {
+                this.currentCountryCode = code;
+            }
         });
 
-        searchViewModel.getProvinceResult().observe(this, name -> {
-            binding.editProvince.setText(name);
-        });
+        searchViewModel.getProvinceResult().observe(this, name -> binding.editProvince.setText(name));
 
-        searchViewModel.getDistrictResult().observe(this, name -> {
-            binding.editDistrict.setText(name);
-        });
+        searchViewModel.getDistrictResult().observe(this, name -> binding.editDistrict.setText(name));
 
-        // Fix: Explicitly typing the list to resolve "isEmpty" errors
         historyViewModel.getRecentCollectors().observe(this, (List<String> list) -> {
             if (list != null && !list.isEmpty()) {
                 latestCollectorName = list.get(0);
@@ -220,6 +218,7 @@ public class LocationDetailActivity extends AppCompatActivity {
             binding.editCountry.setText(currentRecord.country);
             binding.editProvince.setText(currentRecord.province);
             binding.editDistrict.setText(currentRecord.district);
+            this.currentCountryCode = currentRecord.countryCode;
 
             // Set flexible attributes
             if (currentRecord.attributes != null) {
@@ -260,7 +259,7 @@ public class LocationDetailActivity extends AppCompatActivity {
     }
 
     private void onCoordinatesLoaded() {
-        triggerSpatialLookups();
+        searchViewModel.performFullSpatialLookup(lat, lon);
         refreshCoordinateDisplay();
         loadLocalitySuggestions();
     }
@@ -275,13 +274,10 @@ public class LocationDetailActivity extends AppCompatActivity {
         String provinceText = binding.editProvince.getText().toString().trim();
         String districtText = binding.editDistrict.getText().toString().trim();
 
-
-
         // Initialize or retrieve existing attributes to preserve hidden fields
         SpeciesAttributes attrs = (currentRecord != null && currentRecord.attributes != null)
                 ? currentRecord.attributes
                 : new SpeciesAttributes();
-
 
         // ONLY overwrite the attribute if the field was visible/active
         if (prefs.getBoolean("show_taxon_name_field", true)) {
@@ -320,14 +316,22 @@ public class LocationDetailActivity extends AppCompatActivity {
             attrs.samplingProtocol = binding.inputSamplingProtocol.getText().toString().trim();
         }
 
-        String collectorName = attrs.collector; // Default to existing
-        if (prefs.getBoolean("show_collector_field", true)) {
-            collectorName = binding.inputCollector.getText().toString().trim();
-            attrs.collector = collectorName;
+        String collectorToSave = attrs.collector; // Default to what's already in the record (if editing)
+
+        if (isNew && (collectorToSave == null || collectorToSave.isEmpty())) {
+            collectorToSave = latestCollectorName;
         }
 
+        if (prefs.getBoolean("show_collector_field", true)) {
+            String uiText = binding.inputCollector.getText().toString().trim();
+            if (!uiText.isEmpty()) {
+                collectorToSave = uiText;
+            }
+        }
+        attrs.collector = collectorToSave;
+
         // Specimen logic
-        if (prefs.getBoolean("show_is_specimen_field", true)) {
+        if (prefs.getBoolean("show_is_specimen", true)) {
             attrs.isSpecimen = binding.checkboxIsSpecimen.isChecked();
             if (attrs.isSpecimen) {
                 String rawText = binding.tvSpecimenNr.getText().toString();
@@ -361,20 +365,19 @@ public class LocationDetailActivity extends AppCompatActivity {
         currentRecord.country = countryText;
         currentRecord.province = provinceText;
         currentRecord.district = districtText;
-        // currentRecord.countryCode = countryCodeText;
-        // currentRecord.localityDescription = binding.editLocalityDescription.getText().toString();
+        currentRecord.countryCode = this.currentCountryCode;
 
         currentRecord.attributes = attrs;
 
-        // 4. Persistence
+        // Persistence
         if (isNew) {
             historyViewModel.saveLocationWithPhotos(currentRecord, tempPhotoPaths);
         } else {
             historyViewModel.updateLocation(currentRecord);
         }
         // Update the recent collectors list
-        if (collectorName != null && !collectorName.isEmpty()) {
-            historyViewModel.updateRecentCollector(collectorName);
+        if (collectorToSave != null && !collectorToSave.isEmpty()) {
+            historyViewModel.updateRecentCollector(collectorToSave);
         }
     }
 
@@ -482,22 +485,13 @@ public class LocationDetailActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
-    private void triggerSpatialLookups() {
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-
-        searchViewModel.fetchLocationNames(lat, lon);
-        searchViewModel.fetchProvinceName(lat, lon);
-        searchViewModel.fetchDistrictName(lat, lon);
-    }
-
     private void setupSpeciesAutocomplete() {
         AutoCompleteTextView speciesInput = binding.inputTaxonName;
 
         // Set threshold to 1 so it starts immediately
         speciesInput.setThreshold(1);
 
-        // Use a custom adapter that doesn't filter locally
-        // This ensures that whatever the DB returns is actually shown
+        // Use a custom adapter that doesn't filter locally, this ensures that whatever the DB returns is actually shown
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
                 android.R.layout.simple_dropdown_item_1line) {
             @NonNull

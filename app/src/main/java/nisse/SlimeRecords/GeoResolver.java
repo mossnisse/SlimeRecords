@@ -72,9 +72,9 @@ public class GeoResolver {
         Geocoder geocoder = new Geocoder(context, Locale.getDefault());
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            geocoder.getFromLocation(lat, lon, 1, addresses -> {
-                processGeocoderResult(addresses, callback);
-            });
+            geocoder.getFromLocation(lat, lon, 1, addresses ->
+                processGeocoderResult(addresses, callback)
+            );
         } else {
             try {
                 List<Address> addresses = geocoder.getFromLocation(lat, lon, 1);
@@ -97,18 +97,14 @@ public class GeoResolver {
         String province = addr.getAdminArea(); // This is often the modern "Län"
         String district = addr.getLocality();
 
-        resolveCountryAndFinish(countryCode, province, district, callback);
-    }
-
-    private void resolveCountryAndFinish(String code, String province, String district, GeoCallback callback) {
-        if ("SE".equalsIgnoreCase(code)) {
-            callback.onResolved("Sverige", province, district, "SE");
-            return;
+        CountryEntity entity = spatialDao.getCountryByCode(countryCode);
+        String countryName;
+        if (entity != null) {
+            countryName = (entity.nameEn != null) ? entity.nameEn : countryCode;
+        } else {
+            countryName = addr.getCountryName() != null ? addr.getCountryName() : countryCode;
         }
 
-        CountryEntity entity = spatialDao.getCountryByCode(code);
-        String countryName = (entity != null && entity.nameEn != null) ? entity.nameEn : code;
-
-        callback.onResolved(countryName, province, district, code);
+        callback.onResolved(countryName, province, district, countryCode);
     }
 }

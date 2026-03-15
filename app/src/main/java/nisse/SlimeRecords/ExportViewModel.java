@@ -103,15 +103,14 @@ public class ExportViewModel extends AndroidViewModel {
 
     private void writeCsv(ZipOutputStream zos, List<LocationWithPhotos> allData, String d, boolean includeBom) throws IOException {
         zos.putNextEntry(new ZipEntry("data.csv"));
-
         if (includeBom) {
-            byte[] bom = new byte[] {(byte)0xEF, (byte)0xBB, (byte)0xBF};
-            zos.write(bom);
+            zos.write(new byte[] {(byte)0xEF, (byte)0xBB, (byte)0xBF});
         }
 
         // Build Header
         String header = String.join(d, "ID", "decimalLatitude", "decimalLongitude", "coordinateUncertaintyInMeters", "verbatimElevation", "geodeticDatum", "verticalDatum",
-                "eventDate", "taxonName", "organismQuantity", "lifeStage", "sex", "activity", "samplingProtocol", "Substrate", "Habitat", "recordedBy", "locality",
+                "eventDate", "taxonName", "organismQuantity", "lifeStage", "sex", "activity", "samplingProtocol", "Substrate", "Habitat", "recordedBy",
+                "countryCode", "country", "province", "district", "locality",
                 "isSpecimen", "SpecimenNr", "occurrenceRemarks", "photos") + "\n";
 
         zos.write(header.getBytes(StandardCharsets.UTF_8));
@@ -162,6 +161,10 @@ public class ExportViewModel extends AndroidViewModel {
         sb.append("\"").append(clean(attr.substrate)).append("\"").append(d);
         sb.append("\"").append(clean(attr.habitat)).append("\"").append(d);
         sb.append("\"").append(clean(attr.collector)).append("\"").append(d);
+        sb.append("\"").append(clean(r.countryCode)).append("\"").append(d);
+        sb.append("\"").append(clean(r.country)).append("\"").append(d);
+        sb.append("\"").append(clean(r.province)).append("\"").append(d);
+        sb.append("\"").append(clean(r.district)).append("\"").append(d);
         sb.append("\"").append(clean(r.locality)).append("\"").append(d);
         sb.append(attr.isSpecimen).append(d);
         sb.append("\"").append(clean(attr.specimenNr)).append("\"").append(d);
