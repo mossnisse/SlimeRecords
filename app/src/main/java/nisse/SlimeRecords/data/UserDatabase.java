@@ -15,8 +15,8 @@ import java.util.concurrent.Executors;
 
 import nisse.SlimeRecords.Converters;
 
-@Database(entities = {LocationRecord.class, PhotoRecord.class, RecentCollector.class}, version = 3, exportSchema = false)
-@TypeConverters({Converters.class}) // Add this line
+@Database(entities = {LocationRecord.class, PhotoRecord.class, RecentCollector.class}, version = 1, exportSchema = false)
+@TypeConverters({Converters.class})
 public abstract class UserDatabase extends RoomDatabase {
 
     public abstract LocationDao locationDao();

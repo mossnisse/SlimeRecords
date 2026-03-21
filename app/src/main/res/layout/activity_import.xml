@@ -32,6 +32,40 @@
         android:text="Select a .zip file previously exported by this app to restore your locations and photos."
         android:textAppearance="@style/TextAppearance.MaterialComponents.Body2" />
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Duplicate Handling:"
+        android:textStyle="bold"
+        android:paddingBottom="4dp"/>
+
+    <RadioGroup
+        android:id="@+id/rgStrategy"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <RadioButton
+            android:id="@+id/rbSkip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Skip duplicates (Safe)"
+            android:checked="true" />
+
+        <RadioButton
+            android:id="@+id/rbReplace"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Replace existing (Update records)" />
+
+        <RadioButton
+            android:id="@+id/rbKeepBoth"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Keep both (Add as new)" />
+    </RadioGroup>
+
     <Button
         android:id="@+id/btn_select_file"
         android:layout_width="match_parent"
@@ -53,7 +87,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
-        tools:text="Processing..." />
+        android:visibility="gone"
+        tools:visibility="visible"
+        tools:text="Reading ZIP file..." />
 
 </LinearLayout>

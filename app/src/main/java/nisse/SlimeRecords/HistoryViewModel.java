@@ -49,9 +49,30 @@ public class HistoryViewModel extends AndroidViewModel {
     public void deleteLocationWithPhotos(LocationWithPhotos item) {
         UserDatabase.getDbExecutor().execute(() -> {
             if (item.photos != null) {
-                for (PhotoRecord p : item.photos) FileUtils.deleteFileAtPath(p.filePath);
+                for (PhotoRecord p : item.photos) {
+                    // Delete ONLY the link for THIS specific location
+                    locationDao.deletePhotoById(p.id);
+
+                    // NOW check if any OTHER record still uses this path
+                    if (locationDao.getPhotoReferenceCount(p.filePath) == 0) {
+                        FileUtils.deleteFileAtPath(p.filePath);
+                    }
+                }
             }
+            // 3. Finally delete the location itself
             locationDao.deleteLocation(item.location);
+        });
+    }
+
+    public void deletePhoto(PhotoRecord photo) {
+        UserDatabase.getDbExecutor().execute(() -> {
+            // Delete the specific photo entry by ID
+            locationDao.deletePhotoById(photo.id);
+
+            // Check reference count for the path
+            if (locationDao.getPhotoReferenceCount(photo.filePath) == 0) {
+                FileUtils.deleteFileAtPath(photo.filePath);
+            }
         });
     }
 
@@ -64,10 +85,6 @@ public class HistoryViewModel extends AndroidViewModel {
         UserDatabase.getDbExecutor().execute(() ->
                 locationDao.insertRecentCollector(new RecentCollector(name.trim(), System.currentTimeMillis()))
         );
-    }
-
-    public void deletePhotoByPath(String path) {
-        UserDatabase.getDbExecutor().execute(() -> locationDao.deletePhotoByPath(path));
     }
 
     public LiveData<Integer> getLocationCount() {

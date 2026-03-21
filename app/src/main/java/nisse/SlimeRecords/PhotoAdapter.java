@@ -9,17 +9,19 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import java.util.List;
 
+import nisse.SlimeRecords.data.PhotoRecord;
+
 public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.PhotoViewHolder> {
-    private final List<String> photoPaths;
+    private final List<PhotoRecord> photos;
     private final OnPhotoListener listener;
 
     public interface OnPhotoListener {
-        void onPhotoClick(String path);
+        void onPhotoClick(PhotoRecord photo); // Pass the object
         void onPhotoLongClick(int position);
     }
 
-    public PhotoAdapter(List<String> photoPaths, OnPhotoListener listener) {
-        this.photoPaths = photoPaths;
+    public PhotoAdapter(List<PhotoRecord> photos, OnPhotoListener listener) {
+        this.photos = photos;
         this.listener = listener;
     }
 
@@ -32,19 +34,16 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.PhotoViewHol
 
     @Override
     public void onBindViewHolder(@NonNull PhotoViewHolder holder, int position) {
-        String path = photoPaths.get(position);
+        PhotoRecord photo = photos.get(position);
+        String path = photo.filePath;
 
         Glide.with(holder.itemView.getContext())
                 .load(path)
-                .placeholder(android.R.color.darker_gray) // Consistent with LocationAdapter
-                .thumbnail(Glide.with(holder.itemView.getContext())
-                        .load(path)
-                        .override(200, 200)) // Fetch a small version first
+                .placeholder(android.R.color.darker_gray)
                 .centerCrop()
                 .into(holder.ivGalleryPhoto);
 
-        // Click Listeners
-        holder.itemView.setOnClickListener(v -> listener.onPhotoClick(path));
+        holder.itemView.setOnClickListener(v -> listener.onPhotoClick(photo));
 
         holder.itemView.setOnLongClickListener(v -> {
             int currentPos = holder.getBindingAdapterPosition();
@@ -57,7 +56,7 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.PhotoViewHol
     }
 
     @Override
-    public int getItemCount() { return photoPaths.size(); }
+    public int getItemCount() { return photos.size(); }
 
     static class PhotoViewHolder extends RecyclerView.ViewHolder {
         ImageView ivGalleryPhoto;

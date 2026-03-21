@@ -38,7 +38,7 @@ public class LocationDetailActivity extends AppCompatActivity {
     private boolean isNew, isSaved = false;
     private ActivityLocationDetailBinding binding;
     private String currentPhotoPath;
-    private final List<String> tempPhotoPaths = new ArrayList<>();
+    private final List<PhotoRecord> currentPhotos = new ArrayList<>();
     private PhotoAdapter photoAdapter;
     private ArrayAdapter<String> localityAdapter;
     private LocationRecord currentRecord;
@@ -157,11 +157,11 @@ public class LocationDetailActivity extends AppCompatActivity {
         binding.rvPhotoGallery.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
         binding.rvPhotoGallery.setVisibility(showPhoto ? View.VISIBLE : View.GONE);
 
-        photoAdapter = new PhotoAdapter(tempPhotoPaths, new PhotoAdapter.OnPhotoListener() {
+        photoAdapter = new PhotoAdapter(currentPhotos, new PhotoAdapter.OnPhotoListener() {
             @Override
-            public void onPhotoClick(String path) {
+            public void onPhotoClick(PhotoRecord photo) {
                 Intent intent = new Intent(LocationDetailActivity.this, FullScreenPhotoActivity.class);
-                intent.putExtra("path", path);
+                intent.putExtra("path", photo.filePath); // Pass the path string to the viewer
                 startActivity(intent);
             }
 
@@ -246,8 +246,8 @@ public class LocationDetailActivity extends AppCompatActivity {
                 binding.tvSpecimenNr.setText("No: " + (a.specimenNr != null ? a.specimenNr : "--"));
             }
             if (showPhoto) {
-                tempPhotoPaths.clear();
-                for (PhotoRecord p : item.photos) tempPhotoPaths.add(p.filePath);
+                currentPhotos.clear();
+                currentPhotos.addAll(item.photos); // item.photos is already List<PhotoRecord>
                 photoAdapter.notifyDataSetChanged();
                 binding.rvPhotoGallery.setVisibility(View.VISIBLE);
             } else {
@@ -370,8 +370,12 @@ public class LocationDetailActivity extends AppCompatActivity {
         currentRecord.attributes = attrs;
 
         // Persistence
+        List<String> pathsToSave = new ArrayList<>();
+        for (PhotoRecord p : currentPhotos) {
+            pathsToSave.add(p.filePath);
+        }
         if (isNew) {
-            historyViewModel.saveLocationWithPhotos(currentRecord, tempPhotoPaths);
+            historyViewModel.saveLocationWithPhotos(currentRecord, pathsToSave);
         } else {
             historyViewModel.updateLocation(currentRecord);
         }
@@ -386,16 +390,25 @@ public class LocationDetailActivity extends AppCompatActivity {
     }
 
     private void confirmPhotoDeletion(int position) {
-        String path = tempPhotoPaths.get(position);
+        PhotoRecord photoToDelete = currentPhotos.get(position);
+
         new AlertDialog.Builder(this)
                 .setTitle("Remove Photo")
-                .setMessage("Delete this photo permanently?")
+                .setMessage("Delete this photo from this record?")
                 .setPositiveButton("Delete", (d, w) -> {
-                    FileUtils.deleteFileAtPath(path);
-                    tempPhotoPaths.remove(position);
+                    currentPhotos.remove(position);
                     photoAdapter.notifyItemRemoved(position);
-                    // Fix: ViewModel method now matches
-                    if (!isNew) historyViewModel.deletePhotoByPath(path);
+
+                    if (!isNew && photoToDelete.id != 0) {
+                        // This is an existing record in the DB
+                        historyViewModel.deletePhoto(photoToDelete);
+                    } else {
+                        // This is a fresh photo taken during this session, delete file directly
+                        FileUtils.deleteFileAtPath(photoToDelete.filePath);
+                    }
+
+                    binding.btnTakePhotoDetail.setText(currentPhotos.isEmpty() ?
+                            "Take Photo" : "Add Photo (" + currentPhotos.size() + ")");
                 })
                 .setNegativeButton("Cancel", null).show();
     }
@@ -435,13 +448,17 @@ public class LocationDetailActivity extends AppCompatActivity {
         binding.tvDetailCoords.setText(sb.toString());
     }
 
-    private final ActivityResultLauncher<Uri> takePictureLauncher = registerForActivityResult(new ActivityResultContracts.TakePicture(), success -> {
-        if (success) {
-            tempPhotoPaths.add(currentPhotoPath);
-            photoAdapter.notifyItemInserted(tempPhotoPaths.size() - 1);
-            binding.btnTakePhotoDetail.setText("Add Photo (" + tempPhotoPaths.size() + ")");
-        }
-    });
+    private final ActivityResultLauncher<Uri> takePictureLauncher = registerForActivityResult(
+        new ActivityResultContracts.TakePicture(), success -> {
+            if (success) {
+                // Create a temporary PhotoRecord (id will be 0 until saved to DB)
+                PhotoRecord newPhoto = new PhotoRecord(0, currentPhotoPath);
+                currentPhotos.add(newPhoto);
+
+                photoAdapter.notifyItemInserted(currentPhotos.size() - 1);
+                binding.btnTakePhotoDetail.setText("Add Photo (" + currentPhotos.size() + ")");
+            }
+        });
 
     private void dispatchTakePictureIntent() {
         try {
@@ -632,7 +649,7 @@ public class LocationDetailActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         if (isFinishing() && isNew && !isSaved) {
-            for (String path : tempPhotoPaths) FileUtils.deleteFileAtPath(path);
+            for (PhotoRecord p : currentPhotos) FileUtils.deleteFileAtPath(p.filePath);
         }
     }
 }

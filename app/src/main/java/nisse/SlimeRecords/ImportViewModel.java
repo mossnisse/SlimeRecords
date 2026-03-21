@@ -27,13 +27,23 @@ public class ImportViewModel extends AndroidViewModel {
     public enum ImportState { IDLE, LOADING, SUCCESS, ERROR }
     private final MutableLiveData<ImportState> importStatus = new MutableLiveData<>(ImportState.IDLE);
     private final MutableLiveData<String> statusMessage = new MutableLiveData<>("");
+    public enum DuplicateStrategy {
+        SKIP,       // Don't import if it already exists
+        REPLACE,    // Delete old record and photos, then insert new
+        KEEP_BOTH   // Ignore the ID and insert as a brand new record
+    }
+
+    private DuplicateStrategy activeStrategy = DuplicateStrategy.SKIP;
+
+    private ImportResult results;
 
     public ImportViewModel(@NonNull Application application) {
         super(application);
         locationDao = UserDatabase.getInstance(application).locationDao();
     }
 
-    public void startImport(Uri zipUri) {
+    public void startImport(Uri zipUri, DuplicateStrategy strategy) {
+        this.activeStrategy = strategy;
         if (importStatus.getValue() == ImportState.LOADING) return;
 
         importStatus.setValue(ImportState.LOADING);
@@ -90,13 +100,14 @@ public class ImportViewModel extends AndroidViewModel {
     }
 
     private void parseAndSaveCsv(String csv, File photoDir) {
-        // 1. Remove BOM if present
+        this.results = new ImportResult();
+        // Remove BOM if present
         if (csv.startsWith("\uFEFF")) csv = csv.substring(1);
 
         String[] lines = csv.split("\\r?\\n");
         if (lines.length < 2) return;
 
-        // 2. Detect Delimiter (Comma or Semicolon)
+        // Detect Delimiter (Comma or Semicolon)
         String headerLine = lines[0];
         String d = headerLine.contains(";") ? ";" : ",";
 
@@ -110,13 +121,53 @@ public class ImportViewModel extends AndroidViewModel {
 
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
 
+        Integer idCol = colMap.get("id");
+
         for (int i = 1; i < lines.length; i++) {
             String line = lines[i].trim();
             if (line.isEmpty()) continue;
             String[] parts = line.split(regex);
-
             try {
+                // 1. Identification
+                double lat = parseDouble(parts, colMap, "decimalLatitude", 0);
+                double lon = parseDouble(parts, colMap, "decimalLongitude", 0);
+                String time = getString(parts, colMap, "eventDate", "");
+                long exportedId = (idCol != null) ? (long) parseDouble(parts, colMap, "id", 0) : 0;
+
+                long targetId = 0; // The ID we will use for the final record
+                long existingId = 0; // The ID of the record currently in DB
+
+                // Check if it exists by ID
+                if (exportedId != 0 && locationDao.existsById(exportedId)) {
+                    existingId = exportedId;
+                } else {
+                    // Check if it exists by Fingerprint
+                    Long foundId = locationDao.findIdByFingerprint(lat, lon, time);
+                    if (foundId != null) existingId = foundId;
+                }
+
+                // 2. Handle Strategy
+                if (existingId != 0) {
+                    if (activeStrategy == DuplicateStrategy.SKIP) {
+                        results.skipped++;
+                        continue;
+                    } else if (activeStrategy == DuplicateStrategy.REPLACE) {
+                        deleteOldRecordProperly(existingId);
+                        targetId = existingId; // Reuse the ID so links remain valid
+                        results.updated++;
+                    } else if (activeStrategy == DuplicateStrategy.KEEP_BOTH) {
+                        targetId = 0; // Let Room auto-generate a new ID
+                        results.added++;
+                    }
+                } else {
+                    // Record doesn't exist, use exported ID if available, else 0
+                    targetId = (activeStrategy == DuplicateStrategy.KEEP_BOTH) ? 0 : exportedId;
+                    results.added++;
+                }
+
+                // 3. Populate the Record
                 LocationRecord record = new LocationRecord();
+                record.id = targetId;
 
                 // Primary Location Data
                 record.latitude = parseDouble(parts, colMap, "decimalLatitude", 0);
@@ -169,8 +220,32 @@ public class ImportViewModel extends AndroidViewModel {
 
                 locationDao.insertLocationWithPhotos(record, photoPaths);
             } catch (Exception e) {
+                results.failed++;
                 Log.e("Import", "Error parsing row " + i, e);
             }
+        }
+        statusMessage.postValue(results.toString());
+    }
+
+    private void deleteOldRecordProperly(long id) {
+        // Get the data synchronously
+        LocationWithPhotos oldRecord = locationDao.getLocationByIdSync(id);
+
+        if (oldRecord != null) {
+            // Use the same logic we put in HistoryViewModel
+            if (oldRecord.photos != null) {
+                for (PhotoRecord p : oldRecord.photos) {
+                    // Delete the DB link first
+                    locationDao.deletePhotoById(p.id);
+
+                    // Check if the file is now orphaned
+                    if (locationDao.getPhotoReferenceCount(p.filePath) == 0) {
+                        FileUtils.deleteFileAtPath(p.filePath);
+                    }
+                }
+            }
+            // Delete the location itself
+            locationDao.deleteLocation(oldRecord.location);
         }
     }
 

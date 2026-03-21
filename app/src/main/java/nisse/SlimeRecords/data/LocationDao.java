@@ -36,15 +36,42 @@ public abstract class LocationDao {
     @Query("SELECT * FROM location_table ORDER BY timestamp DESC")
     public abstract PagingSource<Integer, LocationWithPhotos> getAllLocationsPaged();
 
-    @Query("DELETE FROM photo_table WHERE filePath = :path")
-    public abstract void deletePhotoByPath(String path);
+    @Query("DELETE FROM photo_table WHERE id = :photoId")
+    public abstract void deletePhotoById(int photoId);
+
+    @Query("DELETE FROM photo_table WHERE locationId = :locationId")
+    public abstract void deletePhotosByLocationId(long locationId);
 
     @Transaction
     @Query("SELECT * FROM location_table WHERE id = :id LIMIT 1")
     public abstract LiveData<LocationWithPhotos> getLocationById(long id);
 
+    @Transaction // Essential because this joins two tables
+    @Query("SELECT * FROM location_table WHERE id = :id")
+    public abstract LocationWithPhotos getLocationByIdSync(long id);
+
+    // This helper will check if a record exists by its unique "fingerprint"
+    // in case the ID column is missing or we are in "SKIP" mode.
+    @Query("SELECT id FROM location_table WHERE latitude = :lat AND longitude = :lon AND localTime = :time LIMIT 1")
+    public abstract Long findIdByFingerprint(double lat, double lon, String time);
+
     @Delete
     public abstract void deleteLocation(LocationRecord location);
+
+    @Query("SELECT COUNT(*) FROM photo_table WHERE filePath = :path")
+    public abstract int getPhotoReferenceCount(String path);
+
+    @Query("SELECT EXISTS(SELECT 1 FROM location_table WHERE latitude = :lat AND longitude = :lon AND localTime = :time)")
+    public abstract boolean exists(double lat, double lon, String time);
+
+    @Query("SELECT EXISTS(SELECT 1 FROM location_table WHERE id = :id)")
+    public abstract boolean existsById(long id);
+
+    @Transaction
+    void replaceLocationWithPhotos(LocationRecord record, List<String> photoPaths) {
+        deleteLocation(record); // Room uses the ID in the 'record' object to match
+        insertLocationWithPhotos(record, photoPaths);
+    }
 
     @Query("SELECT DISTINCT locality FROM location_table " +
             "WHERE latitude BETWEEN :minLat AND :maxLat " +

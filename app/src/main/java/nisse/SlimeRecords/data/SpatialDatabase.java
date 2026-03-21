@@ -11,7 +11,7 @@ import androidx.room.RoomDatabase;
         DistrictEntity.class, DistrictGeometryEntity.class,
         SpeciesReferenceEntity.class,
         CountryEntity.class
-}, version = 3, exportSchema = false)
+}, version = 1, exportSchema = false)
 public abstract class SpatialDatabase extends RoomDatabase {
 
     public abstract SpatialDao spatialDao();
