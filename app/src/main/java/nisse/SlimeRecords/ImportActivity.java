@@ -9,7 +9,6 @@ import android.os.Bundle;
 import android.provider.DocumentsContract;
 import android.view.View;
 import android.widget.Toast;
-
 import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -21,7 +20,7 @@ import nisse.SlimeRecords.databinding.ActivityImportBinding;
 public class ImportActivity extends AppCompatActivity {
     private ActivityImportBinding binding;
     private ImportViewModel importViewModel;
-    private OnBackPressedCallback backPressedCallback;
+   // private OnBackPressedCallback backPressedCallback;
     private final ActivityResultLauncher<String[]> filePickerLauncher =
             registerForActivityResult(new ActivityResultContracts.OpenDocument() {
                 @NonNull
@@ -59,7 +58,7 @@ public class ImportActivity extends AppCompatActivity {
         binding = ActivityImportBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        backPressedCallback = new OnBackPressedCallback(false) {
+        OnBackPressedCallback backPressedCallback = new OnBackPressedCallback(false) {
             @Override
             public void handleOnBackPressed() {
                 // This code runs only when the callback is enabled
@@ -71,35 +70,6 @@ public class ImportActivity extends AppCompatActivity {
         getOnBackPressedDispatcher().addCallback(this, backPressedCallback);
 
         importViewModel = new ViewModelProvider(this).get(ImportViewModel.class);
-
-        importViewModel.getImportStatus().observe(this, state -> {
-            boolean isLoading = (state == ImportViewModel.ImportState.LOADING);
-
-            // If loading, the callback is ENABLED (intercepts back button)
-            // If not loading, the callback is DISABLED (back button works normally)
-            backPressedCallback.setEnabled(isLoading);
-
-            binding.btnSelectFile.setEnabled(!isLoading);
-            binding.rgStrategy.setEnabled(!isLoading);
-            for (int i = 0; i < binding.rgStrategy.getChildCount(); i++) {
-                binding.rgStrategy.getChildAt(i).setEnabled(!isLoading);
-            }
-
-            binding.importProgress.setVisibility(isLoading ? View.VISIBLE : View.GONE);
-            binding.tvImportStatus.setVisibility(isLoading ? View.VISIBLE : View.GONE);
-            if (isLoading) binding.tvImportStatus.setText("Importing data, please wait...");
-
-            // Completion Dialog
-            if (state == ImportViewModel.ImportState.SUCCESS) {
-                String summary = importViewModel.getStatusMessage().getValue();
-                new AlertDialog.Builder(this)
-                        .setTitle("Import Complete")
-                        .setMessage(summary)
-                        .setCancelable(false)
-                        .setPositiveButton("OK", (d, w) -> finish())
-                        .show();
-            }
-        });
 
         binding.btnSelectFile.setOnClickListener(v ->
                 // Accept ZIPs, CSVs, and Plain text (sometimes CSVs are typed as text/plain)

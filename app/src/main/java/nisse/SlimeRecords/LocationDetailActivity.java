@@ -25,7 +25,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import nisse.SlimeRecords.coords.Coordinates;
-import nisse.SlimeRecords.data.LocationRecord;
+import nisse.SlimeRecords.data.ObservationRecord;
 import nisse.SlimeRecords.data.PhotoRecord;
 import nisse.SlimeRecords.data.SpeciesAttributes;
 import nisse.SlimeRecords.data.SpeciesReferenceWithAccepted;
@@ -41,7 +41,7 @@ public class LocationDetailActivity extends AppCompatActivity {
     private final List<PhotoRecord> currentPhotos = new ArrayList<>();
     private PhotoAdapter photoAdapter;
     private ArrayAdapter<String> localityAdapter;
-    private LocationRecord currentRecord;
+    private ObservationRecord currentRecord;
     private SearchViewModel searchViewModel;
     private HistoryViewModel historyViewModel;
     private String latestCollectorName = "";
@@ -104,9 +104,9 @@ public class LocationDetailActivity extends AppCompatActivity {
     }
 
     private void initUI() {
-        binding.btnSaveDetail.setOnClickListener(v -> onCommitClicked());
+        binding.btnSaveDetail.setOnClickListener(v -> onSaveClicked());
         binding.btnCancelDetail.setOnClickListener(v -> finish());
-        binding.btnTakePhotoDetail.setOnClickListener(v -> dispatchTakePictureIntent());
+        binding.btnTakePhotoDetail.setOnClickListener(v -> launchCamera());
 
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
 
@@ -266,7 +266,7 @@ public class LocationDetailActivity extends AppCompatActivity {
     }
 
     private void onCoordinatesLoaded(boolean isNewRecord) {
-        refreshCoordinateDisplay();
+        displayFormattedCoordinates();
         loadLocalitySuggestions();
 
         // ONLY perform the API spatial lookup (Country/Province/District) for NEW records
@@ -275,7 +275,7 @@ public class LocationDetailActivity extends AppCompatActivity {
         }
     }
 
-    private void onCommitClicked() {
+    private void onSaveClicked() {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
 
         // Get UI text values first
@@ -366,7 +366,7 @@ public class LocationDetailActivity extends AppCompatActivity {
             String localTime = java.time.LocalDateTime.now().format(
                     java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
-            currentRecord = new LocationRecord(lat, lon, altitude, System.currentTimeMillis(), accuracy, localTime, noteText);
+            currentRecord = new ObservationRecord(lat, lon, altitude, System.currentTimeMillis(), accuracy, localTime, noteText);
         } else {
             currentRecord.note = noteText;
         }
@@ -394,10 +394,6 @@ public class LocationDetailActivity extends AppCompatActivity {
         if (collectorToSave != null && !collectorToSave.isEmpty()) {
             historyViewModel.updateRecentCollector(collectorToSave);
         }
-    }
-
-    private void refreshCoordinateDisplay() {
-        displayFormattedCoordinates();
     }
 
     private void confirmPhotoDeletion(int position) {
@@ -471,7 +467,7 @@ public class LocationDetailActivity extends AppCompatActivity {
             }
         });
 
-    private void dispatchTakePictureIntent() {
+    private void launchCamera() {
         try {
             File photoFile = createImageFile();
             Uri photoURI = FileProvider.getUriForFile(this, "nisse.SlimeRecords.fileprovider", photoFile);

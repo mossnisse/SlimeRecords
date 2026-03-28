@@ -5,7 +5,6 @@ import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
 
-// Added CountryEntity.class here and bumped version to 2
 @Database(entities = {
         ProvinceEntity.class, ProvinceGeometryEntity.class,
         DistrictEntity.class, DistrictGeometryEntity.class,

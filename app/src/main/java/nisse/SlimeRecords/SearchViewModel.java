@@ -12,7 +12,6 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.preference.PreferenceManager;
 import java.util.ArrayList;
 import java.util.List;
-import nisse.SlimeRecords.coords.Coordinates;
 import nisse.SlimeRecords.data.SpatialDao;
 import nisse.SlimeRecords.data.SpatialDatabase;
 import nisse.SlimeRecords.data.SpeciesReferenceWithAccepted;
@@ -64,11 +63,6 @@ public class SearchViewModel extends AndroidViewModel {
     public Location getCurrentBestLocation() { return currentBestLocation.getValue(); }
     public LiveData<Boolean> getUserWantsSearching() { return userWantsSearching; }
     public void setUserWantsSearching(boolean value) { userWantsSearching.setValue(value); }
-
-    private int[] convertToSweref(double lat, double lon) {
-        Coordinates sweref = new Coordinates(lat, lon).convertToSweref99TMFromWGS84();
-        return new int[]{(int)Math.round(sweref.getNorth()), (int)Math.round(sweref.getEast())};
-    }
 
     public LiveData<String> getCountryResult() { return countryResult; }
     public LiveData<String> getCountryCodeResult() { return countryCodeResult; }

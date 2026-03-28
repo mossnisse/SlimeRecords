@@ -39,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
                 if (isGranted) {
                     checkLocationSettings();
                 } else {
-                    binding.ctextview.setText("Permission denied. Cannot search.");
+                    binding.tvStatus.setText("Permission denied. Cannot search.");
                 }
             });
 
@@ -48,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
                 if (result.getResultCode() == RESULT_OK) {
                     startLocationUpdates();
                 } else {
-                    binding.ctextview.setText("Location services must be enabled.");
+                    binding.tvStatus.setText("Location services must be enabled.");
                 }
             });
 
@@ -83,7 +83,7 @@ public class MainActivity extends AppCompatActivity {
                     viewModel.setCurrentBestLocation(newLocation);
 
                     int acc = (int) Math.ceil(newLocation.getAccuracy());
-                    binding.ctextview.setText("Accuracy: " + acc + "m\nPress STOP when precision is sufficient.");
+                    binding.tvStatus.setText("Accuracy: " + acc + "m\nPress STOP when precision is sufficient.");
                 }
             }
         };
@@ -111,7 +111,7 @@ public class MainActivity extends AppCompatActivity {
 
             if (isStarting) {
                 viewModel.setCurrentBestLocation(null); // Clear old results for the new search
-                binding.ctextview.setText("Initializing GPS...");
+                binding.tvStatus.setText("Initializing GPS...");
             } else {
                 stopLocationUpdates(true);
             }
@@ -142,13 +142,13 @@ public class MainActivity extends AppCompatActivity {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) return;
 
-        binding.ctextview.setText("Acquiring GPS signal...");
+        binding.tvStatus.setText("Acquiring GPS signal...");
         fusedClient.requestLocationUpdates(locationRequest, locationCallback, getMainLooper());
     }
 
     private void stopLocationUpdates(boolean shouldTransition) {
         fusedClient.removeLocationUpdates(locationCallback);
-        binding.ctextview.setText("Ready to search.");
+        binding.tvStatus.setText("Ready to search.");
 
         Location best = viewModel.getCurrentBestLocation();
         if (shouldTransition && best != null) {
@@ -160,7 +160,7 @@ public class MainActivity extends AppCompatActivity {
             intent.putExtra("is_new", true);
             startActivity(intent);
         } else if (shouldTransition) {
-            binding.ctextview.setText("No location acquired. Try again.");
+            binding.tvStatus.setText("No location acquired. Try again.");
         }
     }
 
@@ -194,10 +194,10 @@ public class MainActivity extends AppCompatActivity {
                                     new IntentSenderRequest.Builder(((ResolvableApiException) e).getResolution()).build();
                             settingsLauncher.launch(isr);
                         } catch (Exception ignored) {
-                            binding.ctextview.setText("Error opening location settings.");
+                            binding.tvStatus.setText("Error opening location settings.");
                         }
                     } else {
-                        binding.ctextview.setText("Location settings are not satisfied on this device.");
+                        binding.tvStatus.setText("Location settings are not satisfied on this device.");
                     }
                 });
     }

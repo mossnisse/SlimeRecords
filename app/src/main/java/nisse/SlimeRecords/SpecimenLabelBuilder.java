@@ -1,19 +1,20 @@
 package nisse.SlimeRecords;
+
 import android.content.Context;
 import android.util.Log;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.List;
 import java.util.Locale;
-import nisse.SlimeRecords.data.LocationRecord;
+import nisse.SlimeRecords.data.ObservationRecord;
 import nisse.SlimeRecords.data.SpeciesAttributes;
 
-public class LabelHtmlGenerator {
+public class SpecimenLabelBuilder {
 
-    public static String generateFullReport(Context context, List<LocationRecord> items) {
+    public static String generateFullReport(Context context, List<ObservationRecord> items) {
         StringBuilder allLabels = new StringBuilder();
 
-        for (LocationRecord item : items) {
+        for (ObservationRecord item : items) {
             if (item.attributes != null && item.attributes.isSpecimen) {
                 // Use stored fields instead of coordinate lookups
                 allLabels.append(generateSingleLabelHtml(item));
@@ -28,7 +29,7 @@ public class LabelHtmlGenerator {
         return template.replace("{{LABELS_HERE}}", allLabels.toString());
     }
 
-    private static String generateSingleLabelHtml(LocationRecord item) {
+    private static String generateSingleLabelHtml(ObservationRecord item) {
         SpeciesAttributes attrs = item.attributes;
         String dateOnly = (item.localTime != null && item.localTime.length() >= 10)
                 ? item.localTime.substring(0, 10) : "____-____-____";

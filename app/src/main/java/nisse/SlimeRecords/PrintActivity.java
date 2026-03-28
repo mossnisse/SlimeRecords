@@ -14,7 +14,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import nisse.SlimeRecords.data.LocationRecord;
+import nisse.SlimeRecords.data.ObservationRecord;
 import nisse.SlimeRecords.data.UserDatabase;
 import nisse.SlimeRecords.databinding.ActivityPrintBinding;
 
@@ -42,9 +42,9 @@ public class PrintActivity extends AppCompatActivity {
         // or observe it once. For button clicks, we often just want the current state.
         binding.btnGenerateLabel.setEnabled(false);
         binding.btnShareLabel.setEnabled(false);
-        exportViewModel.getSpecimenLocations().observe(this, new androidx.lifecycle.Observer<List<LocationRecord>>() {
+        exportViewModel.getSpecimenLocations().observe(this, new androidx.lifecycle.Observer<List<ObservationRecord>>() {
             @Override
-            public void onChanged(List<LocationRecord> list) {
+            public void onChanged(List<ObservationRecord> list) {
                 // Remove observer immediately so it only runs once per click
                 exportViewModel.getSpecimenLocations().removeObserver(this);
 
@@ -55,7 +55,7 @@ public class PrintActivity extends AppCompatActivity {
 
                 // Move heavy file operations to background thread
                 UserDatabase.getDbExecutor().execute(() -> {
-                    String htmlContent = LabelHtmlGenerator.generateFullReport(PrintActivity.this, list);
+                    String htmlContent = SpecimenLabelBuilder.generateFullReport(PrintActivity.this, list);
                     Uri uri = saveFileAndGetUri(htmlContent);
 
                     // Switch back to Main Thread for UI updates

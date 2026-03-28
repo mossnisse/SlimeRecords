@@ -16,13 +16,13 @@ import nisse.SlimeRecords.LocationWithPhotos;
 public abstract class LocationDao {
 
     @Insert
-    public abstract long insertLocation(LocationRecord location);
+    public abstract long insertLocation(ObservationRecord location);
 
     @Insert
     public abstract void insertPhoto(PhotoRecord photo);
 
     @Transaction
-    public void insertLocationWithPhotos(LocationRecord location, List<String> photoPaths) {
+    public void insertLocationWithPhotos(ObservationRecord location, List<String> photoPaths) {
         long locationId = insertLocation(location);
         for (String path : photoPaths) {
             insertPhoto(new PhotoRecord(locationId, path));
@@ -30,7 +30,7 @@ public abstract class LocationDao {
     }
 
     @Update
-    public abstract void updateLocation(LocationRecord location);
+    public abstract void updateLocation(ObservationRecord location);
 
     @Transaction
     @Query("SELECT * FROM location_table ORDER BY timestamp DESC")
@@ -53,7 +53,7 @@ public abstract class LocationDao {
     public abstract Long findIdByFingerprint(double lat, double lon, String time);
 
     @Delete
-    public abstract void deleteLocation(LocationRecord location);
+    public abstract void deleteLocation(ObservationRecord location);
 
     @Query("SELECT COUNT(*) FROM photo_table WHERE filePath = :path")
     public abstract int getPhotoReferenceCount(String path);
@@ -62,7 +62,7 @@ public abstract class LocationDao {
     public abstract boolean existsById(long id);
 
     @Transaction
-    void replaceLocationWithPhotos(LocationRecord record, List<String> photoPaths) {
+    void replaceLocationWithPhotos(ObservationRecord record, List<String> photoPaths) {
         deleteLocation(record); // Room uses the ID in the 'record' object to match
         insertLocationWithPhotos(record, photoPaths);
     }
@@ -91,5 +91,5 @@ public abstract class LocationDao {
     public abstract List<LocationWithPhotos> getAllLocationsWithPhotosSync();
 
     @Query("SELECT * FROM location_table WHERE attributes LIKE '%\"isSpecimen\":true%'")
-    public abstract LiveData<List<LocationRecord>> getSpecimenLocations();
+    public abstract LiveData<List<ObservationRecord>> getSpecimenLocations();
 }

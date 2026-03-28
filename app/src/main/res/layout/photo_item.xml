@@ -5,4 +5,6 @@
     android:layout_height="120dp"
     android:layout_margin="4dp"
     android:scaleType="centerCrop"
-    android:background="#DDDDDD" />
+    android:importantForAccessibility="no"
+    android:background="#A9A9A9"
+    android:foreground="?attr/selectableItemBackground" />

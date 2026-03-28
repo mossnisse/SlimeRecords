@@ -4,7 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.room.PrimaryKey;
 
 // A simple base for geographical multi polygon metadata (ID and Name)
-public abstract class BaseMetadata {
+public abstract class NamedRegion {
     @PrimaryKey
     public int id;
     @NonNull

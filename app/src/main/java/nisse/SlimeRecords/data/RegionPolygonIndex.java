@@ -2,7 +2,7 @@ package nisse.SlimeRecords.data;
 
 import androidx.room.PrimaryKey;
 // A simple base for polygon or hole spatial data
-public abstract class BaseGeometry {
+public abstract class RegionPolygonIndex {
     @PrimaryKey(autoGenerate = true)
     public int uid;
     public int parentId; // The ID of the District or Province

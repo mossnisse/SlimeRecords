@@ -14,4 +14,4 @@ import androidx.room.Index;
         ),
         indices = {@Index("parentId")}
 )
-public class ProvinceGeometryEntity extends BaseGeometry { }
+public class ProvinceGeometryEntity extends RegionPolygonIndex { }

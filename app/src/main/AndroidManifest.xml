@@ -37,11 +37,14 @@
             </intent-filter>
         </activity>
 
-        <activity android:name="nisse.SlimeRecords.LocationDetailActivity" />
+        <activity
+            android:name="nisse.SlimeRecords.LocationDetailActivity"
+            android:label="Record Details"
+            android:parentActivityName="nisse.SlimeRecords.MainActivity" />
 
         <activity
             android:name="nisse.SlimeRecords.FullScreenPhotoActivity"
-            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:theme="@style/Theme.SlimeRecords.NoActionBar"
             android:configChanges="orientation|screenSize"
             android:exported="false" />
 
@@ -77,6 +80,7 @@
             android:name="nisse.SlimeRecords.PrintActivity"
             android:exported="false"
             android:label="Print Labels"
+            android:theme="@style/Theme.SlimeRecords"
             android:parentActivityName="nisse.SlimeRecords.MainActivity">
         </activity>
 

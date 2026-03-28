@@ -77,7 +77,7 @@ public class SpatialResolver implements AutoCloseable {
                 long baseOffset = isDistrict ? districtBaseOffset : provinceBaseOffset;
 
                 // Query Room for bounding-box candidates
-                List<? extends BaseGeometry> candidates = isDistrict ?
+                List<? extends RegionPolygonIndex> candidates = isDistrict ?
                         spatialDao.findDistrictCandidates(n, e) : spatialDao.findProvinceCandidates(n, e);
 
                 if (candidates.isEmpty()) return isDistrict ? "Outside Districts" : "Not Found";
@@ -99,7 +99,7 @@ public class SpatialResolver implements AutoCloseable {
         }
     }
 
-    private <G extends BaseGeometry> int resolveId(int n, int e, List<G> candidates, FileChannel fc, long baseOffset) throws IOException {
+    private <G extends RegionPolygonIndex> int resolveId(int n, int e, List<G> candidates, FileChannel fc, long baseOffset) throws IOException {
         Map<Integer, Integer> intersectionCounts = new HashMap<>();
 
         for (G geom : candidates) {
@@ -113,7 +113,7 @@ public class SpatialResolver implements AutoCloseable {
         return -1;
     }
 
-    private int countIntersections(FileChannel fc, long baseOffset, BaseGeometry geom, int n, int e) throws IOException {
+    private int countIntersections(FileChannel fc, long baseOffset, RegionPolygonIndex geom, int n, int e) throws IOException {
         int intersections = 0;
         long startPos = baseOffset + geom.byteOffset;
 
@@ -147,7 +147,7 @@ public class SpatialResolver implements AutoCloseable {
 
     @Override
     public void close() {
-        synchronized (SpatialResolver.class) {
+        synchronized (this) {
             try {
                 if (provinceChannel != null) provinceChannel.close();
                 if (districtChannel != null) districtChannel.close();

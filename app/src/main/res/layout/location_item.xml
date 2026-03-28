@@ -24,8 +24,8 @@
         android:layout_marginEnd="16dp"
         android:scaleType="centerCrop"
         android:background="?attr/colorSecondaryVariant"
-        android:clipToOutline="true"
-        android:visibility="visible" />
+        android:visibility="visible"
+        android:contentDescription="Record thumbnail"/>
 
     <LinearLayout
         android:layout_width="0dp"

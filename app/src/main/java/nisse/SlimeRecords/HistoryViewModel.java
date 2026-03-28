@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import nisse.SlimeRecords.data.LocalitySuggestion;
 import nisse.SlimeRecords.data.LocationDao;
-import nisse.SlimeRecords.data.LocationRecord;
+import nisse.SlimeRecords.data.ObservationRecord;
 import nisse.SlimeRecords.data.PhotoRecord;
 import nisse.SlimeRecords.data.RecentCollector;
 import nisse.SlimeRecords.data.UserDatabase;
@@ -35,14 +35,14 @@ public class HistoryViewModel extends AndroidViewModel {
         historyLiveData = PagingLiveData.getLiveData(pager);
     }
 
-    public void saveLocationWithPhotos(LocationRecord record, List<String> photoPaths) {
+    public void saveLocationWithPhotos(ObservationRecord record, List<String> photoPaths) {
         UserDatabase.getDbExecutor().execute(() -> {
             locationDao.insertLocationWithPhotos(record, photoPaths);
             operationFinished.postValue(true);
         });
     }
 
-    public void updateLocation(LocationRecord record) {
+    public void updateLocation(ObservationRecord record) {
         UserDatabase.getDbExecutor().execute(() -> {
             locationDao.updateLocation(record);
             operationFinished.postValue(true);

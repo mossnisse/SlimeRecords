@@ -9,7 +9,7 @@ import androidx.room.PrimaryKey;
 @Entity(
         tableName = "photo_table",
         foreignKeys = @ForeignKey(
-                entity = LocationRecord.class,
+                entity = ObservationRecord.class,
                 parentColumns = "id",
                 childColumns = "locationId",
                 onDelete = ForeignKey.CASCADE

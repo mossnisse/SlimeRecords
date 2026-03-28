@@ -35,8 +35,6 @@ public class ImportViewModel extends AndroidViewModel {
 
     private DuplicateStrategy activeStrategy = DuplicateStrategy.SKIP;
 
-    private ImportResult results;
-
     public ImportViewModel(@NonNull Application application) {
         super(application);
         locationDao = UserDatabase.getInstance(application).locationDao();
@@ -100,7 +98,7 @@ public class ImportViewModel extends AndroidViewModel {
     }
 
     private void parseAndSaveCsv(String csv, File photoDir) {
-        this.results = new ImportResult();
+        ImportResult results = new ImportResult();
         // Remove BOM if present
         if (csv.startsWith("\uFEFF")) csv = csv.substring(1);
 
@@ -166,7 +164,7 @@ public class ImportViewModel extends AndroidViewModel {
                 }
 
                 // 3. Populate the Record
-                LocationRecord record = new LocationRecord();
+                ObservationRecord record = new ObservationRecord();
                 record.id = targetId;
 
                 // Primary Location Data

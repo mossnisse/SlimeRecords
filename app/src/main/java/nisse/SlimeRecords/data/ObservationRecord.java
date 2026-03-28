@@ -6,7 +6,7 @@ import androidx.room.PrimaryKey;
 import androidx.annotation.NonNull;
 
 @Entity(tableName = "location_table")
-public class LocationRecord {
+public class ObservationRecord {
     @PrimaryKey(autoGenerate = true)
     public long id;          // local identifier in the db it's not an global id.
     public double latitude;  // DwC decimalLatitude
@@ -33,10 +33,10 @@ public class LocationRecord {
     @Nullable
     public SpeciesAttributes attributes;
 
-    public LocationRecord() {
+    public ObservationRecord() {
         // Empty constructor for Room/Manual mapping
     }
-    public LocationRecord(double latitude, double longitude, double altitude, long timestamp, float accuracy, @NonNull String localTime, @NonNull String note) {
+    public ObservationRecord(double latitude, double longitude, double altitude, long timestamp, float accuracy, @NonNull String localTime, @NonNull String note) {
         this.latitude = latitude;
         this.longitude = longitude;
         this.altitude = altitude;

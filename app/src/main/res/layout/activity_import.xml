@@ -13,6 +13,7 @@
         android:layout_height="80dp"
         android:layout_marginBottom="16dp"
         android:src="@android:drawable/stat_sys_download"
+        android:importantForAccessibility="no"
         app:tint="?attr/colorPrimary" />
 
     <TextView

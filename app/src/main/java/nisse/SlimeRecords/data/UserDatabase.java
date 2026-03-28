@@ -1,21 +1,15 @@
 package nisse.SlimeRecords.data;
 
 import android.content.Context;
-
-import androidx.annotation.NonNull;
 import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
 import androidx.room.TypeConverters;
-import androidx.room.migration.Migration;
-import androidx.sqlite.db.SupportSQLiteDatabase;
-
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
 import nisse.SlimeRecords.Converters;
 
-@Database(entities = {LocationRecord.class, PhotoRecord.class, RecentCollector.class}, version = 1, exportSchema = false)
+@Database(entities = {ObservationRecord.class, PhotoRecord.class, RecentCollector.class}, version = 1, exportSchema = false)
 @TypeConverters({Converters.class})
 public abstract class UserDatabase extends RoomDatabase {
 
@@ -32,7 +26,6 @@ public abstract class UserDatabase extends RoomDatabase {
                                     UserDatabase.class,
                                     "user_locations.db"
                             )
-                            .fallbackToDestructiveMigration()
                             .build();
                 }
             }

@@ -5,11 +5,9 @@ import android.location.Address;
 import android.location.Geocoder;
 import android.os.Build;
 import android.util.Log;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
-
 import nisse.SlimeRecords.coords.Coordinates;
 import nisse.SlimeRecords.data.CountryEntity;
 import nisse.SlimeRecords.data.SpatialDatabase;

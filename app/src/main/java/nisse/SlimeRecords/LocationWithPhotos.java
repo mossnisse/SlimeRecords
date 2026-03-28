@@ -3,12 +3,12 @@ package nisse.SlimeRecords;
 import androidx.room.Embedded;
 import androidx.room.Relation;
 import java.util.List;
-import nisse.SlimeRecords.data.LocationRecord;
+import nisse.SlimeRecords.data.ObservationRecord;
 import nisse.SlimeRecords.data.PhotoRecord;
 
 public class LocationWithPhotos {
     @Embedded
-    public LocationRecord location;
+    public ObservationRecord location;
 
     @Relation(
             parentColumn = "id",

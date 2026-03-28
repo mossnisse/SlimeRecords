@@ -16,12 +16,13 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import nisse.SlimeRecords.data.LocationDao;
-import nisse.SlimeRecords.data.LocationRecord;
+import nisse.SlimeRecords.data.ObservationRecord;
 import nisse.SlimeRecords.data.PhotoRecord;
 import nisse.SlimeRecords.data.SpeciesAttributes;
 import nisse.SlimeRecords.data.UserDatabase;
@@ -128,7 +129,7 @@ public class ExportViewModel extends AndroidViewModel {
     }
 
     private String formatLocationAsCsv(LocationWithPhotos item, String d) {
-        LocationRecord r = item.location;
+        ObservationRecord r = item.location;
         SpeciesAttributes attr = r.attributes != null ? r.attributes : new SpeciesAttributes();
 
         // Process Photo Names
@@ -230,68 +231,71 @@ public class ExportViewModel extends AndroidViewModel {
     }
 
     private String formatArtportalenRow(LocationWithPhotos item) {
-        LocationRecord r = item.location;
+        ObservationRecord r = item.location;
         SpeciesAttributes a = r.attributes != null ? r.attributes : new SpeciesAttributes();
 
-        // Split Date and Time (Assuming r.localTime is "YYYY-MM-DD HH:MM:SS")
-        String date = "";
-        String time = "";
-        if (r.localTime != null && r.localTime.length() >= 10) {
-            date = r.localTime.substring(0, 10);
-            if (r.localTime.length() >= 16) time = r.localTime.substring(11, 16);
-        }
+        // Prepare data (Date/Time/Coordinates)
+        String date = (r.localTime != null && r.localTime.length() >= 10) ? r.localTime.substring(0, 10) : "";
+        String time = (r.localTime != null && r.localTime.length() >= 16) ? r.localTime.substring(11, 16) : "";
 
-        // SWEREF 99 TM Conversion
-        Coordinates coord = new Coordinates(r.latitude, r.longitude);
-        Coordinates sweref = coord.convertToSweref99TMFromWGS84();
+        Coordinates sweref = new Coordinates(r.latitude, r.longitude).convertToSweref99TMFromWGS84();
         String ost = String.format(Locale.US, "%.0f", sweref.getEast());
         String nord = String.format(Locale.US, "%.0f", sweref.getNorth());
 
-        // Build the row (matching the 59 columns in the header)
-        StringBuilder sb = new StringBuilder();
-        sb.append(clean(a.taxonName)).append(";");              // Artnamn
-        sb.append(a.organismQuantity != null ? a.organismQuantity : "").append(";"); // Antal
-        sb.append(";");                                       // Enhet
-        sb.append(";");                                       // Antal substrat
-        sb.append(clean(a.lifeStage)).append(";");           // Ålder-Stadium
-        sb.append(clean(a.sex)).append(";");               // Kön
-        sb.append(clean(a.activity)).append(";");             // Aktivitet
-        sb.append(clean(a.samplingProtocol)).append(";");               // Metod
-        sb.append(truncate(clean(r.locality), 75)).append(";"); // Lokalnamn
-        sb.append(ost).append(";");                           // Ost
-        sb.append(nord).append(";");                          // Nord
-        sb.append(mapArtportalenAccuracy(r.accuracy)).append(";"); // Noggrannhet
-        sb.append(";");                                       // Diffusion
-        sb.append(";");                                       // Djup min
-        sb.append(";");                                       // Djup max
-        sb.append(Math.round(r.altitude)).append(";");        // Höjd min
-        sb.append(";");                                       // Höjd max
-        sb.append(date).append(";");                          // Startdatum
-        sb.append(time).append(";");                          // Starttid
-        sb.append(";");                                       // Slutdatum
-        sb.append(";");                                       // Sluttid
-        sb.append(truncate(clean(r.note), 1000)).append(";"); // Publik kommentar
-        sb.append(";");                                       // Intressant kommentar
-        sb.append(";");                                       // Privat kommentar
-        sb.append(";");                                       // Ej återfunnen
-        sb.append(";");                                       // Dölj fyndet
-        sb.append(";");                                       // Andrahand
-        sb.append(";");                                       // Osäker
-        sb.append(";");                                       // Ospontan
-        sb.append(";");                                       // Biotop (Choice list)
-        sb.append(clean(a.habitat)).append(";");              // Biotop-beskrivning
-        sb.append(";");                                       // Art som substrat
-        sb.append(";");                                       // Art som substrat besk.
-        sb.append(";");                                       // Substrat (Choice list)
-        sb.append(clean(a.substrate)).append(";");            // Substrat-beskrivning
-        sb.append(";");                                       // Offentlig samling
-        sb.append(";");                                       // Privat samling
-        sb.append(clean(a.specimenNr)).append(";");           // Samlings-nummer
+        // Build the list of columns
+        List<String> columns = new ArrayList<String>();
 
-        // Fill remaining 21 empty columns for Med-observatör, Externid, etc.
-        for(int i=0; i<21; i++) sb.append(";");
+        // Columns 1-10
+        columns.add(clean(a.taxonName));                     // 1: Artnamn
+        columns.add(a.organismQuantity != null ? String.valueOf(a.organismQuantity) : ""); // 2: Antal
+        columns.add("");                                     // 3: Enhet
+        columns.add("");                                     // 4: Antal substrat
+        columns.add(clean(a.lifeStage));                     // 5: Ålder-Stadium
+        columns.add(clean(a.sex));                           // 6: Kön
+        columns.add(clean(a.activity));                      // 7: Aktivitet
+        columns.add(clean(a.samplingProtocol));              // 8: Metod
+        columns.add(truncate(clean(r.locality), 75));   // 9: Lokalnamn
+        columns.add(ost);                                    // 10: Ost
 
-        return sb.toString();
+        // Columns 11-20
+        columns.add(nord);                                   // 11: Nord
+        columns.add(mapArtportalenAccuracy(r.accuracy));     // 12: Noggrannhet
+        columns.add("");                                     // 13: Diffusion
+        columns.add("");                                     // 14: Djup min
+        columns.add("");                                     // 15: Djup max
+        columns.add(String.valueOf(Math.round(r.altitude))); // 16: Höjd min
+        columns.add("");                                     // 17: Höjd max
+        columns.add(date);                                   // 18: Startdatum
+        columns.add(time);                                   // 19: Starttid
+        columns.add("");                                     // 20: Slutdatum
+
+        // Columns 21-38 (Attributes & Comments)
+        columns.add("");                                     // 21: Sluttid
+        columns.add(truncate(clean(r.note), 1000));     // 22: Publik kommentar
+        columns.add("");                                     // 23: Intressant kommentar
+        columns.add("");                                     // 24: Privat kommentar
+        columns.add("");                                     // 25: Ej återfunnen
+        columns.add("");                                     // 26: Dölj fyndet
+        columns.add("");                                     // 27: Andrahand
+        columns.add("");                                     // 28: Osäker
+        columns.add("");                                     // 29: Ospontan
+        columns.add("");                                     // 30: Biotop (Choice list)
+        columns.add(clean(a.habitat));                       // 31: Biotop-beskrivning
+        columns.add("");                                     // 32: Art som substrat
+        columns.add("");                                     // 33: Art som substrat besk.
+        columns.add("");                                     // 34: Substrat (Choice list)
+        columns.add(clean(a.substrate));                     // 35: Substrat-beskrivning
+        columns.add("");                                     // 36: Offentlig samling
+        columns.add("");                                     // 37: Privat samling
+        columns.add(clean(a.specimenNr));                    // 38: Samlings-nummer
+
+        // Fill remaining columns to reach exactly 59
+        while (columns.size() < 59) {
+            columns.add("");
+        }
+
+        // Join with semicolon
+        return String.join(";", columns);
     }
 
     private String truncate(String text, int max) {
@@ -300,7 +304,7 @@ public class ExportViewModel extends AndroidViewModel {
     }
 
     private String mapArtportalenAccuracy(float accuracy) {
-        int[] steps = {1, 5, 10, 25, 50, 75, 100, 125, 150, 200, 250, 300, 400, 500, 750, 1000, 1500, 2000, 2500, 3000, 5000};
+        final int[] steps = {1, 5, 10, 25, 50, 75, 100, 125, 150, 200, 250, 300, 400, 500, 750, 1000, 1500, 2000, 2500, 3000, 5000};
         int selected = 5000; // Default max
         for (int step : steps) {
             if (accuracy <= step) {
@@ -353,7 +357,7 @@ public class ExportViewModel extends AndroidViewModel {
         return sb.toString();
     }
 
-    public LiveData<List<LocationRecord>> getSpecimenLocations() {
+    public LiveData<List<ObservationRecord>> getSpecimenLocations() {
         return locationDao.getSpecimenLocations();
     }
 
