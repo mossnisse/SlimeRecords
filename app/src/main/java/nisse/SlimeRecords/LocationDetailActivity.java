@@ -203,7 +203,8 @@ public class LocationDetailActivity extends AppCompatActivity {
         lon = getIntent().getDoubleExtra("lon", 0);
         accuracy = getIntent().getFloatExtra("acc", 0);
         altitude = getIntent().getDoubleExtra("altitude", 0);
-        onCoordinatesLoaded();
+
+        onCoordinatesLoaded(true); // Perform full lookup
     }
 
     private void setupExistingLocation() {
@@ -260,14 +261,18 @@ public class LocationDetailActivity extends AppCompatActivity {
             } else {
                 binding.rvPhotoGallery.setVisibility(View.GONE);
             }
-            onCoordinatesLoaded();
+            onCoordinatesLoaded(false);
         });
     }
 
-    private void onCoordinatesLoaded() {
-        searchViewModel.performFullSpatialLookup(lat, lon);
+    private void onCoordinatesLoaded(boolean isNewRecord) {
         refreshCoordinateDisplay();
         loadLocalitySuggestions();
+
+        // ONLY perform the API spatial lookup (Country/Province/District) for NEW records
+        if (isNewRecord) {
+            searchViewModel.performFullSpatialLookup(lat, lon);
+        }
     }
 
     private void onCommitClicked() {
