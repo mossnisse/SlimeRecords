@@ -174,19 +174,27 @@ public class LocationDetailActivity extends AppCompatActivity {
     }
 
     private void loadLocalitySuggestions() {
-        // Only fetch if we actually have coordinates
+        // 0,0 is a valid coordinate (Null Island), but usually means 'unset' in this context.
         if (lat == 0 && lon == 0) return;
 
-        historyViewModel.getNearbyLocalitySuggestions(lat, lon).observe(this, suggestions -> {
-            if (suggestions != null && localityAdapter != null) {
-                localityAdapter.clear();
-                // Filter out the current text to avoid suggesting what's already typed
-                String currentText = binding.editLocality.getText().toString();
-                for (String s : suggestions) {
-                    if (!s.equals(currentText)) localityAdapter.add(s);
+        // Use a single observer for the lifetime of the activity
+        historyViewModel.getSortedNearbyLocalities(lat, lon).observe(this, suggestions -> {
+            if (suggestions == null || localityAdapter == null) return;
+
+            // Save current selection/cursor position if needed
+            String currentText = binding.editLocality.getText().toString().trim();
+
+            localityAdapter.setNotifyOnChange(false); // Stop flickering
+            localityAdapter.clear();
+
+            for (String s : suggestions) {
+                // Only add if it's not exactly what's already there
+                if (!s.equalsIgnoreCase(currentText)) {
+                    localityAdapter.add(s);
                 }
-                localityAdapter.notifyDataSetChanged();
             }
+
+            localityAdapter.notifyDataSetChanged();
         });
     }
 
@@ -229,7 +237,6 @@ public class LocationDetailActivity extends AppCompatActivity {
                 binding.inputHabitat.setText(a.habitat);
                 binding.inputCollector.setText(a.collector);
 
-                // Fix: Use organismQuantity
                 if (a.organismQuantity != null) {
                     binding.inputOrganismQuantity.setText(String.valueOf(a.organismQuantity));
                 } else {
@@ -237,9 +244,9 @@ public class LocationDetailActivity extends AppCompatActivity {
                 }
 
                 binding.inputLifeStage.setText(a.lifeStage);
-                binding.inputSex.setText(a.sex);             // Fix: was .sex
-                binding.inputActivity.setText(a.activity);      // Fix: check if you use .activity or .behavior
-                binding.inputSamplingProtocol.setText(a.samplingProtocol); // Fix: was .samplingProtocol
+                binding.inputSex.setText(a.sex);
+                binding.inputActivity.setText(a.activity);
+                binding.inputSamplingProtocol.setText(a.samplingProtocol);
 
                 binding.checkboxIsSpecimen.setChecked(a.isSpecimen);
                 binding.tvSpecimenNr.setVisibility(a.isSpecimen ? View.VISIBLE : View.GONE);
@@ -247,14 +254,13 @@ public class LocationDetailActivity extends AppCompatActivity {
             }
             if (showPhoto) {
                 currentPhotos.clear();
-                currentPhotos.addAll(item.photos); // item.photos is already List<PhotoRecord>
+                currentPhotos.addAll(item.photos);
                 photoAdapter.notifyDataSetChanged();
                 binding.rvPhotoGallery.setVisibility(View.VISIBLE);
             } else {
                 binding.rvPhotoGallery.setVisibility(View.GONE);
             }
-            refreshCoordinateDisplay();
-            //onCoordinatesLoaded();
+            onCoordinatesLoaded();
         });
     }
 

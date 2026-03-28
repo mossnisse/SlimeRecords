@@ -5,11 +5,14 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Transformations;
 import androidx.paging.Pager;
 import androidx.paging.PagingConfig;
 import androidx.paging.PagingData;
 import androidx.paging.PagingLiveData;
+import java.util.ArrayList;
 import java.util.List;
+import nisse.SlimeRecords.data.LocalitySuggestion;
 import nisse.SlimeRecords.data.LocationDao;
 import nisse.SlimeRecords.data.LocationRecord;
 import nisse.SlimeRecords.data.PhotoRecord;
@@ -91,14 +94,56 @@ public class HistoryViewModel extends AndroidViewModel {
         return locationDao.getLocationCount();
     }
 
-    public LiveData<List<String>> getNearbyLocalitySuggestions(double lat, double lon) {
-        // Approx 2km bounding box
-        double latDelta = 0.018;
-        double lonDelta = 0.036;
+    public LiveData<List<String>> getSortedNearbyLocalities(double userLat, double userLon) {
+        // Configuration: Adjust these to change the search behavior
+        final double searchRadiusMeters = 2000.0;
+        final double kmPerDegreeLat = 111.0;
 
-        return locationDao.getNearbyLocalitySuggestions(
-                lat - latDelta, lat + latDelta,
-                lon - lonDelta, lon + lonDelta
-        );
+        // Calculate the Bounding Box
+        // Latitude range is constant: degrees = distance / kmPerDegree
+        double latRange = (searchRadiusMeters / 1000.0) / kmPerDegreeLat;
+
+        // Longitude range shrinks as we move toward the poles
+        double cosLat = Math.cos(Math.toRadians(userLat));
+        // Use a small epsilon (1e-6) to avoid division by zero at the exact poles
+        double lonRange = (Math.abs(cosLat) > 1e-6) ?
+                ((searchRadiusMeters / 1000.0) / (kmPerDegreeLat * cosLat)) : latRange;
+
+        double minLat = userLat - latRange;
+        double maxLat = userLat + latRange;
+        double minLon = userLon - lonRange;
+        double maxLon = userLon + lonRange;
+
+        return Transformations.map(locationDao.getNearbyLocalityData(minLat, maxLat, minLon, maxLon), list -> {
+            List<String> names = new ArrayList<>();
+            if (list == null || list.isEmpty()) return names;
+
+            List<LocalitySuggestion> filteredList = new ArrayList<>();
+
+            // Fine-filter the results into a true circle
+            for (LocalitySuggestion item : list) {
+                float[] results = new float[1];
+                android.location.Location.distanceBetween(
+                        userLat, userLon,
+                        item.latitude, item.longitude,
+                        results);
+
+                item.distance = results[0];
+
+                if (item.distance <= searchRadiusMeters) {
+                    filteredList.add(item);
+                }
+            }
+
+            // Sort by distance (closest first)
+            filteredList.sort((a, b) -> Float.compare(a.distance, b.distance));
+
+            // Convert to string list for the AutoComplete adapter
+            for (LocalitySuggestion item : filteredList) {
+                names.add(item.name);
+            }
+
+            return names;
+        });
     }
 }

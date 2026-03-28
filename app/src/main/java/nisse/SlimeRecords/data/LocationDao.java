@@ -39,9 +39,6 @@ public abstract class LocationDao {
     @Query("DELETE FROM photo_table WHERE id = :photoId")
     public abstract void deletePhotoById(int photoId);
 
-    @Query("DELETE FROM photo_table WHERE locationId = :locationId")
-    public abstract void deletePhotosByLocationId(long locationId);
-
     @Transaction
     @Query("SELECT * FROM location_table WHERE id = :id LIMIT 1")
     public abstract LiveData<LocationWithPhotos> getLocationById(long id);
@@ -61,9 +58,6 @@ public abstract class LocationDao {
     @Query("SELECT COUNT(*) FROM photo_table WHERE filePath = :path")
     public abstract int getPhotoReferenceCount(String path);
 
-    @Query("SELECT EXISTS(SELECT 1 FROM location_table WHERE latitude = :lat AND longitude = :lon AND localTime = :time)")
-    public abstract boolean exists(double lat, double lon, String time);
-
     @Query("SELECT EXISTS(SELECT 1 FROM location_table WHERE id = :id)")
     public abstract boolean existsById(long id);
 
@@ -73,11 +67,13 @@ public abstract class LocationDao {
         insertLocationWithPhotos(record, photoPaths);
     }
 
-    @Query("SELECT DISTINCT locality FROM location_table " +
+    @Query("SELECT locality as name, AVG(latitude) as latitude, AVG(longitude) as longitude " +
+            "FROM location_table " +
             "WHERE latitude BETWEEN :minLat AND :maxLat " +
             "AND longitude BETWEEN :minLon AND :maxLon " +
-            "AND locality IS NOT NULL AND locality != ''")
-    public abstract LiveData<List<String>> getNearbyLocalitySuggestions(
+            "AND locality IS NOT NULL AND locality != '' " +
+            "GROUP BY locality")
+    public abstract LiveData<List<LocalitySuggestion>> getNearbyLocalityData(
             double minLat, double maxLat, double minLon, double maxLon);
 
     // --- EXPORT METHODS ---
