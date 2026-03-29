@@ -1,44 +1,18 @@
 package nisse.SlimeRecords.coords;
 
 public class Point {
-    private int x, y;
+    private final double x, y; // Use double for precision until the very last step
 
-    public Point(int x, int y) {
+    public Point(double x, double y) {
         this.x = x;
         this.y = y;
     }
-
-    public Point(Point p) {
-        this.x = p.x;
-        this.y = p.y;
-    }
-
-    public Point(String inv) {
-        String[] parts = inv.split(", ");
-        this.y = Integer.parseInt(parts[0]);
-        this.x = Integer.parseInt(parts[1]);
-    }
-
-    public void setX(int x) {
-        this.x = x;
-    }
-
-    public void setY(int y) {
-        this.y = y;
-    }
-
-    public int getX() {
-        return x;
-    }
-
-    public int getY() {
-        return y;
-    }
+    public double getX() { return x; }
+    public double getY() { return y; }
 
     public double distance(Point p) {
-        return Math.sqrt(Math.pow(this.x-p.getX(),2) + Math.pow(this.y-p.getY(),2));
+        return Math.hypot(this.x - p.x, this.y - p.y);
     }
-
     public double angle(Point p) {
         return Math.atan2(this.y-p.getY(), this.x-p.getX());
     }

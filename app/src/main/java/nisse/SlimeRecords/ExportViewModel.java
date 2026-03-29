@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+
+import nisse.SlimeRecords.coords.CoordSystem;
 import nisse.SlimeRecords.data.LocationDao;
 import nisse.SlimeRecords.data.ObservationRecord;
 import nisse.SlimeRecords.data.PhotoRecord;
@@ -238,7 +240,7 @@ public class ExportViewModel extends AndroidViewModel {
         String date = (r.localTime != null && r.localTime.length() >= 10) ? r.localTime.substring(0, 10) : "";
         String time = (r.localTime != null && r.localTime.length() >= 16) ? r.localTime.substring(11, 16) : "";
 
-        Coordinates sweref = new Coordinates(r.latitude, r.longitude).convertToSweref99TMFromWGS84();
+        Coordinates sweref = new Coordinates(r.latitude, r.longitude).toProjected(CoordSystem.SWEREF99TM);
         String ost = String.format(Locale.US, "%.0f", sweref.getEast());
         String nord = String.format(Locale.US, "%.0f", sweref.getNorth());
 

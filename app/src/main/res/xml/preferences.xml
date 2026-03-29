@@ -35,6 +35,12 @@
             android:defaultValue="false" />
 
         <CheckBoxPreference
+            android:key="show_DMS"
+            android:title="DMS"
+            android:summary="Show lat/long in Degrees and minutes"
+            android:defaultValue="false" />
+
+        <CheckBoxPreference
             android:key="show_date"
             android:title="Date"
             android:summary="Show date in the ISO format"

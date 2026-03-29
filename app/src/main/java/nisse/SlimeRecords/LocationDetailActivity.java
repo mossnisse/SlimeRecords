@@ -24,6 +24,8 @@ import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+
+import nisse.SlimeRecords.coords.CoordSystem;
 import nisse.SlimeRecords.coords.Coordinates;
 import nisse.SlimeRecords.data.ObservationRecord;
 import nisse.SlimeRecords.data.PhotoRecord;
@@ -434,17 +436,21 @@ public class LocationDetailActivity extends AppCompatActivity {
         }
         Coordinates here = new Coordinates(lat, lon);
         if (prefs.getBoolean("show_rt90", true)) {
-            Coordinates rt90 = here.convertToRT90FromWGS84();
+            Coordinates rt90 = here.toProjected(CoordSystem.RT90);
             sb.append("RT90: ").append((int)Math.round(rt90.getNorth())).append(", ").append((int)Math.round(rt90.getEast())).append("\n");
         }
 
         if (prefs.getBoolean("show_sweref", false)) {
-            Coordinates sweref = here.convertToSweref99TMFromWGS84();
+            Coordinates sweref = here.toProjected(CoordSystem.SWEREF99TM);
             sb.append("SWEREF99tm: ").append((int)Math.round(sweref.getNorth())).append(", ").append((int)Math.round(sweref.getEast())).append("\n");
         }
 
         if (prefs.getBoolean("show_rubin", true)) {
-            sb.append("RUBIN: ").append(here.convertToRT90FromWGS84().getRUBINfromRT90()).append("\n");
+            sb.append("RUBIN: ").append(here.toProjected(CoordSystem.RT90).toRUBIN(false)).append("\n");
+        }
+
+        if (prefs.getBoolean("show_DMS", true)) {
+            sb.append("DMS: ").append(here.getLatDMS()).append(" ").append(here.getLonDMS()).append("\n");
         }
 
         if (prefs.getBoolean("show_date", true)) {
@@ -497,7 +503,7 @@ public class LocationDetailActivity extends AppCompatActivity {
         }
 
         Coordinates here = new Coordinates(lat, lon);
-        Coordinates sweref = here.convertToSweref99TMFromWGS84();
+        Coordinates sweref = here.toProjected(CoordSystem.SWEREF99TM);
 
         String url = String.format(java.util.Locale.US,
                 "https://minkarta.lantmateriet.se/plats/3006/v2.0/?e=%d&n=%d&z=11&mapprofile=karta&name=%s",

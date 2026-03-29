@@ -8,6 +8,8 @@ import android.util.Log;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
+
+import nisse.SlimeRecords.coords.CoordSystem;
 import nisse.SlimeRecords.coords.Coordinates;
 import nisse.SlimeRecords.data.CountryEntity;
 import nisse.SlimeRecords.data.SpatialDatabase;
@@ -39,7 +41,7 @@ public class GeoResolver {
 
                 // Convert to SWEREF 99 TM
                 Coordinates wgs = new Coordinates(lat, lon);
-                Coordinates sweref = wgs.convertToSweref99TMFromWGS84();
+                Coordinates sweref = wgs.toProjected(CoordSystem.SWEREF99TM);
                 int n = (int) Math.round(sweref.getNorth());
                 int e = (int) Math.round(sweref.getEast());
 

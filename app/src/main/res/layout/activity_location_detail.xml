@@ -34,7 +34,6 @@
                 android:layout_height="wrap_content"
                 android:hint="Species name (Latin or Swedish)"
                 android:textSize="18sp"
-                android:paddingStart="4dp"
                 android:inputType="textCapSentences"
                 android:completionThreshold="1" />
         </com.google.android.material.textfield.TextInputLayout>
@@ -52,7 +51,6 @@
                 android:layout_height="wrap_content"
                 android:hint="Country"
                 android:textSize="18sp"
-                android:paddingStart="4dp"
                 android:inputType="textPersonName"
                 android:completionThreshold="0" />
         </com.google.android.material.textfield.TextInputLayout>
@@ -70,7 +68,6 @@
                 android:layout_height="wrap_content"
                 android:hint="Province, in Sweden landskap + lappmark"
                 android:textSize="18sp"
-                android:paddingStart="4dp"
                 android:inputType="textCapSentences" />
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -87,7 +84,6 @@
                 android:layout_height="wrap_content"
                 android:hint="District, in Sweden socken/parish borders from 1935"
                 android:textSize="18sp"
-                android:paddingStart="4dp"
                 android:inputType="textCapSentences" />
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -104,7 +100,6 @@
                 android:layout_height="wrap_content"
                 android:hint="Description of where the location is"
                 android:textSize="18sp"
-                android:paddingStart="4dp"
                 android:inputType="textPersonName"
                 android:completionThreshold="0" />
         </com.google.android.material.textfield.TextInputLayout>
@@ -122,7 +117,6 @@
                 android:layout_height="wrap_content"
                 android:hint="Substrate"
                 android:textSize="18sp"
-                android:paddingStart="4dp"
                 android:inputType="textPersonName"
                 android:completionThreshold="0" />
         </com.google.android.material.textfield.TextInputLayout>
@@ -259,7 +253,6 @@
                 android:layout_height="wrap_content"
                 android:hint="Collector(s) name(s)"
                 android:textSize="18sp"
-                android:paddingStart="4dp"
                 android:inputType="textPersonName"
                 android:completionThreshold="0" />
         </com.google.android.material.textfield.TextInputLayout>
