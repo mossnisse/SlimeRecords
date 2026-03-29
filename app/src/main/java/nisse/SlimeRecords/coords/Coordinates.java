@@ -1,5 +1,9 @@
 package nisse.SlimeRecords.coords;
 
+import androidx.annotation.NonNull;
+
+import java.util.Locale;
+
 public class Coordinates {
     private Double north, east; // Can represent Lat/Lon or N/E meters
 
@@ -8,12 +12,8 @@ public class Coordinates {
         this.east = east;
     }
 
-    public Coordinates(Point p) {
-        this.north = p.getY();
-        this.east = p.getX();
-    }
-
     private static double atanh(double value) {
+        if (Math.abs(value) >= 1.0) return value > 0 ? 20 : -20;
         return 0.5 * Math.log((1.0 + value) / (1.0 - value));
     }
 
@@ -80,10 +80,6 @@ public class Coordinates {
 
     public double getEast() {
         return east;
-    }
-
-    public Point getPoint() {
-        return new Point((int)Math.round(east),(int)Math.round(north));
     }
 
     public boolean isValid(CoordSystem CS) {
@@ -161,7 +157,7 @@ public class Coordinates {
     }
 
     /**
-     * Returns the longitude in DMS format: 11° 58' 20.3" E
+     * Returns the longitude in DMS format: 11° 58' 20.32" E
      */
     public String getLonDMS() {
         return toDMS(this.east, "E", "W");
@@ -182,42 +178,7 @@ public class Coordinates {
 
         // We use String.format to control the precision of the seconds (e.g., 1 decimal place)
         // The \u00B0 is the unicode for the degree symbol °
-        return String.format("%d\u00B0 %d' %.1f\" %s", degrees, minutes, seconds, direction);
-    }
-
-    // flyttar koordinaten distance i riktning direction. koordinaterna ska vara typ WGS84 lat/long
-    public Coordinates move(int distance, String direction) {
-        double bearing =0;
-        switch (direction) {
-            case "N": bearing = 0; break;
-            case "NNE": bearing = 22.5; break;
-            case "NE": bearing = 45; break;
-            case "ENE": bearing = 67.5; break;
-            case "E": bearing = 90; break;
-            case "ESE": bearing = 110.5; break;
-            case "SE": bearing = 135; break;
-            case "SSE": bearing = 157.5; break;
-            case "S": bearing = 180; break;
-            case "SSW": bearing = 202.5; break;
-            case "SW": bearing = 225; break;
-            case "WSW": bearing = 247.5; break;
-            case "W": bearing = 270; break;
-            case "WNW": bearing = 292.5; break;
-            case "NW": bearing = 315; break;
-            case "NNW": bearing = 337.5; break;
-        }
-
-        double brngRad = Math.toRadians(bearing);
-        double latRad = Math.toRadians(north);
-        double lonRad = Math.toRadians(east);
-        double earthRadius = 6371000;
-        double distFrac = distance / earthRadius;
-        // Haversine - räknar med att gjorden är helt sfärisk men det borde duga.
-        double latitudeResult = Math.asin(Math.sin(latRad) * Math.cos(distFrac) + Math.cos(latRad) * Math.sin(distFrac) * Math.cos(brngRad));
-        double a = Math.atan2(Math.sin(brngRad) * Math.sin(distFrac) * Math.cos(latRad), Math.cos(distFrac) - Math.sin(latRad) * Math.sin(latitudeResult));
-        double longitudeResult = (lonRad + a + 3 * Math.PI) % (2 * Math.PI) - Math.PI;
-        //System.out.println("latitude: " + Math.toDegrees(latitudeResult) + ", longitude: " + Math.toDegrees(longitudeResult));
-        return new Coordinates(Math.toDegrees(latitudeResult), Math.toDegrees(longitudeResult));
+        return String.format(Locale.US, "%d\u00B0 %d' %.2f\" %s", degrees, minutes, seconds, direction);
     }
 
     // RUBIN index related functions
@@ -281,28 +242,9 @@ public class Coordinates {
         int n3 = (nTotal % 5000) / 100;
         int e3 = (eTotal % 5000) / 100;
 
-        return String.format("%d%c%d%c %02d%02d", n1, e1, n2, e2, n3, e3);
+        return String.format(Locale.US, "%d%c%d%c %02d%02d", n1, e1, n2, e2, n3, e3);
     }
-
-    public String toString() {
-        return "("+north+", "+east+")";
-    }
-
-    public Point toPoint() {
-        return new Point((int)Math.round(east), (int)Math.round(north));
-    }
-
-    public static void main(String[] args) {
-        Coordinates rt90 = new Coordinates(6543540, 1457933);
-        Coordinates wgs84 = rt90.toWGS84(CoordSystem.RT90);
-        System.out.println("wgs84: "+wgs84);
-        //System.out.println("Sweref99TM: " + coord2);
-
-        //Coordinates coord3 = new Coordinates(6758843, 487907);
-        //Coordinates coord4 = convertToWGS84FromSweref99TM(coord3);
-
-        //System.out.println("WGS84: " + coord3);
-        //System.out.println("Sweref99TM: " + coord4);
-    }
-
+    @NonNull
+    @Override
+    public String toString() { return String.format(Locale.US, "(%.5f, %.5f)", north, east); }
 }

@@ -24,14 +24,13 @@ public enum CoordSystem {
     }*/
 
     public final String name;
-    public String country;
+    //public final String country;
     //public final CoordType type;
 
     public final double falseNorthing, falseEasting, centralMeridian, scale, axis, flattening;
 
     //limits what is valid values;
     public final double Nmin, Nmax, Emin, Emax;
-
     //wgs84 // -90 <= N <= 90, -180 <= E <= 180
 
     // Pre-calculated coefficients for Gauss-Krüger

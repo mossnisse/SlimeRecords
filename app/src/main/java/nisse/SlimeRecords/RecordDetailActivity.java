@@ -21,9 +21,11 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import java.io.File;
 import java.io.IOException;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import nisse.SlimeRecords.coords.CoordSystem;
 import nisse.SlimeRecords.coords.Coordinates;
@@ -430,8 +432,9 @@ public class RecordDetailActivity extends AppCompatActivity {
         if(prefs.getBoolean("show_altitude", true)) {
             sb.append("Altitude: ").append(Math.round(altitude)).append(" m\n");
         }
-        DecimalFormat dc = new DecimalFormat("0.00000");
         if (prefs.getBoolean("show_wgs84", true)) {
+            DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.US);
+            DecimalFormat dc = new DecimalFormat("0.00000", symbols);
             sb.append("WGS84: ").append(dc.format(lat)).append(", ").append(dc.format(lon)).append("\n");
         }
         Coordinates here = new Coordinates(lat, lon);
