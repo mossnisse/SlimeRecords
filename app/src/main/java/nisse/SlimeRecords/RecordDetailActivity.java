@@ -31,14 +31,14 @@ import nisse.SlimeRecords.data.ObservationRecord;
 import nisse.SlimeRecords.data.PhotoRecord;
 import nisse.SlimeRecords.data.SpeciesAttributes;
 import nisse.SlimeRecords.data.SpeciesReferenceWithAccepted;
-import nisse.SlimeRecords.databinding.ActivityLocationDetailBinding;
+import nisse.SlimeRecords.databinding.ActivityRecordDetailBinding;
 
-public class LocationDetailActivity extends AppCompatActivity {
+public class RecordDetailActivity extends AppCompatActivity {
     private double lat, lon;
     private float accuracy;
     private double altitude;
     private boolean isNew, isSaved = false;
-    private ActivityLocationDetailBinding binding;
+    private ActivityRecordDetailBinding binding;
     private String currentPhotoPath;
     private final List<PhotoRecord> currentPhotos = new ArrayList<>();
     private PhotoAdapter photoAdapter;
@@ -54,7 +54,7 @@ public class LocationDetailActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        binding = ActivityLocationDetailBinding.inflate(getLayoutInflater());
+        binding = ActivityRecordDetailBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
         searchViewModel = new ViewModelProvider(this).get(SearchViewModel.class);
@@ -162,7 +162,7 @@ public class LocationDetailActivity extends AppCompatActivity {
         photoAdapter = new PhotoAdapter(currentPhotos, new PhotoAdapter.OnPhotoListener() {
             @Override
             public void onPhotoClick(PhotoRecord photo) {
-                Intent intent = new Intent(LocationDetailActivity.this, FullScreenPhotoActivity.class);
+                Intent intent = new Intent(RecordDetailActivity.this, FullScreenPhotoActivity.class);
                 intent.putExtra("path", photo.filePath); // Pass the path string to the viewer
                 startActivity(intent);
             }
@@ -575,7 +575,7 @@ public class LocationDetailActivity extends AppCompatActivity {
                 String query = s.toString().trim();
                 if (query.length() >= 1) {
                     // Get target language from prefs to pass to the search
-                    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(LocationDetailActivity.this);
+                    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(RecordDetailActivity.this);
                     String targetLang = prefs.getString("preferred_species_language", "sv");
 
                     searchViewModel.findSpecies(query, targetLang);

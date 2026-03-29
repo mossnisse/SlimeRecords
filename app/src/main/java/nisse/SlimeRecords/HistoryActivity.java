@@ -9,7 +9,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 public class HistoryActivity extends AppCompatActivity {
-    private LocationAdapter adapter;
+    private RecordAdapter adapter;
     private HistoryViewModel viewModel;
 
     @Override
@@ -21,7 +21,7 @@ public class HistoryActivity extends AppCompatActivity {
         RecyclerView recyclerView = findViewById(R.id.recycler_view);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
-        adapter = new LocationAdapter();
+        adapter = new RecordAdapter();
         recyclerView.setAdapter(adapter);
 
         // Setup ViewModel
@@ -47,7 +47,7 @@ public class HistoryActivity extends AppCompatActivity {
         );
 
         adapter.setOnItemClickListener(item -> {
-            Intent intent = new Intent(this, LocationDetailActivity.class);
+            Intent intent = new Intent(this, RecordDetailActivity.class);
             intent.putExtra("location_id", item.location.id);
             intent.putExtra("is_new", false);
             startActivity(intent);

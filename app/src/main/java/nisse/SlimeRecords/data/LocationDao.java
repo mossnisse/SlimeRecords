@@ -10,7 +10,7 @@ import androidx.room.Query;
 import androidx.room.Transaction;
 import androidx.room.Update;
 import java.util.List;
-import nisse.SlimeRecords.LocationWithPhotos;
+import nisse.SlimeRecords.RecordWithPhotos;
 
 @Dao
 public abstract class LocationDao {
@@ -34,18 +34,18 @@ public abstract class LocationDao {
 
     @Transaction
     @Query("SELECT * FROM location_table ORDER BY timestamp DESC")
-    public abstract PagingSource<Integer, LocationWithPhotos> getAllLocationsPaged();
+    public abstract PagingSource<Integer, RecordWithPhotos> getAllLocationsPaged();
 
     @Query("DELETE FROM photo_table WHERE id = :photoId")
     public abstract void deletePhotoById(int photoId);
 
     @Transaction
     @Query("SELECT * FROM location_table WHERE id = :id LIMIT 1")
-    public abstract LiveData<LocationWithPhotos> getLocationById(long id);
+    public abstract LiveData<RecordWithPhotos> getLocationById(long id);
 
     @Transaction // Essential because this joins two tables
     @Query("SELECT * FROM location_table WHERE id = :id")
-    public abstract LocationWithPhotos getLocationByIdSync(long id);
+    public abstract RecordWithPhotos getLocationByIdSync(long id);
 
     // This helper will check if a record exists by its unique "fingerprint"
     // in case the ID column is missing or we are in "SKIP" mode.
@@ -88,7 +88,7 @@ public abstract class LocationDao {
 
     @Transaction
     @Query("SELECT * FROM location_table ORDER BY timestamp DESC")
-    public abstract List<LocationWithPhotos> getAllLocationsWithPhotosSync();
+    public abstract List<RecordWithPhotos> getAllLocationsWithPhotosSync();
 
     @Query("SELECT * FROM location_table WHERE attributes LIKE '%\"isSpecimen\":true%'")
     public abstract LiveData<List<ObservationRecord>> getSpecimenLocations();

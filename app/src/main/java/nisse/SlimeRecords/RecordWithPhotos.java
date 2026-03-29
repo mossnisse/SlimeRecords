@@ -6,7 +6,7 @@ import java.util.List;
 import nisse.SlimeRecords.data.ObservationRecord;
 import nisse.SlimeRecords.data.PhotoRecord;
 
-public class LocationWithPhotos {
+public class RecordWithPhotos {
     @Embedded
     public ObservationRecord location;
 

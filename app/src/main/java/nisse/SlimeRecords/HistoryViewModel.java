@@ -21,14 +21,14 @@ import nisse.SlimeRecords.data.UserDatabase;
 
 public class HistoryViewModel extends AndroidViewModel {
     private final LocationDao locationDao;
-    public final LiveData<PagingData<LocationWithPhotos>> historyLiveData;
+    public final LiveData<PagingData<RecordWithPhotos>> historyLiveData;
     private final MutableLiveData<Boolean> operationFinished = new MutableLiveData<>(false);
 
     public HistoryViewModel(@NonNull Application application) {
         super(application);
         locationDao = UserDatabase.getInstance(application).locationDao();
 
-        Pager<Integer, LocationWithPhotos> pager = new Pager<>(
+        Pager<Integer, RecordWithPhotos> pager = new Pager<>(
                 new PagingConfig(20, 5, false),
                 locationDao::getAllLocationsPaged
         );
@@ -49,7 +49,7 @@ public class HistoryViewModel extends AndroidViewModel {
         });
     }
 
-    public void deleteLocationWithPhotos(LocationWithPhotos item) {
+    public void deleteLocationWithPhotos(RecordWithPhotos item) {
         UserDatabase.getDbExecutor().execute(() -> {
             if (item.photos != null) {
                 for (PhotoRecord p : item.photos) {
@@ -79,7 +79,7 @@ public class HistoryViewModel extends AndroidViewModel {
         });
     }
 
-    public LiveData<LocationWithPhotos> getLocationWithPhotos(long id) { return locationDao.getLocationById(id); }
+    public LiveData<RecordWithPhotos> getLocationWithPhotos(long id) { return locationDao.getLocationById(id); }
     public LiveData<Boolean> getOperationFinished() { return operationFinished; }
     public LiveData<List<String>> getRecentCollectors() { return locationDao.getRecentCollectorNames(); }
 

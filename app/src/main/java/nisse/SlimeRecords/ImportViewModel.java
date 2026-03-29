@@ -227,7 +227,7 @@ public class ImportViewModel extends AndroidViewModel {
 
     private void deleteOldRecordProperly(long id) {
         // Get the data synchronously
-        LocationWithPhotos oldRecord = locationDao.getLocationByIdSync(id);
+        RecordWithPhotos oldRecord = locationDao.getLocationByIdSync(id);
 
         if (oldRecord != null) {
             // Use the same logic we put in HistoryViewModel

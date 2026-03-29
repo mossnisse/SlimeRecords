@@ -59,7 +59,7 @@ public class ExportViewModel extends AndroidViewModel {
                 Uri uri = context.getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
                 if (uri == null) throw new IOException("Failed to create MediaStore entry");
 
-                List<LocationWithPhotos> allData = locationDao.getAllLocationsWithPhotosSync();
+                List<RecordWithPhotos> allData = locationDao.getAllLocationsWithPhotosSync();
 
                 try (OutputStream os = context.getContentResolver().openOutputStream(uri);
                      ZipOutputStream zos = new ZipOutputStream(os)) {
@@ -76,7 +76,7 @@ public class ExportViewModel extends AndroidViewModel {
                     //add metadata readme
                     writeReadme(zos, format);
                     // Write Photos (Resilient Loop)
-                    for (LocationWithPhotos item : allData) {
+                    for (RecordWithPhotos item : allData) {
                         if (item.photos != null) {
                             for (PhotoRecord photo : item.photos) {
                                 try {
@@ -104,7 +104,7 @@ public class ExportViewModel extends AndroidViewModel {
         });
     }
 
-    private void writeCsv(ZipOutputStream zos, List<LocationWithPhotos> allData, String d, boolean includeBom) throws IOException {
+    private void writeCsv(ZipOutputStream zos, List<RecordWithPhotos> allData, String d, boolean includeBom) throws IOException {
         zos.putNextEntry(new ZipEntry("data.csv"));
         if (includeBom) {
             zos.write(new byte[] {(byte)0xEF, (byte)0xBB, (byte)0xBF});
@@ -119,7 +119,7 @@ public class ExportViewModel extends AndroidViewModel {
         zos.write(header.getBytes(StandardCharsets.UTF_8));
 
         // Build Rows
-        for (LocationWithPhotos item : allData) {
+        for (RecordWithPhotos item : allData) {
             try {
                 String row = formatLocationAsCsv(item, d) + "\n";
                 zos.write(row.getBytes(StandardCharsets.UTF_8));
@@ -130,7 +130,7 @@ public class ExportViewModel extends AndroidViewModel {
         zos.closeEntry();
     }
 
-    private String formatLocationAsCsv(LocationWithPhotos item, String d) {
+    private String formatLocationAsCsv(RecordWithPhotos item, String d) {
         ObservationRecord r = item.location;
         SpeciesAttributes attr = r.attributes != null ? r.attributes : new SpeciesAttributes();
 
@@ -203,7 +203,7 @@ public class ExportViewModel extends AndroidViewModel {
         }
     }
 
-    private void writeArtportalenCsv(ZipOutputStream zos, List<LocationWithPhotos> allData) throws IOException {
+    private void writeArtportalenCsv(ZipOutputStream zos, List<RecordWithPhotos> allData) throws IOException {
         zos.putNextEntry(new ZipEntry("artportalen_import.csv"));
 
         // Artportalen works best with BOM and Semicolon
@@ -226,13 +226,13 @@ public class ExportViewModel extends AndroidViewModel {
 
         zos.write((String.join(";", headers) + "\n").getBytes(StandardCharsets.UTF_8));
 
-        for (LocationWithPhotos item : allData) {
+        for (RecordWithPhotos item : allData) {
             zos.write((formatArtportalenRow(item) + "\n").getBytes(StandardCharsets.UTF_8));
         }
         zos.closeEntry();
     }
 
-    private String formatArtportalenRow(LocationWithPhotos item) {
+    private String formatArtportalenRow(RecordWithPhotos item) {
         ObservationRecord r = item.location;
         SpeciesAttributes a = r.attributes != null ? r.attributes : new SpeciesAttributes();
 

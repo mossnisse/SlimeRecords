@@ -12,17 +12,17 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import java.util.Objects;
 
-public class LocationAdapter extends PagingDataAdapter<LocationWithPhotos, LocationAdapter.LocationViewHolder> {
+public class RecordAdapter extends PagingDataAdapter<RecordWithPhotos, RecordAdapter.LocationViewHolder> {
 
-    public static final DiffUtil.ItemCallback<LocationWithPhotos> DIFF_CALLBACK =
-            new DiffUtil.ItemCallback<LocationWithPhotos>() {
+    public static final DiffUtil.ItemCallback<RecordWithPhotos> DIFF_CALLBACK =
+            new DiffUtil.ItemCallback<RecordWithPhotos>() {
                 @Override
-                public boolean areItemsTheSame(@NonNull LocationWithPhotos oldItem, @NonNull LocationWithPhotos newItem) {
+                public boolean areItemsTheSame(@NonNull RecordWithPhotos oldItem, @NonNull RecordWithPhotos newItem) {
                     return oldItem.location.id == newItem.location.id;
                 }
 
                 @Override
-                public boolean areContentsTheSame(@NonNull LocationWithPhotos oldItem, @NonNull LocationWithPhotos newItem) {
+                public boolean areContentsTheSame(@NonNull RecordWithPhotos oldItem, @NonNull RecordWithPhotos newItem) {
                     return Objects.equals(oldItem.location.note, newItem.location.note) &&
                             oldItem.location.timestamp == newItem.location.timestamp &&
                             Objects.equals(oldItem.location.attributes, newItem.location.attributes) && // Check attributes!
@@ -33,7 +33,7 @@ public class LocationAdapter extends PagingDataAdapter<LocationWithPhotos, Locat
     private OnItemClickListener clickListener;
     private OnItemLongClickListener longClickListener;
 
-    public LocationAdapter() {
+    public RecordAdapter() {
         super(DIFF_CALLBACK);
     }
 
@@ -41,13 +41,13 @@ public class LocationAdapter extends PagingDataAdapter<LocationWithPhotos, Locat
     @Override
     public LocationViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         // 1. Inflate the nicer "location_item" layout (CardView)
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.location_item, parent, false);
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.record_item, parent, false);
         return new LocationViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull LocationViewHolder holder, int position) {
-        LocationWithPhotos item = getItem(position);
+        RecordWithPhotos item = getItem(position);
 
         if (item != null) {
             // Set Note
@@ -95,8 +95,8 @@ public class LocationAdapter extends PagingDataAdapter<LocationWithPhotos, Locat
     }
 
     // --- Interfaces ---
-    public interface OnItemClickListener { void onItemClick(LocationWithPhotos item); }
-    public interface OnItemLongClickListener { void onItemLongClick(LocationWithPhotos item); }
+    public interface OnItemClickListener { void onItemClick(RecordWithPhotos item); }
+    public interface OnItemLongClickListener { void onItemLongClick(RecordWithPhotos item); }
     public void setOnItemClickListener(OnItemClickListener listener) { this.clickListener = listener; }
     public void setOnItemLongClickListener(OnItemLongClickListener listener) { this.longClickListener = listener; }
 

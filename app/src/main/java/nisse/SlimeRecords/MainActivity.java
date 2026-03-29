@@ -152,7 +152,7 @@ public class MainActivity extends AppCompatActivity {
 
         Location best = viewModel.getCurrentBestLocation();
         if (shouldTransition && best != null) {
-            Intent intent = new Intent(this, LocationDetailActivity.class);
+            Intent intent = new Intent(this, RecordDetailActivity.class);
             intent.putExtra("lat", best.getLatitude());
             intent.putExtra("lon", best.getLongitude());
             intent.putExtra("acc", best.getAccuracy());
