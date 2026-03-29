@@ -41,6 +41,12 @@
             android:defaultValue="false" />
 
         <CheckBoxPreference
+            android:key="show_UTM"
+            android:title="UTM"
+            android:summary="Show UTM coordinates"
+            android:defaultValue="false" />
+
+        <CheckBoxPreference
             android:key="show_date"
             android:title="Date"
             android:summary="Show date in the ISO format"

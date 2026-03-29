@@ -45,6 +45,39 @@ public class Coordinates {
         return new Coordinates(n, e);
     }
 
+    private Coordinates toProjected(CoordSystem cs, double centralMeridianDeg, double fn, double fe, double k0) {
+        double phi = Math.toRadians(this.north);
+        double lambda = Math.toRadians(this.east);
+        double lambdaZero = Math.toRadians(centralMeridianDeg);
+
+        // Conformal latitude
+        double phiStar = phi - Math.sin(phi) * Math.cos(phi) * (cs.e2 +
+                cs.B * Math.pow(Math.sin(phi), 2) +
+                cs.C * Math.pow(Math.sin(phi), 4) +
+                cs.D * Math.pow(Math.sin(phi), 6));
+
+        double deltaLambda = lambda - lambdaZero;
+        double xiPrim = Math.atan(Math.tan(phiStar) / Math.cos(deltaLambda));
+        double etaPrim = atanh(Math.cos(phiStar) * Math.sin(deltaLambda));
+
+        // Scale and Radius
+        double aRoof = cs.a_roof;
+
+        double n = k0 * aRoof * (xiPrim +
+                cs.beta1 * Math.sin(2 * xiPrim) * Math.cosh(2 * etaPrim) +
+                cs.beta2 * Math.sin(4 * xiPrim) * Math.cosh(4 * etaPrim) +
+                cs.beta3 * Math.sin(6 * xiPrim) * Math.cosh(6 * etaPrim) +
+                cs.beta4 * Math.sin(8 * xiPrim) * Math.cosh(8 * etaPrim)) + fn;
+
+        double e = k0 * aRoof * (etaPrim +
+                cs.beta1 * Math.cos(2 * xiPrim) * Math.sinh(2 * etaPrim) +
+                cs.beta2 * Math.cos(4 * xiPrim) * Math.sinh(4 * etaPrim) +
+                cs.beta3 * Math.cos(6 * xiPrim) * Math.sinh(6 * etaPrim) +
+                cs.beta4 * Math.cos(8 * xiPrim) * Math.sinh(8 * etaPrim)) + fe;
+
+        return new Coordinates(n, e);
+    }
+
     public Coordinates toWGS84(CoordSystem cs) {
         double xi = (this.north - cs.falseNorthing) / (cs.scale * cs.a_roof);
         double eta = (this.east - cs.falseEasting) / (cs.scale * cs.a_roof);
@@ -243,6 +276,70 @@ public class Coordinates {
         int e3 = (eTotal % 5000) / 100;
 
         return String.format(Locale.US, "%d%c%d%c %02d%02d", n1, e1, n2, e2, n3, e3);
+    }
+
+    // UTM convertion methods
+
+    /**
+     * Converts WGS84 to UTM.
+     */
+    public UTMResult toUTM() {
+        if (this.north < -80 || this.north > 84) {
+            return null; // Polar areas use UPS, not UTM
+        }
+
+        String gzd = getUTMGridZone(); // Using the logic from your JS code
+
+        // Extract zone number from GZD (e.g., "33V" -> 33)
+        int zone = Integer.parseInt(gzd.replaceAll("[^0-9]", ""));
+        double centralMeridian = (zone * 6.0) - 183.0;
+
+        // False Northing: 10,000,000 for Southern Hemisphere, 0 for Northern
+        double falseNorthing = (this.north < 0) ? 10000000.0 : 0.0;
+        double falseEasting = 500000.0;
+        double utmScale = 0.9996;
+
+        // UTM uses the WGS84 ellipsoid (same as SWEREF99TM)
+        Coordinates projected = toProjected(CoordSystem.SWEREF99TM,
+                centralMeridian,
+                falseNorthing,
+                falseEasting,
+                utmScale);
+
+        return new UTMResult(gzd, projected.getEast(), projected.getNorth());
+    }
+
+    private String getUTMGridZone() {
+        int zn = (int) Math.ceil((this.east + 180) / 6.0);
+        if (this.east == 180) zn = 60;
+
+        // Latitude Band
+        char zl;
+        if (this.north >= 72) zl = 'X';
+        else if (this.north < -80) zl = 'C'; // Simplified
+        else {
+            int index = (int) Math.ceil((this.north + 80) / 8.0);
+            zl = utmNumToAlpha(index);
+        }
+
+        String zoneStr = String.valueOf(zn) + zl;
+
+        // Norway/Svalbard Exceptions
+        if (this.north > 56 && this.north < 64 && this.east > 3 && this.east < 6) return "32V";
+        if (this.north > 72) {
+            if (this.east >= 0 && this.east < 9) return "31X";
+            if (this.east >= 9 && this.east < 21) return "33X";
+            if (this.east >= 21 && this.east < 33) return "35X";
+            if (this.east >= 33 && this.east < 42) return "37X";
+        }
+        return zoneStr;
+    }
+
+    private char utmNumToAlpha(int num) {
+        int code = num + 66; // 1 -> 'C'
+        if (code > 72) code++; // Skip 'I'
+        if (code > 78) code++; // Skip 'O'
+        return (char) code;
     }
     @NonNull
     @Override

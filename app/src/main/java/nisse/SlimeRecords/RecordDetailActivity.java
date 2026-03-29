@@ -29,6 +29,7 @@ import java.util.Locale;
 
 import nisse.SlimeRecords.coords.CoordSystem;
 import nisse.SlimeRecords.coords.Coordinates;
+import nisse.SlimeRecords.coords.UTMResult;
 import nisse.SlimeRecords.data.ObservationRecord;
 import nisse.SlimeRecords.data.PhotoRecord;
 import nisse.SlimeRecords.data.SpeciesAttributes;
@@ -454,6 +455,11 @@ public class RecordDetailActivity extends AppCompatActivity {
 
         if (prefs.getBoolean("show_DMS", true)) {
             sb.append("DMS: ").append(here.getLatDMS()).append(" ").append(here.getLonDMS()).append("\n");
+        }
+
+        if (prefs.getBoolean("show_UTM", true)) {
+            UTMResult utm = here.toUTM();
+            sb.append("UTM: ").append(utm.toString()).append("\n");
         }
 
         if (prefs.getBoolean("show_date", true)) {
