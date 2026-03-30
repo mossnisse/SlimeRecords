@@ -462,6 +462,11 @@ public class RecordDetailActivity extends AppCompatActivity {
             sb.append("UTM: ").append(utm.toString()).append("\n");
         }
 
+        if (prefs.getBoolean("show_MGRS", true)) {
+            UTMResult utm = here.toUTM();
+            sb.append("MGRS: ").append(here.toMGRS()).append("\n");
+        }
+
         if (prefs.getBoolean("show_date", true)) {
             String dateToShow = isNew ? LocalDate.now().toString() : currentRecord.localTime;
             sb.append("Date: ").append(dateToShow).append("\n");

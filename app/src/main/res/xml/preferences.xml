@@ -47,6 +47,12 @@
             android:defaultValue="false" />
 
         <CheckBoxPreference
+            android:key="show_MGRS"
+            android:title="MGRS"
+            android:summary="Show Military Grid Reference System"
+            android:defaultValue="false" />
+
+        <CheckBoxPreference
             android:key="show_date"
             android:title="Date"
             android:summary="Show date in the ISO format"
