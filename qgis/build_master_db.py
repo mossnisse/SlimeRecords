@@ -3,6 +3,8 @@ import os
 import sqlite3
 import traceback
 
+# dyntaxa is downloaded at https://artfakta.se/metadata/dyntaxa
+
 # 1. FORCE THE PATH - Use the exact folder where your scripts live
 script_dir = r"C:/Users/NissE/AndroidStudioProjects/WhatsMySocken/qgis"
 if script_dir not in sys.path:
