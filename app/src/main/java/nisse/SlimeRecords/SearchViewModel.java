@@ -26,7 +26,7 @@ public class SearchViewModel extends AndroidViewModel {
     private final MutableLiveData<String> districtResult = new MutableLiveData<>();
     private final MutableLiveData<List<SpeciesReferenceWithAccepted>> speciesSuggestions = new MutableLiveData<>();
     private final SpatialDao spatialDao;
-    private String lastQuery = "";
+    private volatile String lastQuery = "";
 
     public SearchViewModel(@NonNull Application application) {
         super(application);

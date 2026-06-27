@@ -19,31 +19,7 @@ public class Coordinates {
     }
 
     public Coordinates toProjected(CoordSystem cs) {
-        double phi = Math.toRadians(this.north);
-        double lambda = Math.toRadians(this.east);
-
-        double phiStar = phi - Math.sin(phi) * Math.cos(phi) * (cs.e2 +
-                cs.B * Math.pow(Math.sin(phi), 2) +
-                cs.C * Math.pow(Math.sin(phi), 4) +
-                cs.D * Math.pow(Math.sin(phi), 6));
-
-        double deltaLambda = lambda - cs.lambda_zero;
-        double xiPrim = Math.atan(Math.tan(phiStar) / Math.cos(deltaLambda));
-        double etaPrim = atanh(Math.cos(phiStar) * Math.sin(deltaLambda));
-
-        double n = cs.scale * cs.a_roof * (xiPrim +
-                cs.beta1 * Math.sin(2 * xiPrim) * Math.cosh(2 * etaPrim) +
-                cs.beta2 * Math.sin(4 * xiPrim) * Math.cosh(4 * etaPrim) +
-                cs.beta3 * Math.sin(6 * xiPrim) * Math.cosh(6 * etaPrim) +
-                cs.beta4 * Math.sin(8 * xiPrim) * Math.cosh(8 * etaPrim)) + cs.falseNorthing;
-
-        double e = cs.scale * cs.a_roof * (etaPrim +
-                cs.beta1 * Math.cos(2 * xiPrim) * Math.sinh(2 * etaPrim) +
-                cs.beta2 * Math.cos(4 * xiPrim) * Math.sinh(4 * etaPrim) +
-                cs.beta3 * Math.cos(6 * xiPrim) * Math.sinh(6 * etaPrim) +
-                cs.beta4 * Math.cos(8 * xiPrim) * Math.sinh(8 * etaPrim)) + cs.falseEasting;
-
-        return new Coordinates(n, e);
+        return toProjected(cs, cs.centralMeridian, cs.falseNorthing, cs.falseEasting, cs.scale);
     }
 
     private Coordinates toProjected(CoordSystem cs, double centralMeridianDeg, double fn, double fe, double k0) {

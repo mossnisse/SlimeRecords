@@ -25,6 +25,9 @@ public class RecordAdapter extends PagingDataAdapter<RecordWithPhotos, RecordAda
                 public boolean areContentsTheSame(@NonNull RecordWithPhotos oldItem, @NonNull RecordWithPhotos newItem) {
                     return Objects.equals(oldItem.location.note, newItem.location.note) &&
                             oldItem.location.timestamp == newItem.location.timestamp &&
+                            oldItem.location.latitude == newItem.location.latitude &&
+                            oldItem.location.longitude == newItem.location.longitude &&
+                            Objects.equals(oldItem.location.localTime, newItem.location.localTime) &&
                             Objects.equals(oldItem.location.attributes, newItem.location.attributes) && // Check attributes!
                             oldItem.photos.size() == newItem.photos.size();
                 }
@@ -54,7 +57,7 @@ public class RecordAdapter extends PagingDataAdapter<RecordWithPhotos, RecordAda
             String title = "Unknown Species";
             if (item.location.attributes != null && item.location.attributes.taxonName != null && !item.location.attributes.taxonName.isEmpty()) {
                 title = item.location.attributes.taxonName;
-            } else if (item.location.note != null && !item.location.note.isEmpty()) {
+            } else if (!item.location.note.isEmpty()) {
                 title = item.location.note;
             }
             holder.tvNote.setText(title);

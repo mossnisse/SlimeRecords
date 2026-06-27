@@ -54,9 +54,7 @@ public class ImportViewModel extends AndroidViewModel {
                  FileInputStream fis = new FileInputStream(pfd.getFileDescriptor());
                  FileOutputStream fos = new FileOutputStream(tempFile)) {
 
-                byte[] buffer = new byte[8192];
-                int read;
-                while ((read = fis.read(buffer)) != -1) fos.write(buffer, 0, read);
+                FileUtils.copy(fis, fos);
                 fos.flush();
 
                 processZipFile(tempFile);
@@ -154,7 +152,7 @@ public class ImportViewModel extends AndroidViewModel {
                         targetId = existingId; // Reuse the ID so links remain valid
                         results.updated++;
                     } else if (activeStrategy == DuplicateStrategy.KEEP_BOTH) {
-                        targetId = 0; // Let Room auto-generate a new ID
+                        // Let Room auto-generate a new ID
                         results.added++;
                     }
                 } else {
@@ -167,12 +165,12 @@ public class ImportViewModel extends AndroidViewModel {
                 ObservationRecord record = new ObservationRecord();
                 record.id = targetId;
 
-                // Primary Location Data
-                record.latitude = parseDouble(parts, colMap, "decimalLatitude", 0);
-                record.longitude = parseDouble(parts, colMap, "decimalLongitude", 0);
+                // Primary Location Data (lat/lon/time already parsed above)
+                record.latitude = lat;
+                record.longitude = lon;
                 record.accuracy = (float) parseDouble(parts, colMap, "coordinateUncertaintyInMeters", 0);
                 record.altitude = parseDouble(parts, colMap, "verbatimElevation", 0);
-                record.localTime = getString(parts, colMap, "eventDate", "");
+                record.localTime = time;
                 record.note = getString(parts, colMap, "occurrenceRemarks", "");
 
                 // Geo fields
@@ -270,9 +268,7 @@ public class ImportViewModel extends AndroidViewModel {
 
     private void extractFile(ZipInputStream zis, File destFile) throws IOException {
         try (FileOutputStream fos = new FileOutputStream(destFile)) {
-            byte[] buffer = new byte[8192];
-            int len;
-            while ((len = zis.read(buffer)) > 0) fos.write(buffer, 0, len);
+            FileUtils.copy(zis, fos);
         }
     }
 

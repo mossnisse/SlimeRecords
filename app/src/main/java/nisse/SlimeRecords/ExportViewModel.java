@@ -138,7 +138,7 @@ public class ExportViewModel extends AndroidViewModel {
         StringBuilder photoBuilder = new StringBuilder();
         if (item.photos != null) {
             for (PhotoRecord p : item.photos) {
-                if (p.filePath != null && !p.filePath.isEmpty()) {
+                if (!p.filePath.isEmpty()) {
                     if (photoBuilder.length() > 0) photoBuilder.append("|");
                     photoBuilder.append(new File(p.filePath).getName());
                 }
@@ -174,7 +174,7 @@ public class ExportViewModel extends AndroidViewModel {
         sb.append("\"").append(clean(r.note)).append("\"").append(d);
 
         // The final column: Photos
-        sb.append("\"").append(photoBuilder.toString()).append("\"");
+        sb.append("\"").append(photoBuilder).append("\"");
 
         return sb.toString();
     }
@@ -190,11 +190,7 @@ public class ExportViewModel extends AndroidViewModel {
         try {
             zos.putNextEntry(new ZipEntry("photos/" + photoFile.getName()));
             try (FileInputStream fis = new FileInputStream(photoFile)) {
-                byte[] buffer = new byte[8192];
-                int length;
-                while ((length = fis.read(buffer)) >= 0) {
-                    zos.write(buffer, 0, length);
-                }
+                FileUtils.copy(fis, zos);
             }
             zos.closeEntry();
         } catch (IOException e) {
@@ -237,8 +233,8 @@ public class ExportViewModel extends AndroidViewModel {
         SpeciesAttributes a = r.attributes != null ? r.attributes : new SpeciesAttributes();
 
         // Prepare data (Date/Time/Coordinates)
-        String date = (r.localTime != null && r.localTime.length() >= 10) ? r.localTime.substring(0, 10) : "";
-        String time = (r.localTime != null && r.localTime.length() >= 16) ? r.localTime.substring(11, 16) : "";
+        String date = r.localTime.length() >= 10 ? r.localTime.substring(0, 10) : "";
+        String time = r.localTime.length() >= 16 ? r.localTime.substring(11, 16) : "";
 
         Coordinates sweref = new Coordinates(r.latitude, r.longitude).toProjected(CoordSystem.SWEREF99TM);
         String ost = String.format(Locale.US, "%.0f", sweref.getEast());

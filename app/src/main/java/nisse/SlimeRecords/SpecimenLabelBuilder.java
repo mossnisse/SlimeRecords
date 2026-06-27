@@ -31,14 +31,14 @@ public class SpecimenLabelBuilder {
 
     private static String generateSingleLabelHtml(ObservationRecord item) {
         SpeciesAttributes attrs = item.attributes;
-        String dateOnly = (item.localTime != null && item.localTime.length() >= 10)
+        String dateOnly = item.localTime.length() >= 10
                 ? item.localTime.substring(0, 10) : "____-____-____";
 
         // Dynamic Header based on Country
         String header = "Flora";
         if ("Sverige".equalsIgnoreCase(item.country) || "Sweden".equalsIgnoreCase(item.country) || "SE".equalsIgnoreCase(item.countryCode)) {
             header = "Flora Suecica";
-        } else if (item.country != null && !item.country.isEmpty()) {
+        } else if (!item.country.isEmpty()) {
             header = "Flora of " + item.country;
         }
 

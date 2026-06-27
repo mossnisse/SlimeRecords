@@ -14,7 +14,7 @@ public class ObservationRecord {
     public long timestamp;
     public float accuracy;  // DwC coordinateUncertaintyInMeters
     public double altitude;  // DwC verbatimElevation  DwC verticalDatum?
-    public boolean hasAltitude;
+    public boolean hasAltitude; // unused, but kept as a Room column to preserve DB schema (v1)
     @NonNull
     public String localTime ="";  // DwC eventDate
     @NonNull

@@ -15,6 +15,7 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
+import androidx.lifecycle.LiveData;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -46,6 +47,7 @@ public class RecordDetailActivity extends AppCompatActivity {
     private final List<PhotoRecord> currentPhotos = new ArrayList<>();
     private PhotoAdapter photoAdapter;
     private ArrayAdapter<String> localityAdapter;
+    private LiveData<List<String>> nearbyLocalitiesLiveData;
     private ObservationRecord currentRecord;
     private SearchViewModel searchViewModel;
     private HistoryViewModel historyViewModel;
@@ -144,18 +146,6 @@ public class RecordDetailActivity extends AppCompatActivity {
             }
         });
 
-        // to get the combobox for the collector field logic to work
-        binding.inputCollector.setOnClickListener(v -> {
-            // Show the dropdown when the field is clicked, even if empty
-            binding.inputCollector.showDropDown();
-        });
-
-        binding.inputCollector.setOnFocusChangeListener((v, hasFocus) -> {
-            if (hasFocus) {
-                binding.inputCollector.showDropDown();
-            }
-        });
-
         showPhoto = prefs.getBoolean("show_photo", true);
         binding.btnTakePhotoDetail.setVisibility(showPhoto ? View.VISIBLE : View.GONE);
         // photo gallery
@@ -182,8 +172,11 @@ public class RecordDetailActivity extends AppCompatActivity {
         // 0,0 is a valid coordinate (Null Island), but usually means 'unset' in this context.
         if (lat == 0 && lon == 0) return;
 
-        // Use a single observer for the lifetime of the activity
-        historyViewModel.getSortedNearbyLocalities(lat, lon).observe(this, suggestions -> {
+        if (nearbyLocalitiesLiveData != null) {
+            nearbyLocalitiesLiveData.removeObservers(this);
+        }
+        nearbyLocalitiesLiveData = historyViewModel.getSortedNearbyLocalities(lat, lon);
+        nearbyLocalitiesLiveData.observe(this, suggestions -> {
             if (suggestions == null || localityAdapter == null) return;
 
             // Save current selection/cursor position if needed
@@ -458,12 +451,11 @@ public class RecordDetailActivity extends AppCompatActivity {
         }
 
         if (prefs.getBoolean("show_UTM", true)) {
-            UTMResult utm = here.toUTM();
-            sb.append("UTM: ").append(utm.toString()).append("\n");
+            UTMResult utm = here.toUTM(); // null outside the UTM latitude range (-80..84)
+            sb.append("UTM: ").append(utm != null ? utm.toString() : "OUTSIDE UTM RANGE").append("\n");
         }
 
         if (prefs.getBoolean("show_MGRS", true)) {
-            UTMResult utm = here.toUTM();
             sb.append("MGRS: ").append(here.toMGRS()).append("\n");
         }
 
@@ -678,5 +670,6 @@ public class RecordDetailActivity extends AppCompatActivity {
         if (isFinishing() && isNew && !isSaved) {
             for (PhotoRecord p : currentPhotos) FileUtils.deleteFileAtPath(p.filePath);
         }
+        binding = null;
     }
 }

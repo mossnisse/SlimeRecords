@@ -119,7 +119,13 @@ public class SpatialResolver implements AutoCloseable {
 
         ByteBuffer buffer = ByteBuffer.allocateDirect(geom.vertexCount * 8);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
-        fc.read(buffer, startPos);
+        // FileChannel.read may return a partial read, so loop until the block is filled.
+        long readPos = startPos;
+        while (buffer.hasRemaining()) {
+            int bytesRead = fc.read(buffer, readPos);
+            if (bytesRead < 0) break; // Unexpected EOF
+            readPos += bytesRead;
+        }
         buffer.flip();
 
         // Get last vertex (j)

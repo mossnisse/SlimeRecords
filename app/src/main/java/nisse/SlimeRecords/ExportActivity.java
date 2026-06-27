@@ -50,7 +50,7 @@ public class ExportActivity extends AppCompatActivity {
             }
         });
 
-        MaterialAutoCompleteTextView formatDropdown = (MaterialAutoCompleteTextView) binding.editExportFormat;
+        MaterialAutoCompleteTextView formatDropdown = binding.editExportFormat;
 
         ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
                 R.array.export_formats, android.R.layout.simple_list_item_1);

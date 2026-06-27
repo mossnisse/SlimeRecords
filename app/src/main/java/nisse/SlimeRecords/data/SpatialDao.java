@@ -36,12 +36,6 @@ public interface SpatialDao {
             List<String> searchGroups
     );
 
-    @Query("SELECT * FROM species_reference " +
-            "WHERE dyntaxaID = :tID " +
-            "AND language = :lang " +
-            "AND isSynonym = 0 LIMIT 1")
-    SpeciesReferenceEntity getAcceptedName(int tID, String lang);
-
     @Query("SELECT * FROM countries WHERE code = :code LIMIT 1")
     CountryEntity getCountryByCode(String code);
 }

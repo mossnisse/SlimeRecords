@@ -61,12 +61,6 @@ public abstract class LocationDao {
     @Query("SELECT EXISTS(SELECT 1 FROM location_table WHERE id = :id)")
     public abstract boolean existsById(long id);
 
-    @Transaction
-    void replaceLocationWithPhotos(ObservationRecord record, List<String> photoPaths) {
-        deleteLocation(record); // Room uses the ID in the 'record' object to match
-        insertLocationWithPhotos(record, photoPaths);
-    }
-
     @Query("SELECT locality as name, AVG(latitude) as latitude, AVG(longitude) as longitude " +
             "FROM location_table " +
             "WHERE latitude BETWEEN :minLat AND :maxLat " +

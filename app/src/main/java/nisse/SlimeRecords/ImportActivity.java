@@ -20,7 +20,6 @@ import nisse.SlimeRecords.databinding.ActivityImportBinding;
 public class ImportActivity extends AppCompatActivity {
     private ActivityImportBinding binding;
     private ImportViewModel importViewModel;
-   // private OnBackPressedCallback backPressedCallback;
     private final ActivityResultLauncher<String[]> filePickerLauncher =
             registerForActivityResult(new ActivityResultContracts.OpenDocument() {
                 @NonNull

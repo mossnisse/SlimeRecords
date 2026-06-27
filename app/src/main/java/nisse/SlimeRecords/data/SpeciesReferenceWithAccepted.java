@@ -16,6 +16,5 @@ public class SpeciesReferenceWithAccepted {
      */
     public String getName() { return species.name; }
     public int getTaxonID() { return species.dyntaxaID; }
-    public String getGroup() { return species.taxonGroup; }
     public int getIsSynonym() { return species.isSynonym; }
 }

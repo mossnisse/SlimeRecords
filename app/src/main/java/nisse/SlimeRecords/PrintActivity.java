@@ -9,6 +9,7 @@ import android.provider.MediaStore;
 import android.util.Log;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.LiveData;
 import androidx.lifecycle.ViewModelProvider;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -38,18 +39,20 @@ public class PrintActivity extends AppCompatActivity {
     }
 
     private void exportSpecimenLabels(boolean shouldShare) {
-        // Since getSpecimenLocationsWithPhotos is LiveData, we can get its current value
-        // or observe it once. For button clicks, we often just want the current state.
         binding.btnGenerateLabel.setEnabled(false);
         binding.btnShareLabel.setEnabled(false);
-        exportViewModel.getSpecimenLocations().observe(this, new androidx.lifecycle.Observer<List<ObservationRecord>>() {
+
+        LiveData<List<ObservationRecord>> specimens = exportViewModel.getSpecimenLocations();
+        specimens.observe(this, new androidx.lifecycle.Observer<List<ObservationRecord>>() {
             @Override
             public void onChanged(List<ObservationRecord> list) {
                 // Remove observer immediately so it only runs once per click
-                exportViewModel.getSpecimenLocations().removeObserver(this);
+                specimens.removeObserver(this);
 
                 if (list == null || list.isEmpty()) {
                     Toast.makeText(PrintActivity.this, "No specimens found!", Toast.LENGTH_SHORT).show();
+                    binding.btnGenerateLabel.setEnabled(true);
+                    binding.btnShareLabel.setEnabled(true);
                     return;
                 }
 

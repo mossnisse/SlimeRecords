@@ -15,6 +15,7 @@ import nisse.SlimeRecords.data.CountryEntity;
 import nisse.SlimeRecords.data.SpatialDatabase;
 import nisse.SlimeRecords.data.SpatialDao;
 import nisse.SlimeRecords.data.SpatialResolver;
+import nisse.SlimeRecords.data.UserDatabase;
 
 public class GeoResolver {
     private static final String TAG = "GeoResolver";
@@ -35,7 +36,7 @@ public class GeoResolver {
     }
 
     public static void resolve(Context context, double lat, double lon, GeoCallback callback) {
-        new Thread(() -> {
+        UserDatabase.getDbExecutor().execute(() -> {
             try {
                 GeoResolver resolver = new GeoResolver(context);
 
@@ -60,7 +61,7 @@ public class GeoResolver {
             } catch (Exception e) {
                 callback.onError(e);
             }
-        }).start();
+        });
     }
 
     private static boolean isValidRegion(String name) {
