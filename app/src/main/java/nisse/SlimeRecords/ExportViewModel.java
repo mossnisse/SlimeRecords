@@ -46,6 +46,7 @@ public class ExportViewModel extends AndroidViewModel {
         exportStatus.setValue(ExportState.LOADING);
 
         UserDatabase.getDbExecutor().execute(() -> {
+            Uri uri = null;
             try {
                 Context context = getApplication();
                 String zipName = "SlimeRecords_" + System.currentTimeMillis() + ".zip";
@@ -56,7 +57,7 @@ public class ExportViewModel extends AndroidViewModel {
                 values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
                 values.put(MediaStore.MediaColumns.IS_PENDING, 1);
 
-                Uri uri = context.getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+                uri = context.getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
                 if (uri == null) throw new IOException("Failed to create MediaStore entry");
 
                 List<RecordWithPhotos> allData = locationDao.getAllLocationsWithPhotosSync();
@@ -99,6 +100,13 @@ public class ExportViewModel extends AndroidViewModel {
 
             } catch (Exception e) {
                 Log.e("Export", "Critical Export Failure", e);
+                // Remove the half-written pending entry so it doesn't linger in Downloads
+                if (uri != null) {
+                    try {
+                        getApplication().getContentResolver().delete(uri, null, null);
+                    } catch (Exception ignored) {
+                    }
+                }
                 exportStatus.postValue(ExportState.ERROR);
             }
         });
@@ -183,6 +191,12 @@ public class ExportViewModel extends AndroidViewModel {
         return (input == null) ? "" : input.replace("\"", "\"\"").replace("\n", " ");
     }
 
+    // Artportalen rows are semicolon-separated and unquoted, so a ';' inside
+    // a free-text field would shift every following column.
+    private String cleanAp(String input) {
+        return clean(input).replace(";", ",");
+    }
+
     private void addPhotoToZip(ZipOutputStream zos, PhotoRecord photo) throws IOException {
         File photoFile = new File(photo.filePath);
         if (!photoFile.exists()) return;
@@ -244,15 +258,15 @@ public class ExportViewModel extends AndroidViewModel {
         List<String> columns = new ArrayList<String>();
 
         // Columns 1-10
-        columns.add(clean(a.taxonName));                     // 1: Artnamn
+        columns.add(cleanAp(a.taxonName));                   // 1: Artnamn
         columns.add(a.organismQuantity != null ? String.valueOf(a.organismQuantity) : ""); // 2: Antal
         columns.add("");                                     // 3: Enhet
         columns.add("");                                     // 4: Antal substrat
-        columns.add(clean(a.lifeStage));                     // 5: Ålder-Stadium
-        columns.add(clean(a.sex));                           // 6: Kön
-        columns.add(clean(a.activity));                      // 7: Aktivitet
-        columns.add(clean(a.samplingProtocol));              // 8: Metod
-        columns.add(truncate(clean(r.locality), 75));   // 9: Lokalnamn
+        columns.add(cleanAp(a.lifeStage));                   // 5: Ålder-Stadium
+        columns.add(cleanAp(a.sex));                         // 6: Kön
+        columns.add(cleanAp(a.activity));                    // 7: Aktivitet
+        columns.add(cleanAp(a.samplingProtocol));            // 8: Metod
+        columns.add(truncate(cleanAp(r.locality), 75)); // 9: Lokalnamn
         columns.add(ost);                                    // 10: Ost
 
         // Columns 11-20
@@ -269,7 +283,7 @@ public class ExportViewModel extends AndroidViewModel {
 
         // Columns 21-38 (Attributes & Comments)
         columns.add("");                                     // 21: Sluttid
-        columns.add(truncate(clean(r.note), 1000));     // 22: Publik kommentar
+        columns.add(truncate(cleanAp(r.note), 1000));   // 22: Publik kommentar
         columns.add("");                                     // 23: Intressant kommentar
         columns.add("");                                     // 24: Privat kommentar
         columns.add("");                                     // 25: Ej återfunnen
@@ -278,14 +292,14 @@ public class ExportViewModel extends AndroidViewModel {
         columns.add("");                                     // 28: Osäker
         columns.add("");                                     // 29: Ospontan
         columns.add("");                                     // 30: Biotop (Choice list)
-        columns.add(clean(a.habitat));                       // 31: Biotop-beskrivning
+        columns.add(cleanAp(a.habitat));                     // 31: Biotop-beskrivning
         columns.add("");                                     // 32: Art som substrat
         columns.add("");                                     // 33: Art som substrat besk.
         columns.add("");                                     // 34: Substrat (Choice list)
-        columns.add(clean(a.substrate));                     // 35: Substrat-beskrivning
+        columns.add(cleanAp(a.substrate));                   // 35: Substrat-beskrivning
         columns.add("");                                     // 36: Offentlig samling
         columns.add("");                                     // 37: Privat samling
-        columns.add(clean(a.specimenNr));                    // 38: Samlings-nummer
+        columns.add(cleanAp(a.specimenNr));                  // 38: Samlings-nummer
 
         // Fill remaining columns to reach exactly 59
         while (columns.size() < 59) {

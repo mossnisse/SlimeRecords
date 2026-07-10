@@ -49,7 +49,9 @@ public abstract class LocationDao {
 
     // This helper will check if a record exists by its unique "fingerprint"
     // in case the ID column is missing or we are in "SKIP" mode.
-    @Query("SELECT id FROM location_table WHERE latitude = :lat AND longitude = :lon AND localTime = :time LIMIT 1")
+    // Coordinates are compared rounded to 6 decimals because the CSV export
+    // writes %.6f, so re-imported values never exactly match the stored doubles.
+    @Query("SELECT id FROM location_table WHERE ROUND(latitude, 6) = ROUND(:lat, 6) AND ROUND(longitude, 6) = ROUND(:lon, 6) AND localTime = :time LIMIT 1")
     public abstract Long findIdByFingerprint(double lat, double lon, String time);
 
     @Delete
@@ -84,6 +86,9 @@ public abstract class LocationDao {
     @Query("SELECT * FROM location_table ORDER BY timestamp DESC")
     public abstract List<RecordWithPhotos> getAllLocationsWithPhotosSync();
 
+    // NOTE: matches against the raw Gson JSON stored by Converters; if the
+    // serialized field name or format of SpeciesAttributes.isSpecimen ever
+    // changes, this query must be updated too.
     @Query("SELECT * FROM location_table WHERE attributes LIKE '%\"isSpecimen\":true%'")
     public abstract LiveData<List<ObservationRecord>> getSpecimenLocations();
 }

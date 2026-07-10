@@ -407,9 +407,10 @@ public class Coordinates {
 
         char rowId = mgrsNumToAlpha((rowBase + n100k) % 20);
 
-        // Calculate final numerical values
-        int finalE = (int) Math.round(e % 100000);
-        int finalN = (int) Math.round(n % 100000);
+        // Calculate final numerical values. MGRS truncates rather than rounds;
+        // rounding could also yield 100000, which breaks the 5-digit format.
+        int finalE = (int) Math.floor(e % 100000);
+        int finalN = (int) Math.floor(n % 100000);
 
         return String.format(Locale.US, "%s%c%c%05d%05d", utm.gzd, columnId, rowId, finalE, finalN);
     }

@@ -117,7 +117,8 @@ public class SpatialResolver implements AutoCloseable {
         int intersections = 0;
         long startPos = baseOffset + geom.byteOffset;
 
-        ByteBuffer buffer = ByteBuffer.allocateDirect(geom.vertexCount * 8);
+        // Heap buffer: direct buffers are expensive to allocate per query
+        ByteBuffer buffer = ByteBuffer.allocate(geom.vertexCount * 8);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
         // FileChannel.read may return a partial read, so loop until the block is filled.
         long readPos = startPos;

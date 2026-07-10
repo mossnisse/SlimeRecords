@@ -73,6 +73,7 @@ public class ImportViewModel extends AndroidViewModel {
     private void processZipFile(File zipFile) throws IOException {
         File photoDir = getApplication().getExternalFilesDir(Environment.DIRECTORY_PICTURES);
         String csvContent = null;
+        List<File> extractedPhotos = new ArrayList<>();
 
         try (ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFile))) {
             ZipEntry entry;
@@ -82,7 +83,11 @@ public class ImportViewModel extends AndroidViewModel {
                     csvContent = readStreamToString(zis);
                 } else if (name.startsWith("photos/") && !entry.isDirectory()) {
                     File destFile = new File(photoDir, new File(name).getName());
-                    extractFile(zis, destFile);
+                    // Never overwrite a photo that already exists on the device
+                    if (!destFile.exists()) {
+                        extractFile(zis, destFile);
+                        extractedPhotos.add(destFile);
+                    }
                 }
                 zis.closeEntry();
             }
@@ -90,18 +95,25 @@ public class ImportViewModel extends AndroidViewModel {
 
         if (csvContent != null) {
             parseAndSaveCsv(csvContent, photoDir);
+            // Clean up photos that were extracted but ended up unreferenced
+            // (e.g. their rows were skipped as duplicates or failed to parse)
+            for (File f : extractedPhotos) {
+                if (locationDao.getPhotoReferenceCount(f.getAbsolutePath()) == 0) {
+                    FileUtils.deleteFileAtPath(f.getAbsolutePath());
+                }
+            }
         } else {
             throw new IOException("ZIP archive is missing a data.csv file.");
         }
     }
 
-    private void parseAndSaveCsv(String csv, File photoDir) {
+    private void parseAndSaveCsv(String csv, File photoDir) throws IOException {
         ImportResult results = new ImportResult();
         // Remove BOM if present
         if (csv.startsWith("\uFEFF")) csv = csv.substring(1);
 
         String[] lines = csv.split("\\r?\\n");
-        if (lines.length < 2) return;
+        if (lines.length < 2) throw new IOException("The CSV file contains no data rows.");
 
         // Detect Delimiter (Comma or Semicolon)
         String headerLine = lines[0];
@@ -110,9 +122,18 @@ public class ImportViewModel extends AndroidViewModel {
         // Regex to split while respecting quotes
         String regex = d + "(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)";
         String[] headers = headerLine.split(regex);
+        // Header names are stored lowercased so lookups are case-insensitive
+        // (the app's own export writes "ID" while lookups used "id", etc.)
         Map<String, Integer> colMap = new HashMap<>();
         for (int i = 0; i < headers.length; i++) {
-            colMap.put(cleanQuotes(headers[i]).trim(), i);
+            colMap.put(cleanQuotes(headers[i]).trim().toLowerCase(Locale.ROOT), i);
+        }
+
+        // Reject files that are clearly not a SlimeRecords export
+        if (!colMap.containsKey("decimallatitude") || !colMap.containsKey("decimallongitude")
+                || !colMap.containsKey("eventdate")) {
+            throw new IOException("Unrecognized CSV format: missing decimalLatitude, "
+                    + "decimalLongitude or eventDate columns.");
         }
 
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
@@ -245,9 +266,9 @@ public class ImportViewModel extends AndroidViewModel {
         }
     }
 
-    // Helper: Safely get string from mapped column
+    // Helper: Safely get string from mapped column (header keys are lowercased)
     private String getString(String[] parts, Map<String, Integer> map, String key, String fallback) {
-        Integer idx = map.get(key);
+        Integer idx = map.get(key.toLowerCase(Locale.ROOT));
         if (idx == null || idx >= parts.length) return fallback;
         return cleanQuotes(parts[idx]);
     }

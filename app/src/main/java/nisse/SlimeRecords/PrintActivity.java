@@ -6,6 +6,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -14,6 +15,7 @@ import androidx.lifecycle.ViewModelProvider;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import nisse.SlimeRecords.data.ObservationRecord;
 import nisse.SlimeRecords.data.UserDatabase;
@@ -39,6 +41,15 @@ public class PrintActivity extends AppCompatActivity {
     }
 
     private void exportSpecimenLabels(boolean shouldShare) {
+        // Parse the optional Collection nr range before touching the DB
+        final Integer fromNr = parseNullableInt(binding.inputRangeFrom.getText().toString());
+        final Integer toNr = parseNullableInt(binding.inputRangeTo.getText().toString());
+
+        if (fromNr != null && toNr != null && fromNr > toNr) {
+            Toast.makeText(this, "\"From nr\" must not be greater than \"To nr\".", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         binding.btnGenerateLabel.setEnabled(false);
         binding.btnShareLabel.setEnabled(false);
 
@@ -49,8 +60,13 @@ public class PrintActivity extends AppCompatActivity {
                 // Remove observer immediately so it only runs once per click
                 specimens.removeObserver(this);
 
-                if (list == null || list.isEmpty()) {
-                    Toast.makeText(PrintActivity.this, "No specimens found!", Toast.LENGTH_SHORT).show();
+                List<ObservationRecord> filtered = filterByCollectionNr(list, fromNr, toNr);
+
+                if (filtered.isEmpty()) {
+                    boolean hasRange = (fromNr != null || toNr != null);
+                    String msg = hasRange ? "No specimens with a Collection nr in that range."
+                            : "No specimens found!";
+                    Toast.makeText(PrintActivity.this, msg, Toast.LENGTH_SHORT).show();
                     binding.btnGenerateLabel.setEnabled(true);
                     binding.btnShareLabel.setEnabled(true);
                     return;
@@ -58,7 +74,7 @@ public class PrintActivity extends AppCompatActivity {
 
                 // Move heavy file operations to background thread
                 UserDatabase.getDbExecutor().execute(() -> {
-                    String htmlContent = SpecimenLabelBuilder.generateFullReport(PrintActivity.this, list);
+                    String htmlContent = SpecimenLabelBuilder.generateFullReport(PrintActivity.this, filtered);
                     Uri uri = saveFileAndGetUri(htmlContent);
 
                     // Switch back to Main Thread for UI updates
@@ -76,6 +92,43 @@ public class PrintActivity extends AppCompatActivity {
                 });
             }
         });
+    }
+
+    /** Parses trimmed user input into an Integer, or null if empty/invalid. */
+    private Integer parseNullableInt(String text) {
+        if (text == null) return null;
+        String trimmed = text.trim();
+        if (TextUtils.isEmpty(trimmed)) return null;
+        try {
+            return Integer.parseInt(trimmed);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Keeps only specimens whose Collection nr (specimenNr) is a whole number
+     * within [min, max]. A null bound means that end is unbounded; if both are
+     * null the list is returned unchanged. Specimens with a missing or
+     * non-numeric Collection nr are excluded whenever a bound is supplied.
+     */
+    private List<ObservationRecord> filterByCollectionNr(List<ObservationRecord> list, Integer min, Integer max) {
+        if (list == null) return new ArrayList<>();
+        if (min == null && max == null) return list;
+
+        List<ObservationRecord> filtered = new ArrayList<>();
+        for (ObservationRecord r : list) {
+            if (r.attributes == null || r.attributes.specimenNr == null) continue;
+            try {
+                int nr = Integer.parseInt(r.attributes.specimenNr.trim());
+                if (min != null && nr < min) continue;
+                if (max != null && nr > max) continue;
+                filtered.add(r);
+            } catch (NumberFormatException e) {
+                // Non-numeric Collection nr cannot be range-matched; skip it.
+            }
+        }
+        return filtered;
     }
 
     private Uri saveFileAndGetUri(String htmlContent) {

@@ -112,10 +112,13 @@ public class MainActivity extends AppCompatActivity {
             if (isStarting) {
                 viewModel.setCurrentBestLocation(null); // Clear old results for the new search
                 binding.tvStatus.setText("Initializing GPS...");
+                viewModel.setUserWantsSearching(true);
             } else {
+                // Flip the intent first: its observer resets the status text, so the
+                // outcome message from stopLocationUpdates(true) must come after it.
+                viewModel.setUserWantsSearching(false);
                 stopLocationUpdates(true);
             }
-            viewModel.setUserWantsSearching(isStarting);
         });
     }
 
@@ -156,7 +159,8 @@ public class MainActivity extends AppCompatActivity {
             intent.putExtra("lat", best.getLatitude());
             intent.putExtra("lon", best.getLongitude());
             intent.putExtra("acc", best.getAccuracy());
-            intent.putExtra("altitude", best.getAltitude());
+            // getAltitude() returns 0 anyway without a fix, but be explicit about it
+            intent.putExtra("altitude", best.hasAltitude() ? best.getAltitude() : 0.0);
             intent.putExtra("is_new", true);
             startActivity(intent);
         } else if (shouldTransition) {

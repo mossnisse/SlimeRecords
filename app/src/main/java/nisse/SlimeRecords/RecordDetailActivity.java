@@ -55,6 +55,7 @@ public class RecordDetailActivity extends AppCompatActivity {
     private String currentCountryCode = "";
     private Integer selectedDyntaxaID = null;
     private boolean showPhoto;
+    private boolean existingDetailsLoaded = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,6 +66,19 @@ public class RecordDetailActivity extends AppCompatActivity {
         searchViewModel = new ViewModelProvider(this).get(SearchViewModel.class);
         historyViewModel = new ViewModelProvider(this).get(HistoryViewModel.class);
 
+        // Restore transient state (the camera app may kill this activity)
+        if (savedInstanceState != null) {
+            currentPhotoPath = savedInstanceState.getString("currentPhotoPath");
+            currentCountryCode = savedInstanceState.getString("currentCountryCode", "");
+            if (savedInstanceState.containsKey("selectedDyntaxaID")) {
+                selectedDyntaxaID = savedInstanceState.getInt("selectedDyntaxaID");
+            }
+            List<String> restoredPaths = savedInstanceState.getStringArrayList("newPhotoPaths");
+            if (restoredPaths != null) {
+                for (String p : restoredPaths) currentPhotos.add(new PhotoRecord(0, p));
+            }
+        }
+
         initUI();
         initAutocomplete();
         setupObservers();
@@ -72,6 +86,20 @@ public class RecordDetailActivity extends AppCompatActivity {
         isNew = getIntent().getBooleanExtra("is_new", false);
         if (isNew) setupNewLocation();
         else setupExistingLocation();
+    }
+
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putString("currentPhotoPath", currentPhotoPath);
+        outState.putString("currentCountryCode", currentCountryCode);
+        if (selectedDyntaxaID != null) outState.putInt("selectedDyntaxaID", selectedDyntaxaID);
+        if (isNew) {
+            // New photos only exist in memory until the record is saved
+            ArrayList<String> paths = new ArrayList<>();
+            for (PhotoRecord p : currentPhotos) paths.add(p.filePath);
+            outState.putStringArrayList("newPhotoPaths", paths);
+        }
     }
 
     private void setupObservers() {
@@ -166,6 +194,11 @@ public class RecordDetailActivity extends AppCompatActivity {
             }
         });
         binding.rvPhotoGallery.setAdapter(photoAdapter);
+
+        // Reflect photos restored after a configuration change / process death
+        if (!currentPhotos.isEmpty()) {
+            binding.btnTakePhotoDetail.setText("Add Photo (" + currentPhotos.size() + ")");
+        }
     }
 
     private void loadLocalitySuggestions() {
@@ -215,42 +248,54 @@ public class RecordDetailActivity extends AppCompatActivity {
             if (item == null) return;
 
             currentRecord = item.location;
-            lat = currentRecord.latitude;
-            lon = currentRecord.longitude;
-            accuracy = currentRecord.accuracy;
-            altitude = currentRecord.altitude;
 
-            binding.inputNote.setText(currentRecord.note); // Set General Notes
-            binding.editLocality.setText(currentRecord.locality);
-            binding.editCountry.setText(currentRecord.country);
-            binding.editProvince.setText(currentRecord.province);
-            binding.editDistrict.setText(currentRecord.district);
-            this.currentCountryCode = currentRecord.countryCode;
+            // Populate the edit fields only on the first emission. The LiveData
+            // re-fires on any DB change (e.g. deleting a photo), and re-populating
+            // would wipe the user's unsaved edits.
+            if (!existingDetailsLoaded) {
+                existingDetailsLoaded = true;
 
-            // Set flexible attributes
-            if (currentRecord.attributes != null) {
-                SpeciesAttributes a = currentRecord.attributes;
+                lat = currentRecord.latitude;
+                lon = currentRecord.longitude;
+                accuracy = currentRecord.accuracy;
+                altitude = currentRecord.altitude;
 
-                binding.inputTaxonName.setText(a.taxonName);
-                binding.inputSubstrate.setText(a.substrate);
-                binding.inputHabitat.setText(a.habitat);
-                binding.inputCollector.setText(a.collector);
+                binding.inputNote.setText(currentRecord.note); // Set General Notes
+                binding.editLocality.setText(currentRecord.locality);
+                binding.editCountry.setText(currentRecord.country);
+                binding.editProvince.setText(currentRecord.province);
+                binding.editDistrict.setText(currentRecord.district);
+                this.currentCountryCode = currentRecord.countryCode;
 
-                if (a.organismQuantity != null) {
-                    binding.inputOrganismQuantity.setText(String.valueOf(a.organismQuantity));
-                } else {
-                    binding.inputOrganismQuantity.setText("");
+                // Set flexible attributes
+                if (currentRecord.attributes != null) {
+                    SpeciesAttributes a = currentRecord.attributes;
+
+                    binding.inputTaxonName.setText(a.taxonName);
+                    selectedDyntaxaID = a.dyntaxaID; // Preserve the stored taxon ID on save
+                    binding.inputSubstrate.setText(a.substrate);
+                    binding.inputHabitat.setText(a.habitat);
+                    binding.inputCollector.setText(a.collector);
+
+                    if (a.organismQuantity != null) {
+                        binding.inputOrganismQuantity.setText(String.valueOf(a.organismQuantity));
+                    } else {
+                        binding.inputOrganismQuantity.setText("");
+                    }
+
+                    binding.inputLifeStage.setText(a.lifeStage);
+                    binding.inputSex.setText(a.sex);
+                    binding.inputActivity.setText(a.activity);
+                    binding.inputSamplingProtocol.setText(a.samplingProtocol);
+
+                    binding.checkboxIsSpecimen.setChecked(a.isSpecimen);
+                    binding.tvSpecimenNr.setVisibility(a.isSpecimen ? View.VISIBLE : View.GONE);
+                    binding.tvSpecimenNr.setText("No: " + (a.specimenNr != null ? a.specimenNr : "--"));
                 }
-
-                binding.inputLifeStage.setText(a.lifeStage);
-                binding.inputSex.setText(a.sex);
-                binding.inputActivity.setText(a.activity);
-                binding.inputSamplingProtocol.setText(a.samplingProtocol);
-
-                binding.checkboxIsSpecimen.setChecked(a.isSpecimen);
-                binding.tvSpecimenNr.setVisibility(a.isSpecimen ? View.VISIBLE : View.GONE);
-                binding.tvSpecimenNr.setText("No: " + (a.specimenNr != null ? a.specimenNr : "--"));
+                onCoordinatesLoaded(false);
             }
+
+            // Photos are refreshed on every emission so deletions show up
             if (showPhoto) {
                 currentPhotos.clear();
                 currentPhotos.addAll(item.photos);
@@ -259,7 +304,6 @@ public class RecordDetailActivity extends AppCompatActivity {
             } else {
                 binding.rvPhotoGallery.setVisibility(View.GONE);
             }
-            onCoordinatesLoaded(false);
         });
     }
 
@@ -274,6 +318,9 @@ public class RecordDetailActivity extends AppCompatActivity {
     }
 
     private void onSaveClicked() {
+        // Prevent a double-tap from inserting the record twice
+        binding.btnSaveDetail.setEnabled(false);
+
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
 
         // Get UI text values first
@@ -345,6 +392,7 @@ public class RecordDetailActivity extends AppCompatActivity {
             if (attrs.isSpecimen) {
                 String rawText = binding.tvSpecimenNr.getText().toString();
                 String nrText = rawText.replace("No: ", "").trim();
+                if (nrText.equals("--")) nrText = ""; // "--" is the UI placeholder, not a number
                 attrs.specimenNr = nrText;
 
                 if (isNew) {
@@ -469,7 +517,9 @@ public class RecordDetailActivity extends AppCompatActivity {
 
     private final ActivityResultLauncher<Uri> takePictureLauncher = registerForActivityResult(
         new ActivityResultContracts.TakePicture(), success -> {
-            if (success) {
+            // currentPhotoPath can be null if the process was killed and the
+            // path could not be restored — drop the result rather than crash.
+            if (success && currentPhotoPath != null) {
                 // Create a temporary PhotoRecord (id will be 0 until saved to DB)
                 PhotoRecord newPhoto = new PhotoRecord(0, currentPhotoPath);
                 currentPhotos.add(newPhoto);

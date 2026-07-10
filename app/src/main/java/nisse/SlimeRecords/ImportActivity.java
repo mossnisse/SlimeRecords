@@ -89,6 +89,8 @@ public class ImportActivity extends AppCompatActivity {
             for (int i = 0; i < binding.rgStrategy.getChildCount(); i++) {
                 binding.rgStrategy.getChildAt(i).setEnabled(!isLoading);
             }
+            // Block back navigation while the import is running
+            backPressedCallback.setEnabled(isLoading);
 
             binding.importProgress.setVisibility(isLoading ? View.VISIBLE : View.GONE);
             binding.tvImportStatus.setVisibility(isLoading ? View.VISIBLE : View.GONE);
@@ -102,13 +104,10 @@ public class ImportActivity extends AppCompatActivity {
                         .setCancelable(false) // Force them to click OK
                         .setPositiveButton("OK", (d, w) -> finish())
                         .show();
-            }
-        });
-
-        // Observe specific error messages
-        importViewModel.getStatusMessage().observe(this, message -> {
-            // Only Toast if there's an error; Success summary is handled by the AlertDialog above
-            if (importViewModel.getImportStatus().getValue() == ImportViewModel.ImportState.ERROR) {
+            } else if (state == ImportViewModel.ImportState.ERROR) {
+                // The error message is posted before the state flips to ERROR,
+                // so it is already available here.
+                String message = importViewModel.getStatusMessage().getValue();
                 if (message != null && !message.isEmpty()) {
                     Toast.makeText(this, message, Toast.LENGTH_LONG).show();
                 }
