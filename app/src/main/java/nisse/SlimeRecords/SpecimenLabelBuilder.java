@@ -68,7 +68,7 @@ public class SpecimenLabelBuilder {
                         "  </div>" +
                         "</div>",
                 item.id,
-                header,
+                escapeHtml(header),
                 clean(attrs.taxonName),
                 clean(item.province),
                 districtDisplay,
@@ -78,14 +78,18 @@ public class SpecimenLabelBuilder {
                 item.latitude,
                 item.longitude,
                 clean(attrs.collector),
-                (attrs.specimenNr != null && !attrs.specimenNr.isEmpty() ? "nr " + attrs.specimenNr : ""),
-                dateOnly
+                escapeHtml(attrs.specimenNr != null && !attrs.specimenNr.isEmpty() ? "nr " + attrs.specimenNr : ""),
+                escapeHtml(dateOnly)
         );
     }
 
     private static String clean(String input) {
         if (input == null || input.isEmpty()) return "_____";
-        // Basic HTML escaping
+        return escapeHtml(input);
+    }
+
+    static String escapeHtml(String input) {
+        if (input == null) return "";
         return input.replace("&", "&amp;")
                 .replace("<", "&lt;")
                 .replace(">", "&gt;")

@@ -5,8 +5,8 @@ import traceback
 
 # dyntaxa is downloaded at https://artfakta.se/metadata/dyntaxa
 
-# 1. FORCE THE PATH - Use the exact folder where your scripts live
-script_dir = r"C:/Users/NissE/AndroidStudioProjects/WhatsMySocken/qgis"
+# Resolve sibling processors relative to this script so the project is relocatable.
+script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
@@ -20,7 +20,7 @@ try:
     importlib.reload(geography_processor)
     importlib.reload(taxonomy_processor)
     importlib.reload(country_processor)
-except Exception:
+except Exception as e:
     print("CRITICAL: Failed to import sub-modules!")
     print(traceback.format_exc())
     raise RuntimeError("Import failed. Halting script.") from e
@@ -62,7 +62,10 @@ def main():
     except Exception:
         print("\n!!! BUILD FAILED !!!")
         print(traceback.format_exc())
+        conn.rollback()
+        raise
     finally:
         conn.close()
 
-main()
+if __name__ == "__main__":
+    main()

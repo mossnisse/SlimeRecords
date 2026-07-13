@@ -321,16 +321,18 @@ public class Coordinates {
     }
 
     private String getUTMGridZone() {
-        int zn = (int) Math.ceil((this.east + 180) / 6.0);
-        if (this.east == 180) zn = 60;
+        int zn = (int) Math.floor((this.east + 180.0) / 6.0) + 1;
+        // Longitude 180 is the eastern edge of zone 60, not a zone 61.
+        zn = Math.max(1, Math.min(60, zn));
 
         // Latitude Band
         char zl;
         if (this.north >= 72) zl = 'X';
         else if (this.north < -80) zl = 'C';
         else {
-            // This generates a 1-based index (1, 2, 3...)
-            int index = (int) Math.ceil((this.north + 80) / 8.0);
+            // This generates a 1-based index and assigns an exact boundary
+            // to the band beginning at that latitude (0 degrees is band N).
+            int index = (int) Math.floor((this.north + 80.0) / 8.0) + 1;
 
             // FIX: Must use the UTM specific method, not MGRS!
             // Index 1 needs to output 'C', not 'B'.
@@ -340,8 +342,8 @@ public class Coordinates {
         String zoneStr = String.valueOf(zn) + zl;
 
         // Norway/Svalbard Exceptions
-        if (this.north > 56 && this.north < 64 && this.east > 3 && this.east < 6) return "32V";
-        if (this.north > 72) {
+        if (this.north >= 56 && this.north < 64 && this.east >= 3 && this.east < 12) return "32V";
+        if (this.north >= 72 && this.north < 84) {
             if (this.east >= 0 && this.east < 9) return "31X";
             if (this.east >= 9 && this.east < 21) return "33X";
             if (this.east >= 21 && this.east < 33) return "35X";

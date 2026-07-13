@@ -12,6 +12,7 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.preference.PreferenceManager;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import nisse.SlimeRecords.data.SpatialDao;
 import nisse.SlimeRecords.data.SpatialDatabase;
 import nisse.SlimeRecords.data.SpeciesReferenceWithAccepted;
@@ -26,7 +27,7 @@ public class SearchViewModel extends AndroidViewModel {
     private final MutableLiveData<String> districtResult = new MutableLiveData<>();
     private final MutableLiveData<List<SpeciesReferenceWithAccepted>> speciesSuggestions = new MutableLiveData<>();
     private final SpatialDao spatialDao;
-    private volatile String lastQuery = "";
+    private final AtomicLong searchGeneration = new AtomicLong();
 
     public SearchViewModel(@NonNull Application application) {
         super(application);
@@ -74,13 +75,13 @@ public class SearchViewModel extends AndroidViewModel {
     }
 
     public void findSpecies(String query, String prefLang) {
+        final long generation = searchGeneration.incrementAndGet();
         if (query == null || query.trim().isEmpty()) {
-            speciesSuggestions.postValue(new ArrayList<>());
+            speciesSuggestions.setValue(new ArrayList<>());
             return;
         }
 
         final String currentQuery = query.trim();
-        this.lastQuery = currentQuery;
 
         UserDatabase.getDbExecutor().execute(() -> {
             try {
@@ -116,12 +117,14 @@ public class SearchViewModel extends AndroidViewModel {
                         currentQuery, prefLang, activeLangs, activeGroups
                 );
 
-                if (currentQuery.equals(lastQuery)) {
+                if (generation == searchGeneration.get()) {
                     speciesSuggestions.postValue(results);
                 }
             } catch (Exception e) {
                 Log.e("SearchViewModel", "Search failed", e);
-                speciesSuggestions.postValue(new ArrayList<>());
+                if (generation == searchGeneration.get()) {
+                    speciesSuggestions.postValue(new ArrayList<>());
+                }
             }
         });
     }

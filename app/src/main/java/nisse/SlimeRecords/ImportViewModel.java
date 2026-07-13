@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import nisse.SlimeRecords.data.*;
@@ -72,42 +73,56 @@ public class ImportViewModel extends AndroidViewModel {
 
     private void processZipFile(File zipFile) throws IOException {
         File photoDir = getApplication().getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-        String csvContent = null;
-        List<File> extractedPhotos = new ArrayList<>();
-
-        try (ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFile))) {
-            ZipEntry entry;
-            while ((entry = zis.getNextEntry()) != null) {
-                String name = entry.getName();
-                if (name.endsWith(".csv")) { // Better: handle any CSV in the root
-                    csvContent = readStreamToString(zis);
-                } else if (name.startsWith("photos/") && !entry.isDirectory()) {
-                    File destFile = new File(photoDir, new File(name).getName());
-                    // Never overwrite a photo that already exists on the device
-                    if (!destFile.exists()) {
-                        extractFile(zis, destFile);
-                        extractedPhotos.add(destFile);
-                    }
-                }
-                zis.closeEntry();
-            }
+        if (photoDir == null) throw new IOException("Photo storage is unavailable.");
+        if (!photoDir.exists() && !photoDir.mkdirs()) {
+            throw new IOException("Could not create the photo directory.");
         }
 
-        if (csvContent != null) {
-            parseAndSaveCsv(csvContent, photoDir);
-            // Clean up photos that were extracted but ended up unreferenced
-            // (e.g. their rows were skipped as duplicates or failed to parse)
-            for (File f : extractedPhotos) {
-                if (locationDao.getPhotoReferenceCount(f.getAbsolutePath()) == 0) {
-                    FileUtils.deleteFileAtPath(f.getAbsolutePath());
+        File stagingDir = new File(getApplication().getCacheDir(),
+                "import_photos_" + UUID.randomUUID());
+        if (!stagingDir.mkdirs()) throw new IOException("Could not prepare temporary photo storage.");
+
+        String csvContent = null;
+        Map<String, File> stagedPhotos = new HashMap<>();
+        Map<String, String> resolvedPhotoPaths = new HashMap<>();
+        List<File> importedPhotos = new ArrayList<>();
+
+        try {
+            try (ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFile))) {
+                ZipEntry entry;
+                while ((entry = zis.getNextEntry()) != null) {
+                    String name = entry.getName();
+                    if (name.endsWith(".csv")) { // Better: handle any CSV in the root
+                        csvContent = readStreamToString(zis);
+                    } else if (name.startsWith("photos/") && !entry.isDirectory()) {
+                        String photoName = new File(name).getName();
+                        if (!photoName.isEmpty()) {
+                            File stagedFile = new File(stagingDir, photoName);
+                            extractFile(zis, stagedFile);
+                            stagedPhotos.put(photoName, stagedFile);
+                        }
+                    }
+                    zis.closeEntry();
                 }
             }
-        } else {
-            throw new IOException("ZIP archive is missing a data.csv file.");
+
+            if (csvContent == null) {
+                throw new IOException("ZIP archive is missing a data.csv file.");
+            }
+
+            parseAndSaveCsv(csvContent, photoDir, stagedPhotos,
+                    resolvedPhotoPaths, importedPhotos);
+        } finally {
+            cleanupUnreferencedPhotos(importedPhotos);
+            deleteDirectoryContents(stagingDir);
         }
     }
 
-    private void parseAndSaveCsv(String csv, File photoDir) throws IOException {
+    private void parseAndSaveCsv(String csv,
+                                 File photoDir,
+                                 Map<String, File> stagedPhotos,
+                                 Map<String, String> resolvedPhotoPaths,
+                                 List<File> importedPhotos) throws IOException {
         ImportResult results = new ImportResult();
         // Remove BOM if present
         if (csv.startsWith("\uFEFF")) csv = csv.substring(1);
@@ -153,6 +168,8 @@ public class ImportViewModel extends AndroidViewModel {
 
                 long targetId = 0; // The ID we will use for the final record
                 long existingId = 0; // The ID of the record currently in DB
+                boolean replaceExisting = false;
+                boolean addNewRecord = false;
 
                 // Check if it exists by ID
                 if (exportedId != 0 && locationDao.existsById(exportedId)) {
@@ -169,17 +186,16 @@ public class ImportViewModel extends AndroidViewModel {
                         results.skipped++;
                         continue;
                     } else if (activeStrategy == DuplicateStrategy.REPLACE) {
-                        deleteOldRecordProperly(existingId);
                         targetId = existingId; // Reuse the ID so links remain valid
-                        results.updated++;
+                        replaceExisting = true;
                     } else if (activeStrategy == DuplicateStrategy.KEEP_BOTH) {
                         // Let Room auto-generate a new ID
-                        results.added++;
+                        addNewRecord = true;
                     }
                 } else {
                     // Record doesn't exist, use exported ID if available, else 0
                     targetId = (activeStrategy == DuplicateStrategy.KEEP_BOTH) ? 0 : exportedId;
-                    results.added++;
+                    addNewRecord = true;
                 }
 
                 // 3. Populate the Record
@@ -190,7 +206,16 @@ public class ImportViewModel extends AndroidViewModel {
                 record.latitude = lat;
                 record.longitude = lon;
                 record.accuracy = (float) parseDouble(parts, colMap, "coordinateUncertaintyInMeters", 0);
-                record.altitude = parseDouble(parts, colMap, "verbatimElevation", 0);
+                String altitudeText = getString(parts, colMap, "verbatimElevation", "").trim();
+                if (!altitudeText.isEmpty()) {
+                    try {
+                        record.altitude = Double.parseDouble(altitudeText);
+                        record.hasAltitude = true;
+                    } catch (NumberFormatException ignored) {
+                        record.altitude = 0;
+                        record.hasAltitude = false;
+                    }
+                }
                 record.localTime = time;
                 record.note = getString(parts, colMap, "occurrenceRemarks", "");
 
@@ -230,12 +255,21 @@ public class ImportViewModel extends AndroidViewModel {
                 List<String> photoPaths = new ArrayList<>();
                 if (!photoNamesStr.isEmpty()) {
                     for (String name : photoNamesStr.split("\\|")) {
-                        File pFile = new File(photoDir, name.trim());
-                        if (pFile.exists()) photoPaths.add(pFile.getAbsolutePath());
+                        String resolvedPath = materializeImportedPhoto(name.trim(), photoDir,
+                                stagedPhotos, resolvedPhotoPaths, importedPhotos);
+                        if (resolvedPath != null) photoPaths.add(resolvedPath);
                     }
                 }
 
-                locationDao.insertLocationWithPhotos(record, photoPaths);
+                if (replaceExisting) {
+                    List<String> oldPhotoPaths = locationDao.replaceLocationWithPhotos(
+                            existingId, record, photoPaths);
+                    deleteOrphanedPhotoPaths(oldPhotoPaths);
+                    results.updated++;
+                } else {
+                    locationDao.insertLocationWithPhotos(record, photoPaths);
+                    if (addNewRecord) results.added++;
+                }
             } catch (Exception e) {
                 results.failed++;
                 Log.e("Import", "Error parsing row " + i, e);
@@ -244,26 +278,80 @@ public class ImportViewModel extends AndroidViewModel {
         statusMessage.postValue(results.toString());
     }
 
-    private void deleteOldRecordProperly(long id) {
-        // Get the data synchronously
-        RecordWithPhotos oldRecord = locationDao.getLocationByIdSync(id);
+    private String materializeImportedPhoto(String photoName,
+                                            File photoDir,
+                                            Map<String, File> stagedPhotos,
+                                            Map<String, String> resolvedPhotoPaths,
+                                            List<File> importedPhotos) throws IOException {
+        if (photoName.isEmpty()) return null;
 
-        if (oldRecord != null) {
-            // Use the same logic we put in HistoryViewModel
-            if (oldRecord.photos != null) {
-                for (PhotoRecord p : oldRecord.photos) {
-                    // Delete the DB link first
-                    locationDao.deletePhotoById(p.id);
+        String safeName = new File(photoName).getName();
+        File stagedFile = stagedPhotos.get(safeName);
+        if (stagedFile == null || !stagedFile.exists()) return null;
 
-                    // Check if the file is now orphaned
-                    if (locationDao.getPhotoReferenceCount(p.filePath) == 0) {
-                        FileUtils.deleteFileAtPath(p.filePath);
-                    }
-                }
-            }
-            // Delete the location itself
-            locationDao.deleteLocation(oldRecord.location);
+        String existingPath = resolvedPhotoPaths.get(safeName);
+        if (existingPath != null && new File(existingPath).exists()) return existingPath;
+
+        File destination = createAvailablePhotoFile(photoDir, safeName);
+        importedPhotos.add(destination); // Track partial files too, in case copying fails.
+        try (FileInputStream in = new FileInputStream(stagedFile);
+             FileOutputStream out = new FileOutputStream(destination, false)) {
+            FileUtils.copy(in, out);
         }
+
+        String path = destination.getAbsolutePath();
+        resolvedPhotoPaths.put(safeName, path);
+        return path;
+    }
+
+    private File createAvailablePhotoFile(File photoDir, String requestedName) throws IOException {
+        String baseName = requestedName;
+        String extension = "";
+        int dot = requestedName.lastIndexOf('.');
+        if (dot > 0) {
+            baseName = requestedName.substring(0, dot);
+            extension = requestedName.substring(dot);
+        }
+
+        File candidate = new File(photoDir, requestedName);
+        int suffix = 1;
+        while (!candidate.createNewFile()) {
+            candidate = new File(photoDir, baseName + "_imported_" + suffix + extension);
+            suffix++;
+        }
+        return candidate;
+    }
+
+    private void cleanupUnreferencedPhotos(List<File> importedPhotos) {
+        for (File photo : importedPhotos) {
+            try {
+                if (locationDao.getPhotoReferenceCount(photo.getAbsolutePath()) == 0) {
+                    FileUtils.deleteFileAtPath(photo.getAbsolutePath());
+                }
+            } catch (Exception e) {
+                Log.e("Import", "Could not clean up imported photo: " + photo, e);
+            }
+        }
+    }
+
+    private void deleteOrphanedPhotoPaths(List<String> paths) {
+        for (String path : paths) {
+            try {
+                if (locationDao.getPhotoReferenceCount(path) == 0) {
+                    FileUtils.deleteFileAtPath(path);
+                }
+            } catch (Exception e) {
+                Log.e("Import", "Could not clean up replaced photo: " + path, e);
+            }
+        }
+    }
+
+    private void deleteDirectoryContents(File directory) {
+        File[] files = directory.listFiles();
+        if (files != null) {
+            for (File file : files) FileUtils.deleteFileAtPath(file.getAbsolutePath());
+        }
+        FileUtils.deleteFileAtPath(directory.getAbsolutePath());
     }
 
     // Helper: Safely get string from mapped column (header keys are lowercased)

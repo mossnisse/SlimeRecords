@@ -6,7 +6,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
-import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -42,8 +41,21 @@ public class PrintActivity extends AppCompatActivity {
 
     private void exportSpecimenLabels(boolean shouldShare) {
         // Parse the optional Collection nr range before touching the DB
-        final Integer fromNr = parseNullableInt(binding.inputRangeFrom.getText().toString());
-        final Integer toNr = parseNullableInt(binding.inputRangeTo.getText().toString());
+        String fromText = binding.inputRangeFrom.getText().toString();
+        String toText = binding.inputRangeTo.getText().toString();
+        final Integer fromNr = parseNullableInt(fromText);
+        final Integer toNr = parseNullableInt(toText);
+
+        binding.inputRangeFrom.setError(null);
+        binding.inputRangeTo.setError(null);
+        if (isInvalidRangeBound(fromText)) {
+            binding.inputRangeFrom.setError("Enter a whole number within the supported range.");
+            return;
+        }
+        if (isInvalidRangeBound(toText)) {
+            binding.inputRangeTo.setError("Enter a whole number within the supported range.");
+            return;
+        }
 
         if (fromNr != null && toNr != null && fromNr > toNr) {
             Toast.makeText(this, "\"From nr\" must not be greater than \"To nr\".", Toast.LENGTH_SHORT).show();
@@ -95,15 +107,19 @@ public class PrintActivity extends AppCompatActivity {
     }
 
     /** Parses trimmed user input into an Integer, or null if empty/invalid. */
-    private Integer parseNullableInt(String text) {
+    static Integer parseNullableInt(String text) {
         if (text == null) return null;
         String trimmed = text.trim();
-        if (TextUtils.isEmpty(trimmed)) return null;
+        if (trimmed.isEmpty()) return null;
         try {
             return Integer.parseInt(trimmed);
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    static boolean isInvalidRangeBound(String text) {
+        return text != null && !text.trim().isEmpty() && parseNullableInt(text) == null;
     }
 
     /**

@@ -29,6 +29,32 @@ public abstract class LocationDao {
         }
     }
 
+    /**
+     * Replaces a location and its photo links atomically. The returned paths
+     * belong to the old record and may be deleted from disk after this
+     * transaction commits, provided no other record still references them.
+     */
+    @Transaction
+    public List<String> replaceLocationWithPhotos(long existingId,
+                                                   ObservationRecord location,
+                                                   List<String> photoPaths) {
+        List<String> oldPhotoPaths = new java.util.ArrayList<>();
+        RecordWithPhotos oldRecord = getLocationByIdSync(existingId);
+        if (oldRecord != null) {
+            if (oldRecord.photos != null) {
+                for (PhotoRecord photo : oldRecord.photos) {
+                    oldPhotoPaths.add(photo.filePath);
+                    deletePhotoById(photo.id);
+                }
+            }
+            deleteLocation(oldRecord.location);
+        }
+
+        location.id = existingId;
+        insertLocationWithPhotos(location, photoPaths);
+        return oldPhotoPaths;
+    }
+
     @Update
     public abstract void updateLocation(ObservationRecord location);
 

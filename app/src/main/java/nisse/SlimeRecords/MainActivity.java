@@ -16,6 +16,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.preference.PreferenceManager;
 import com.google.android.gms.common.api.ResolvableApiException;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
@@ -60,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
         fusedClient = LocationServices.getFusedLocationProviderClient(this);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         viewModel = new ViewModelProvider(this).get(SearchViewModel.class);
@@ -159,8 +161,8 @@ public class MainActivity extends AppCompatActivity {
             intent.putExtra("lat", best.getLatitude());
             intent.putExtra("lon", best.getLongitude());
             intent.putExtra("acc", best.getAccuracy());
-            // getAltitude() returns 0 anyway without a fix, but be explicit about it
-            intent.putExtra("altitude", best.hasAltitude() ? best.getAltitude() : 0.0);
+            intent.putExtra("has_altitude", best.hasAltitude());
+            if (best.hasAltitude()) intent.putExtra("altitude", best.getAltitude());
             intent.putExtra("is_new", true);
             startActivity(intent);
         } else if (shouldTransition) {

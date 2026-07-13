@@ -41,7 +41,9 @@ public class RecordDetailActivity extends AppCompatActivity {
     private double lat, lon;
     private float accuracy;
     private double altitude;
+    private boolean hasAltitude;
     private boolean isNew, isSaved = false;
+    private boolean persistenceRequested = false;
     private ActivityRecordDetailBinding binding;
     private String currentPhotoPath;
     private final List<PhotoRecord> currentPhotos = new ArrayList<>();
@@ -63,6 +65,7 @@ public class RecordDetailActivity extends AppCompatActivity {
         binding = ActivityRecordDetailBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        isNew = getIntent().getBooleanExtra("is_new", false);
         searchViewModel = new ViewModelProvider(this).get(SearchViewModel.class);
         historyViewModel = new ViewModelProvider(this).get(HistoryViewModel.class);
 
@@ -73,6 +76,13 @@ public class RecordDetailActivity extends AppCompatActivity {
             if (savedInstanceState.containsKey("selectedDyntaxaID")) {
                 selectedDyntaxaID = savedInstanceState.getInt("selectedDyntaxaID");
             }
+            lat = savedInstanceState.getDouble("lat", 0);
+            lon = savedInstanceState.getDouble("lon", 0);
+            accuracy = savedInstanceState.getFloat("accuracy", 0);
+            altitude = savedInstanceState.getDouble("altitude", 0);
+            hasAltitude = savedInstanceState.getBoolean("hasAltitude", false);
+            persistenceRequested = savedInstanceState.getBoolean("persistenceRequested", false);
+            existingDetailsLoaded = savedInstanceState.getBoolean("existingDetailsLoaded", false);
             List<String> restoredPaths = savedInstanceState.getStringArrayList("newPhotoPaths");
             if (restoredPaths != null) {
                 for (String p : restoredPaths) currentPhotos.add(new PhotoRecord(0, p));
@@ -83,8 +93,8 @@ public class RecordDetailActivity extends AppCompatActivity {
         initAutocomplete();
         setupObservers();
 
-        isNew = getIntent().getBooleanExtra("is_new", false);
-        if (isNew) setupNewLocation();
+        if (isNew && savedInstanceState == null) setupNewLocation();
+        else if (isNew) onCoordinatesLoaded(false);
         else setupExistingLocation();
     }
 
@@ -94,6 +104,13 @@ public class RecordDetailActivity extends AppCompatActivity {
         outState.putString("currentPhotoPath", currentPhotoPath);
         outState.putString("currentCountryCode", currentCountryCode);
         if (selectedDyntaxaID != null) outState.putInt("selectedDyntaxaID", selectedDyntaxaID);
+        outState.putDouble("lat", lat);
+        outState.putDouble("lon", lon);
+        outState.putFloat("accuracy", accuracy);
+        outState.putDouble("altitude", altitude);
+        outState.putBoolean("hasAltitude", hasAltitude);
+        outState.putBoolean("persistenceRequested", persistenceRequested);
+        outState.putBoolean("existingDetailsLoaded", existingDetailsLoaded);
         if (isNew) {
             // New photos only exist in memory until the record is saved
             ArrayList<String> paths = new ArrayList<>();
@@ -233,6 +250,7 @@ public class RecordDetailActivity extends AppCompatActivity {
         lat = getIntent().getDoubleExtra("lat", 0);
         lon = getIntent().getDoubleExtra("lon", 0);
         accuracy = getIntent().getFloatExtra("acc", 0);
+        hasAltitude = getIntent().getBooleanExtra("has_altitude", false);
         altitude = getIntent().getDoubleExtra("altitude", 0);
 
         onCoordinatesLoaded(true); // Perform full lookup
@@ -259,6 +277,8 @@ public class RecordDetailActivity extends AppCompatActivity {
                 lon = currentRecord.longitude;
                 accuracy = currentRecord.accuracy;
                 altitude = currentRecord.altitude;
+                // Older app versions stored elevations without setting hasAltitude.
+                hasAltitude = currentRecord.hasAltitude || currentRecord.altitude != 0.0;
 
                 binding.inputNote.setText(currentRecord.note); // Set General Notes
                 binding.editLocality.setText(currentRecord.locality);
@@ -416,6 +436,7 @@ public class RecordDetailActivity extends AppCompatActivity {
         } else {
             currentRecord.note = noteText;
         }
+        currentRecord.hasAltitude = hasAltitude;
 
         // Assign geo-fields directly to the Record object
         currentRecord.locality = localityText;
@@ -431,6 +452,9 @@ public class RecordDetailActivity extends AppCompatActivity {
         for (PhotoRecord p : currentPhotos) {
             pathsToSave.add(p.filePath);
         }
+        persistenceRequested = true;
+        binding.btnSaveDetail.setEnabled(false);
+        binding.btnCancelDetail.setEnabled(false);
         if (isNew) {
             historyViewModel.saveLocationWithPhotos(currentRecord, pathsToSave);
         } else {
@@ -471,8 +495,9 @@ public class RecordDetailActivity extends AppCompatActivity {
         StringBuilder sb = new StringBuilder();
         sb.append("Accuracy: ").append((int) Math.ceil(accuracy)).append("m\n");
 
-        if(prefs.getBoolean("show_altitude", true)) {
-            sb.append("Altitude: ").append(Math.round(altitude)).append(" m\n");
+        if(prefs.getBoolean("show_altitude", false)) {
+            if (hasAltitude) sb.append("Altitude: ").append(Math.round(altitude)).append(" m\n");
+            else sb.append("Altitude: unknown\n");
         }
         if (prefs.getBoolean("show_wgs84", true)) {
             DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.US);
@@ -480,7 +505,7 @@ public class RecordDetailActivity extends AppCompatActivity {
             sb.append("WGS84: ").append(dc.format(lat)).append(", ").append(dc.format(lon)).append("\n");
         }
         Coordinates here = new Coordinates(lat, lon);
-        if (prefs.getBoolean("show_rt90", true)) {
+        if (prefs.getBoolean("show_rt90", false)) {
             Coordinates rt90 = here.toProjected(CoordSystem.RT90);
             sb.append("RT90: ").append((int)Math.round(rt90.getNorth())).append(", ").append((int)Math.round(rt90.getEast())).append("\n");
         }
@@ -490,20 +515,20 @@ public class RecordDetailActivity extends AppCompatActivity {
             sb.append("SWEREF99tm: ").append((int)Math.round(sweref.getNorth())).append(", ").append((int)Math.round(sweref.getEast())).append("\n");
         }
 
-        if (prefs.getBoolean("show_rubin", true)) {
+        if (prefs.getBoolean("show_rubin", false)) {
             sb.append("RUBIN: ").append(here.toProjected(CoordSystem.RT90).toRUBIN(false)).append("\n");
         }
 
-        if (prefs.getBoolean("show_DMS", true)) {
+        if (prefs.getBoolean("show_DMS", false)) {
             sb.append("DMS: ").append(here.getLatDMS()).append(" ").append(here.getLonDMS()).append("\n");
         }
 
-        if (prefs.getBoolean("show_UTM", true)) {
+        if (prefs.getBoolean("show_UTM", false)) {
             UTMResult utm = here.toUTM(); // null outside the UTM latitude range (-80..84)
             sb.append("UTM: ").append(utm != null ? utm.toString() : "OUTSIDE UTM RANGE").append("\n");
         }
 
-        if (prefs.getBoolean("show_MGRS", true)) {
+        if (prefs.getBoolean("show_MGRS", false)) {
             sb.append("MGRS: ").append(here.toMGRS()).append("\n");
         }
 
@@ -517,15 +542,20 @@ public class RecordDetailActivity extends AppCompatActivity {
 
     private final ActivityResultLauncher<Uri> takePictureLauncher = registerForActivityResult(
         new ActivityResultContracts.TakePicture(), success -> {
-            // currentPhotoPath can be null if the process was killed and the
+            String completedPhotoPath = currentPhotoPath;
+            currentPhotoPath = null;
+            binding.btnTakePhotoDetail.setEnabled(true);
+            // completedPhotoPath can be null if the process was killed and the
             // path could not be restored — drop the result rather than crash.
-            if (success && currentPhotoPath != null) {
+            if (success && completedPhotoPath != null) {
                 // Create a temporary PhotoRecord (id will be 0 until saved to DB)
-                PhotoRecord newPhoto = new PhotoRecord(0, currentPhotoPath);
+                PhotoRecord newPhoto = new PhotoRecord(0, completedPhotoPath);
                 currentPhotos.add(newPhoto);
 
                 photoAdapter.notifyItemInserted(currentPhotos.size() - 1);
                 binding.btnTakePhotoDetail.setText("Add Photo (" + currentPhotos.size() + ")");
+            } else {
+                FileUtils.deleteFileAtPath(completedPhotoPath);
             }
         });
 
@@ -533,8 +563,12 @@ public class RecordDetailActivity extends AppCompatActivity {
         try {
             File photoFile = createImageFile();
             Uri photoURI = FileProvider.getUriForFile(this, "nisse.SlimeRecords.fileprovider", photoFile);
+            binding.btnTakePhotoDetail.setEnabled(false);
             takePictureLauncher.launch(photoURI);
-        } catch (IOException ex) {
+        } catch (Exception ex) {
+            FileUtils.deleteFileAtPath(currentPhotoPath);
+            currentPhotoPath = null;
+            binding.btnTakePhotoDetail.setEnabled(true);
             Toast.makeText(this, "Error creating file", Toast.LENGTH_SHORT).show();
         }
     }
@@ -629,13 +663,10 @@ public class RecordDetailActivity extends AppCompatActivity {
                 }
 
                 String query = s.toString().trim();
-                if (query.length() >= 1) {
-                    // Get target language from prefs to pass to the search
-                    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(RecordDetailActivity.this);
-                    String targetLang = prefs.getString("preferred_species_language", "sv");
-
-                    searchViewModel.findSpecies(query, targetLang);
-                }
+                // Calling for an empty query invalidates any result still in flight.
+                SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(RecordDetailActivity.this);
+                String targetLang = prefs.getString("preferred_species_language", "sv");
+                searchViewModel.findSpecies(query, targetLang);
             }
         });
 
@@ -717,8 +748,9 @@ public class RecordDetailActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (isFinishing() && isNew && !isSaved) {
+        if (isFinishing() && isNew && !isSaved && !persistenceRequested) {
             for (PhotoRecord p : currentPhotos) FileUtils.deleteFileAtPath(p.filePath);
+            FileUtils.deleteFileAtPath(currentPhotoPath);
         }
         binding = null;
     }
