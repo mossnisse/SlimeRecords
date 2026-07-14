@@ -1,6 +1,7 @@
 package nisse.SlimeRecords;
 
 import android.app.Application;
+import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
@@ -23,6 +24,7 @@ public class HistoryViewModel extends AndroidViewModel {
     private final LocationDao locationDao;
     public final LiveData<PagingData<RecordWithPhotos>> historyLiveData;
     private final MutableLiveData<Boolean> operationFinished = new MutableLiveData<>(false);
+    private final MutableLiveData<String> operationError = new MutableLiveData<>();
 
     public HistoryViewModel(@NonNull Application application) {
         super(application);
@@ -37,33 +39,40 @@ public class HistoryViewModel extends AndroidViewModel {
 
     public void saveLocationWithPhotos(ObservationRecord record, List<String> photoPaths) {
         UserDatabase.getDbExecutor().execute(() -> {
-            locationDao.insertLocationWithPhotos(record, photoPaths);
-            operationFinished.postValue(true);
+            try {
+                locationDao.insertLocationWithPhotos(record, photoPaths);
+                operationFinished.postValue(true);
+            } catch (Exception e) {
+                Log.e("HistoryViewModel", "Saving record failed", e);
+                operationError.postValue("Could not save the record.");
+            }
         });
     }
 
     public void updateLocation(ObservationRecord record) {
         UserDatabase.getDbExecutor().execute(() -> {
-            locationDao.updateLocation(record);
-            operationFinished.postValue(true);
+            try {
+                locationDao.updateLocation(record);
+                operationFinished.postValue(true);
+            } catch (Exception e) {
+                Log.e("HistoryViewModel", "Updating record failed", e);
+                operationError.postValue("Could not save the changes.");
+            }
         });
     }
 
     public void deleteLocationWithPhotos(RecordWithPhotos item) {
         UserDatabase.getDbExecutor().execute(() -> {
-            if (item.photos != null) {
-                for (PhotoRecord p : item.photos) {
-                    // Delete ONLY the link for THIS specific location
-                    locationDao.deletePhotoById(p.id);
-
-                    // NOW check if any OTHER record still uses this path
-                    if (locationDao.getPhotoReferenceCount(p.filePath) == 0) {
-                        FileUtils.deleteFileAtPath(p.filePath);
-                    }
+            try {
+                List<String> orphanedPaths = locationDao.deleteLocationWithPhotos(item);
+                // Delete files only after the transaction has committed
+                for (String path : orphanedPaths) {
+                    FileUtils.deleteFileAtPath(path);
                 }
+            } catch (Exception e) {
+                Log.e("HistoryViewModel", "Deleting record failed", e);
+                operationError.postValue("Could not delete the record.");
             }
-            // 3. Finally delete the location itself
-            locationDao.deleteLocation(item.location);
         });
     }
 
@@ -81,6 +90,9 @@ public class HistoryViewModel extends AndroidViewModel {
 
     public LiveData<RecordWithPhotos> getLocationWithPhotos(long id) { return locationDao.getLocationById(id); }
     public LiveData<Boolean> getOperationFinished() { return operationFinished; }
+    public LiveData<String> getOperationError() { return operationError; }
+    /** Marks the current error as handled so it isn't re-delivered after rotation. */
+    public void clearOperationError() { operationError.setValue(null); }
     public LiveData<List<String>> getRecentCollectors() { return locationDao.getRecentCollectorNames(); }
 
     public void updateRecentCollector(String name) {

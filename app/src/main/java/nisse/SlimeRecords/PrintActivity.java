@@ -86,11 +86,21 @@ public class PrintActivity extends AppCompatActivity {
 
                 // Move heavy file operations to background thread
                 UserDatabase.getDbExecutor().execute(() -> {
-                    String htmlContent = SpecimenLabelBuilder.generateFullReport(PrintActivity.this, filtered);
-                    Uri uri = saveFileAndGetUri(htmlContent);
+                    Uri savedUri;
+                    try {
+                        String htmlContent = SpecimenLabelBuilder.generateFullReport(PrintActivity.this, filtered);
+                        savedUri = saveFileAndGetUri(htmlContent);
+                    } catch (Exception e) {
+                        // Never let the task die silently: that would crash the app
+                        // and leave both buttons permanently disabled.
+                        Log.e("Print", "Label generation failed", e);
+                        savedUri = Uri.EMPTY;
+                    }
+                    final Uri uri = savedUri;
 
                     // Switch back to Main Thread for UI updates
                     runOnUiThread(() -> {
+                        if (binding == null) return; // Activity destroyed while exporting
                         if (uri == Uri.EMPTY) {
                             Toast.makeText(PrintActivity.this, "Failed to save labels", Toast.LENGTH_SHORT).show();
                         } else if (shouldShare) {
@@ -154,16 +164,25 @@ public class PrintActivity extends AppCompatActivity {
         values.put(MediaStore.MediaColumns.MIME_TYPE, "text/html");
         values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
 
+        Uri uri = null;
         try {
-            Uri uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+            uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
             if (uri != null) {
                 try (OutputStream os = getContentResolver().openOutputStream(uri)) {
+                    if (os == null) throw new IOException("Could not open output stream for " + uri);
                     os.write(htmlContent.getBytes(StandardCharsets.UTF_8));
                     return uri;
                 }
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             Log.e("Print", "Failed save", e);
+            // Remove the half-written entry so it doesn't linger in Downloads
+            if (uri != null) {
+                try {
+                    getContentResolver().delete(uri, null, null);
+                } catch (Exception ignored) {
+                }
+            }
         }
         return Uri.EMPTY;
     }

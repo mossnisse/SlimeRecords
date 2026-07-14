@@ -29,9 +29,16 @@ public class RecordAdapter extends PagingDataAdapter<RecordWithPhotos, RecordAda
                             oldItem.location.longitude == newItem.location.longitude &&
                             Objects.equals(oldItem.location.localTime, newItem.location.localTime) &&
                             Objects.equals(oldItem.location.attributes, newItem.location.attributes) && // Check attributes!
-                            oldItem.photos.size() == newItem.photos.size();
+                            oldItem.photos.size() == newItem.photos.size() &&
+                            // Same count but different files (e.g. photos replaced by an
+                            // import) must still refresh the thumbnail, which shows photo 0.
+                            Objects.equals(firstPhotoPath(oldItem), firstPhotoPath(newItem));
                 }
             };
+
+    private static String firstPhotoPath(RecordWithPhotos item) {
+        return (item.photos == null || item.photos.isEmpty()) ? null : item.photos.get(0).filePath;
+    }
 
     private OnItemClickListener clickListener;
     private OnItemLongClickListener longClickListener;

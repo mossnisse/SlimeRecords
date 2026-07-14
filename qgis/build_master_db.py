@@ -6,7 +6,12 @@ import traceback
 # dyntaxa is downloaded at https://artfakta.se/metadata/dyntaxa
 
 # Resolve sibling processors relative to this script so the project is relocatable.
-script_dir = os.path.dirname(os.path.abspath(__file__))
+try:
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+except NameError:
+    # __file__ is undefined in the QGIS Python console; fall back to the
+    # working directory (open the console from the qgis/ folder).
+    script_dir = os.getcwd()
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
@@ -67,5 +72,7 @@ def main():
     finally:
         conn.close()
 
-if __name__ == "__main__":
+# The QGIS Python console runs scripts with __name__ == "__console__",
+# so checking only "__main__" would silently skip the build there.
+if __name__ in ("__main__", "__console__"):
     main()

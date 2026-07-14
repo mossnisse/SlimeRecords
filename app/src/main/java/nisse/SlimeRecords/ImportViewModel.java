@@ -42,8 +42,8 @@ public class ImportViewModel extends AndroidViewModel {
     }
 
     public void startImport(Uri zipUri, DuplicateStrategy strategy) {
-        this.activeStrategy = strategy;
         if (importStatus.getValue() == ImportState.LOADING) return;
+        this.activeStrategy = strategy;
 
         importStatus.setValue(ImportState.LOADING);
         statusMessage.setValue("");
@@ -58,7 +58,7 @@ public class ImportViewModel extends AndroidViewModel {
                 FileUtils.copy(fis, fos);
                 fos.flush();
 
-                processZipFile(tempFile);
+                processImportFile(tempFile);
                 importStatus.postValue(ImportState.SUCCESS);
 
             } catch (Exception e) {
@@ -69,6 +69,35 @@ public class ImportViewModel extends AndroidViewModel {
                 if (tempFile.exists()) tempFile.delete();
             }
         });
+    }
+
+    /** The file picker accepts both ZIP archives and bare CSV/text files. */
+    private void processImportFile(File file) throws IOException {
+        if (isZipFile(file)) {
+            processZipFile(file);
+        } else {
+            processCsvFile(file);
+        }
+    }
+
+    private boolean isZipFile(File file) throws IOException {
+        try (FileInputStream fis = new FileInputStream(file)) {
+            byte[] signature = new byte[2];
+            return fis.read(signature) == 2 && signature[0] == 'P' && signature[1] == 'K';
+        }
+    }
+
+    private void processCsvFile(File csvFile) throws IOException {
+        File photoDir = getApplication().getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        if (photoDir == null) throw new IOException("Photo storage is unavailable.");
+
+        String csvContent;
+        try (FileInputStream fis = new FileInputStream(csvFile)) {
+            csvContent = readStreamToString(fis);
+        }
+        // No archive means no staged photos; rows referencing photos fall back
+        // to files already present in the photo directory.
+        parseAndSaveCsv(csvContent, photoDir, new HashMap<>(), new HashMap<>(), new ArrayList<>());
     }
 
     private void processZipFile(File zipFile) throws IOException {
@@ -92,7 +121,9 @@ public class ImportViewModel extends AndroidViewModel {
                 ZipEntry entry;
                 while ((entry = zis.getNextEntry()) != null) {
                     String name = entry.getName();
-                    if (name.endsWith(".csv")) { // Better: handle any CSV in the root
+                    // Accept any CSV outside photos/ so nested archives still work,
+                    // but never mistake a photos/*.csv entry for the data file.
+                    if (name.endsWith(".csv") && !name.startsWith("photos/")) {
                         csvContent = readStreamToString(zis);
                     } else if (name.startsWith("photos/") && !entry.isDirectory()) {
                         String photoName = new File(name).getName();
@@ -210,7 +241,9 @@ public class ImportViewModel extends AndroidViewModel {
                 if (!altitudeText.isEmpty()) {
                     try {
                         record.altitude = Double.parseDouble(altitudeText);
-                        record.hasAltitude = true;
+                        // Older exports wrote 0 for records without a fix, so apply
+                        // the same legacy rule as hasKnownAltitude(): 0 means unknown.
+                        record.hasAltitude = record.altitude != 0.0;
                     } catch (NumberFormatException ignored) {
                         record.altitude = 0;
                         record.hasAltitude = false;
@@ -245,8 +278,14 @@ public class ImportViewModel extends AndroidViewModel {
                 attr.specimenNr = getString(parts, colMap, "SpecimenNr", "");
                 attr.isSpecimen = getString(parts, colMap, "isSpecimen", "false").equalsIgnoreCase("true");
 
-                String qStr = getString(parts, colMap, "organismQuantity", "");
-                if (!qStr.isEmpty()) attr.organismQuantity = Integer.parseInt(qStr);
+                String qStr = getString(parts, colMap, "organismQuantity", "").trim();
+                if (!qStr.isEmpty()) {
+                    try {
+                        attr.organismQuantity = Integer.parseInt(qStr);
+                    } catch (NumberFormatException ignored) {
+                        // Import the record without a quantity rather than failing the row.
+                    }
+                }
 
                 record.attributes = attr;
 
@@ -287,7 +326,13 @@ public class ImportViewModel extends AndroidViewModel {
 
         String safeName = new File(photoName).getName();
         File stagedFile = stagedPhotos.get(safeName);
-        if (stagedFile == null || !stagedFile.exists()) return null;
+        if (stagedFile == null || !stagedFile.exists()) {
+            // The archive doesn't carry this photo (e.g. the file was unreadable at
+            // export time). Fall back to a matching file already on the device so a
+            // REPLACE import keeps the link instead of deleting the photo as orphaned.
+            File existingFile = new File(photoDir, safeName);
+            return existingFile.exists() ? existingFile.getAbsolutePath() : null;
+        }
 
         String existingPath = resolvedPhotoPaths.get(safeName);
         if (existingPath != null && new File(existingPath).exists()) return existingPath;

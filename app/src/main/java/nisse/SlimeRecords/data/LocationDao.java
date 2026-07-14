@@ -55,6 +55,26 @@ public abstract class LocationDao {
         return oldPhotoPaths;
     }
 
+    /**
+     * Deletes a location and its photo links atomically. The returned paths are
+     * no longer referenced by any record and may be deleted from disk after
+     * this transaction commits.
+     */
+    @Transaction
+    public List<String> deleteLocationWithPhotos(RecordWithPhotos item) {
+        List<String> orphanedPaths = new java.util.ArrayList<>();
+        if (item.photos != null) {
+            for (PhotoRecord photo : item.photos) {
+                deletePhotoById(photo.id);
+                if (getPhotoReferenceCount(photo.filePath) == 0) {
+                    orphanedPaths.add(photo.filePath);
+                }
+            }
+        }
+        deleteLocation(item.location);
+        return orphanedPaths;
+    }
+
     @Update
     public abstract void updateLocation(ObservationRecord location);
 

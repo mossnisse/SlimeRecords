@@ -159,7 +159,7 @@ public class ExportViewModel extends AndroidViewModel {
         sb.append(String.format(Locale.US, "%.6f", r.latitude)).append(d);
         sb.append(String.format(Locale.US, "%.6f", r.longitude)).append(d);
         sb.append((int)Math.ceil(r.accuracy)).append(d);
-        boolean hasAltitude = hasKnownAltitude(r);
+        boolean hasAltitude = r.hasKnownAltitude();
         sb.append(hasAltitude ? (int)Math.round(r.altitude) : "").append(d);
         sb.append("WGS84").append(d);
         sb.append(hasAltitude ? "WGS84" : "").append(d);
@@ -276,7 +276,7 @@ public class ExportViewModel extends AndroidViewModel {
         columns.add("");                                     // 13: Diffusion
         columns.add("");                                     // 14: Djup min
         columns.add("");                                     // 15: Djup max
-        columns.add(hasKnownAltitude(r) ? String.valueOf(Math.round(r.altitude)) : ""); // 16: Höjd min
+        columns.add(r.hasKnownAltitude() ? String.valueOf(Math.round(r.altitude)) : ""); // 16: Höjd min
         columns.add("");                                     // 17: Höjd max
         columns.add(date);                                   // 18: Startdatum
         columns.add(time);                                   // 19: Starttid
@@ -326,11 +326,6 @@ public class ExportViewModel extends AndroidViewModel {
             }
         }
         return selected + " m";
-    }
-
-    private boolean hasKnownAltitude(ObservationRecord record) {
-        // Older records never populated hasAltitude, so retain non-zero legacy values.
-        return record.hasAltitude || record.altitude != 0.0;
     }
 
     private void writeReadme(ZipOutputStream zos, String format) throws IOException {

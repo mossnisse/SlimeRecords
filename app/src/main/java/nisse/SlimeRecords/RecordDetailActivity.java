@@ -58,6 +58,10 @@ public class RecordDetailActivity extends AppCompatActivity {
     private Integer selectedDyntaxaID = null;
     private boolean showPhoto;
     private boolean existingDetailsLoaded = false;
+    // Deliberately not saved in instance state: the coordinate panel is a plain
+    // TextView whose text is lost on recreation, so it must be repainted once
+    // per activity instance even when existingDetailsLoaded was restored.
+    private boolean coordsDisplayed = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -93,6 +97,13 @@ public class RecordDetailActivity extends AppCompatActivity {
         initAutocomplete();
         setupObservers();
 
+        // A save was already requested before recreation; keep the buttons
+        // disabled until the observers report success or failure.
+        if (persistenceRequested) {
+            binding.btnSaveDetail.setEnabled(false);
+            binding.btnCancelDetail.setEnabled(false);
+        }
+
         if (isNew && savedInstanceState == null) setupNewLocation();
         else if (isNew) onCoordinatesLoaded(false);
         else setupExistingLocation();
@@ -125,6 +136,17 @@ public class RecordDetailActivity extends AppCompatActivity {
                 Toast.makeText(this, isNew ? "Saved!" : "Updated!", Toast.LENGTH_SHORT).show();
                 isSaved = true;
                 finish();
+            }
+        });
+
+        historyViewModel.getOperationError().observe(this, message -> {
+            if (message != null) {
+                historyViewModel.clearOperationError();
+                Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+                // Let the user retry (or cancel) instead of leaving the screen stuck
+                persistenceRequested = false;
+                binding.btnSaveDetail.setEnabled(true);
+                binding.btnCancelDetail.setEnabled(true);
             }
         });
 
@@ -277,8 +299,7 @@ public class RecordDetailActivity extends AppCompatActivity {
                 lon = currentRecord.longitude;
                 accuracy = currentRecord.accuracy;
                 altitude = currentRecord.altitude;
-                // Older app versions stored elevations without setting hasAltitude.
-                hasAltitude = currentRecord.hasAltitude || currentRecord.altitude != 0.0;
+                hasAltitude = currentRecord.hasKnownAltitude();
 
                 binding.inputNote.setText(currentRecord.note); // Set General Notes
                 binding.editLocality.setText(currentRecord.locality);
@@ -312,6 +333,13 @@ public class RecordDetailActivity extends AppCompatActivity {
                     binding.tvSpecimenNr.setVisibility(a.isSpecimen ? View.VISIBLE : View.GONE);
                     binding.tvSpecimenNr.setText("No: " + (a.specimenNr != null ? a.specimenNr : "--"));
                 }
+            }
+
+            // Runs even when existingDetailsLoaded was restored as true: after a
+            // configuration change the coordinate panel text is lost and must be
+            // rebuilt (it also needs currentRecord, so it can't run in onCreate).
+            if (!coordsDisplayed) {
+                coordsDisplayed = true;
                 onCoordinatesLoaded(false);
             }
 
@@ -467,14 +495,20 @@ public class RecordDetailActivity extends AppCompatActivity {
     }
 
     private void confirmPhotoDeletion(int position) {
+        if (position < 0 || position >= currentPhotos.size()) return;
         PhotoRecord photoToDelete = currentPhotos.get(position);
 
         new AlertDialog.Builder(this)
                 .setTitle("Remove Photo")
                 .setMessage("Delete this photo from this record?")
                 .setPositiveButton("Delete", (d, w) -> {
-                    currentPhotos.remove(position);
-                    photoAdapter.notifyItemRemoved(position);
+                    // The list may have been rebuilt while the dialog was open
+                    // (the photos LiveData re-emits on any DB change), so
+                    // re-resolve the index instead of trusting the stale one.
+                    int currentIndex = currentPhotos.indexOf(photoToDelete);
+                    if (currentIndex == -1) return;
+                    currentPhotos.remove(currentIndex);
+                    photoAdapter.notifyItemRemoved(currentIndex);
 
                     if (!isNew && photoToDelete.id != 0) {
                         // This is an existing record in the DB

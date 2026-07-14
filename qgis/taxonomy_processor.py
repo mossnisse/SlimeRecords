@@ -15,6 +15,11 @@ def process_taxonomy(conn, taxon_csv, vernacular_csv, group_def_csv):
             taxonGroup TEXT
         )
     """)
+    # The Room entity declares these indices; a pre-packaged DB without them
+    # fails Room's schema validation on fresh installs. Keep the names in
+    # Room's index_<table>_<column> format.
+    cursor.execute("CREATE INDEX index_species_reference_name ON species_reference(name)")
+    cursor.execute("CREATE INDEX index_species_reference_dyntaxaID ON species_reference(dyntaxaID)")
 
     # Load groupMap
     group_map = {}
@@ -41,8 +46,13 @@ def process_taxonomy(conn, taxon_csv, vernacular_csv, group_def_csv):
             try:
                 # Use acceptedNameUsageID as requested
                 # We split by ':' and take the last part (e.g., '6004805')
-                t_id = int(row['acceptedNameUsageID'].split(':')[-1])
-                
+                try:
+                    t_id = int(row['acceptedNameUsageID'].split(':')[-1])
+                except ValueError:
+                    # Rows without a usable accepted id (e.g. misapplied names)
+                    # cannot be linked; skip them instead of aborting the build.
+                    continue
+
                 rank = row['taxonRank']
                 status = row['taxonomicStatus']
                 

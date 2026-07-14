@@ -223,6 +223,18 @@ public class Coordinates {
         int minutes = (int) remainderMinutes;
         double seconds = (remainderMinutes - minutes) * 60.0;
 
+        // Round to the displayed precision first and carry any overflow so the
+        // output never reads 60.00" (e.g. 57.9999999 -> 58 deg 0' 0.00").
+        seconds = Math.round(seconds * 100.0) / 100.0;
+        if (seconds >= 60.0) {
+            seconds = 0.0;
+            minutes++;
+        }
+        if (minutes >= 60) {
+            minutes = 0;
+            degrees++;
+        }
+
         // We use String.format to control the precision of the seconds (e.g., 1 decimal place)
         // The \u00B0 is the unicode for the degree symbol °
         return String.format(Locale.US, "%d\u00B0 %d' %.2f\" %s", degrees, minutes, seconds, direction);
@@ -245,8 +257,8 @@ public class Coordinates {
         // Clean string: remove spaces and non-breaking spaces
         String clean = rubin.replaceAll("[\\s\\u00A0]", "");
 
-        // Pad if first part is single digit (e.g., "7" -> "07")
-        if (clean.length() > 0 && !Character.isDigit(clean.charAt(1))) {
+        // Pad if first part is single digit (e.g., "7G..." -> "07G...")
+        if (clean.length() > 1 && !Character.isDigit(clean.charAt(1))) {
             clean = "0" + clean;
         }
 
@@ -343,7 +355,8 @@ public class Coordinates {
 
         // Norway/Svalbard Exceptions
         if (this.north >= 56 && this.north < 64 && this.east >= 3 && this.east < 12) return "32V";
-        if (this.north >= 72 && this.north < 84) {
+        // Band X ends at 84 inclusive (toUTM already rejects anything above it)
+        if (this.north >= 72 && this.north <= 84) {
             if (this.east >= 0 && this.east < 9) return "31X";
             if (this.east >= 9 && this.east < 21) return "33X";
             if (this.east >= 21 && this.east < 33) return "35X";

@@ -5,6 +5,7 @@ import android.location.Address;
 import android.location.Geocoder;
 import android.os.Build;
 import android.util.Log;
+import androidx.annotation.NonNull;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
@@ -73,9 +74,21 @@ public class GeoResolver {
         Geocoder geocoder = new Geocoder(context, Locale.getDefault());
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            geocoder.getFromLocation(lat, lon, 1, addresses ->
-                processGeocoderResult(addresses, callback)
-            );
+            geocoder.getFromLocation(lat, lon, 1, new Geocoder.GeocodeListener() {
+                @Override
+                public void onGeocode(@NonNull List<Address> addresses) {
+                    // Hop back to the executor: the listener's thread is not
+                    // specified and processGeocoderResult queries Room synchronously.
+                    UserDatabase.getDbExecutor().execute(() ->
+                            processGeocoderResult(addresses, callback));
+                }
+
+                @Override
+                public void onError(String errorMessage) {
+                    callback.onError(new IOException(
+                            errorMessage != null ? errorMessage : "Geocoder lookup failed"));
+                }
+            });
         } else {
             try {
                 List<Address> addresses = geocoder.getFromLocation(lat, lon, 1);

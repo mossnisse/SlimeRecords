@@ -11,11 +11,14 @@ public class SettingsActivity extends AppCompatActivity {
         // You MUST set the content view first!
         setContentView(R.layout.activity_settings);
 
-        // Now you can swap in the fragment
-        getSupportFragmentManager()
-                .beginTransaction()
-                .replace(R.id.settings_container, new SettingsFragment())
-                .commit();
+        // Only add the fragment on first creation; on rotation the
+        // FragmentManager restores the existing one (keeping scroll position).
+        if (savedInstanceState == null) {
+            getSupportFragmentManager()
+                    .beginTransaction()
+                    .replace(R.id.settings_container, new SettingsFragment())
+                    .commit();
+        }
 
         // Optional: Add a back button in the toolbar
         if (getSupportActionBar() != null) {

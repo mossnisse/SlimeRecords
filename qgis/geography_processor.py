@@ -14,17 +14,21 @@ def process_geography(conn, export_folder, layers_config):
         cursor.execute(f"DROP TABLE IF EXISTS {prefix}_geometries")
         cursor.execute(f"CREATE TABLE {prefix}s (id INTEGER PRIMARY KEY NOT NULL, name TEXT NOT NULL)")
         cursor.execute(f"""
-            CREATE TABLE {prefix}_geometries ( uid INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
-                parentId INTEGER NOT NULL, 
-                minN INTEGER NOT NULL, 
-                minE INTEGER NOT NULL, 
-                maxN INTEGER NOT NULL, 
-                maxE INTEGER NOT NULL, 
-                byteOffset INTEGER NOT NULL, 
-                vertexCount INTEGER NOT NULL, 
+            CREATE TABLE {prefix}_geometries ( uid INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                parentId INTEGER NOT NULL,
+                minN INTEGER NOT NULL,
+                minE INTEGER NOT NULL,
+                maxN INTEGER NOT NULL,
+                maxE INTEGER NOT NULL,
+                byteOffset INTEGER NOT NULL,
+                vertexCount INTEGER NOT NULL,
                 FOREIGN KEY(parentId) REFERENCES {prefix}s(id) ON DELETE CASCADE
             )
         """)
+        # The Room entity declares @Index("parentId"); a pre-packaged DB without
+        # it fails Room's schema validation on fresh installs.
+        cursor.execute(f"CREATE INDEX index_{prefix}_geometries_parentId "
+                       f"ON {prefix}_geometries(parentId)")
 
         layers = QgsProject.instance().mapLayersByName(config["layer_name"])
         if not layers:

@@ -14,7 +14,7 @@ public class ObservationRecord {
     public long timestamp;
     public float accuracy;  // DwC coordinateUncertaintyInMeters
     public double altitude;  // DwC verbatimElevation  DwC verticalDatum?
-    public boolean hasAltitude; // unused, but kept as a Room column to preserve DB schema (v1)
+    public boolean hasAltitude; // false on records saved by older app versions; see hasKnownAltitude()
     @NonNull
     public String localTime ="";  // DwC eventDate
     @NonNull
@@ -35,6 +35,14 @@ public class ObservationRecord {
 
     public ObservationRecord() {
         // Empty constructor for Room/Manual mapping
+    }
+
+    /**
+     * True when the stored altitude is a real measurement. Older app versions
+     * never set hasAltitude, so any non-zero legacy value is treated as known.
+     */
+    public boolean hasKnownAltitude() {
+        return hasAltitude || altitude != 0.0;
     }
     public ObservationRecord(double latitude, double longitude, double altitude, long timestamp, float accuracy, @NonNull String localTime, @NonNull String note) {
         this.latitude = latitude;
