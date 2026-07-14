@@ -118,18 +118,11 @@ public class PrintActivity extends AppCompatActivity {
 
     /** Parses trimmed user input into an Integer, or null if empty/invalid. */
     static Integer parseNullableInt(String text) {
-        if (text == null) return null;
-        String trimmed = text.trim();
-        if (trimmed.isEmpty()) return null;
-        try {
-            return Integer.parseInt(trimmed);
-        } catch (NumberFormatException e) {
-            return null;
-        }
+        return PrintRangeFilter.parseNullableInt(text);
     }
 
     static boolean isInvalidRangeBound(String text) {
-        return text != null && !text.trim().isEmpty() && parseNullableInt(text) == null;
+        return PrintRangeFilter.isInvalidBound(text);
     }
 
     /**
@@ -139,22 +132,7 @@ public class PrintActivity extends AppCompatActivity {
      * non-numeric Collection nr are excluded whenever a bound is supplied.
      */
     private List<ObservationRecord> filterByCollectionNr(List<ObservationRecord> list, Integer min, Integer max) {
-        if (list == null) return new ArrayList<>();
-        if (min == null && max == null) return list;
-
-        List<ObservationRecord> filtered = new ArrayList<>();
-        for (ObservationRecord r : list) {
-            if (r.attributes == null || r.attributes.specimenNr == null) continue;
-            try {
-                int nr = Integer.parseInt(r.attributes.specimenNr.trim());
-                if (min != null && nr < min) continue;
-                if (max != null && nr > max) continue;
-                filtered.add(r);
-            } catch (NumberFormatException e) {
-                // Non-numeric Collection nr cannot be range-matched; skip it.
-            }
-        }
-        return filtered;
+        return PrintRangeFilter.filter(list, min, max);
     }
 
     private Uri saveFileAndGetUri(String htmlContent) {

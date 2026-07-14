@@ -37,7 +37,7 @@ public class GeoResolver {
     }
 
     public static void resolve(Context context, double lat, double lon, GeoCallback callback) {
-        UserDatabase.getDbExecutor().execute(() -> {
+        AppDependencies.get().executor().execute(() -> {
             try {
                 GeoResolver resolver = new GeoResolver(context);
 
@@ -79,7 +79,7 @@ public class GeoResolver {
                 public void onGeocode(@NonNull List<Address> addresses) {
                     // Hop back to the executor: the listener's thread is not
                     // specified and processGeocoderResult queries Room synchronously.
-                    UserDatabase.getDbExecutor().execute(() ->
+                    AppDependencies.get().executor().execute(() ->
                             processGeocoderResult(addresses, callback));
                 }
 

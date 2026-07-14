@@ -28,7 +28,7 @@ public class HistoryViewModel extends AndroidViewModel {
 
     public HistoryViewModel(@NonNull Application application) {
         super(application);
-        locationDao = UserDatabase.getInstance(application).locationDao();
+        locationDao = AppDependencies.get().locationDao(application);
 
         Pager<Integer, RecordWithPhotos> pager = new Pager<>(
                 new PagingConfig(20, 5, false),
@@ -38,7 +38,7 @@ public class HistoryViewModel extends AndroidViewModel {
     }
 
     public void saveLocationWithPhotos(ObservationRecord record, List<String> photoPaths) {
-        UserDatabase.getDbExecutor().execute(() -> {
+        AppDependencies.get().executor().execute(() -> {
             try {
                 locationDao.insertLocationWithPhotos(record, photoPaths);
                 operationFinished.postValue(true);
@@ -50,7 +50,7 @@ public class HistoryViewModel extends AndroidViewModel {
     }
 
     public void updateLocation(ObservationRecord record) {
-        UserDatabase.getDbExecutor().execute(() -> {
+        AppDependencies.get().executor().execute(() -> {
             try {
                 locationDao.updateLocation(record);
                 operationFinished.postValue(true);
@@ -62,7 +62,7 @@ public class HistoryViewModel extends AndroidViewModel {
     }
 
     public void deleteLocationWithPhotos(RecordWithPhotos item) {
-        UserDatabase.getDbExecutor().execute(() -> {
+        AppDependencies.get().executor().execute(() -> {
             try {
                 List<String> orphanedPaths = locationDao.deleteLocationWithPhotos(item);
                 // Delete files only after the transaction has committed
@@ -77,7 +77,7 @@ public class HistoryViewModel extends AndroidViewModel {
     }
 
     public void deletePhoto(PhotoRecord photo) {
-        UserDatabase.getDbExecutor().execute(() -> {
+        AppDependencies.get().executor().execute(() -> {
             // Delete the specific photo entry by ID
             locationDao.deletePhotoById(photo.id);
 
@@ -97,8 +97,8 @@ public class HistoryViewModel extends AndroidViewModel {
 
     public void updateRecentCollector(String name) {
         if (name == null || name.trim().isEmpty()) return;
-        UserDatabase.getDbExecutor().execute(() ->
-                locationDao.insertRecentCollector(new RecentCollector(name.trim(), System.currentTimeMillis()))
+        AppDependencies.get().executor().execute(() ->
+                locationDao.insertRecentCollector(new RecentCollector(name.trim(), AppDependencies.get().currentTimeMillis()))
         );
     }
 

@@ -13,7 +13,7 @@ import java.util.List;
 import nisse.SlimeRecords.RecordWithPhotos;
 
 @Dao
-public abstract class LocationDao {
+public abstract class LocationDao implements ImportRecordStore {
 
     @Insert
     public abstract long insertLocation(ObservationRecord location);
@@ -24,6 +24,9 @@ public abstract class LocationDao {
     @Transaction
     public void insertLocationWithPhotos(ObservationRecord location, List<String> photoPaths) {
         long locationId = insertLocation(location);
+        // Room returns the generated key but does not write it back to a plain Java field.
+        // Keep the in-memory model consistent so callers can immediately address the record.
+        location.id = locationId;
         for (String path : photoPaths) {
             insertPhoto(new PhotoRecord(locationId, path));
         }

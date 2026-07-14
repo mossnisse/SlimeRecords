@@ -31,11 +31,11 @@ public class SearchViewModel extends AndroidViewModel {
 
     public SearchViewModel(@NonNull Application application) {
         super(application);
-        spatialDao = SpatialDatabase.getInstance(application).spatialDao();
+        spatialDao = AppDependencies.get().spatialDao(application);
     }
 
     public void performFullSpatialLookup(double lat, double lon) {
-        GeoResolver.resolve(getApplication(), lat, lon, new GeoResolver.GeoCallback() {
+        AppDependencies.get().resolveGeography(getApplication(), lat, lon, new GeoResolver.GeoCallback() {
             @Override
             public void onResolved(String country, String province, String district, String countryCode) {
                 // All values are posted at once from a single source
@@ -83,7 +83,7 @@ public class SearchViewModel extends AndroidViewModel {
 
         final String currentQuery = query.trim();
 
-        UserDatabase.getDbExecutor().execute(() -> {
+        AppDependencies.get().executor().execute(() -> {
             try {
                 SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplication());
                 Resources res = getApplication().getResources();

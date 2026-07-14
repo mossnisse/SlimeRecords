@@ -1,5 +1,7 @@
 package nisse.SlimeRecords.coords;
 
+import androidx.annotation.NonNull;
+
 import java.util.Locale;
 
 public class UTMResult {
@@ -13,6 +15,7 @@ public class UTMResult {
         this.northing = northing;
     }
 
+    @NonNull
     @Override
     public String toString() {
         return String.format(Locale.US, "%s %.0f %.0f", gzd, easting, northing);

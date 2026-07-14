@@ -18,14 +18,7 @@ public enum CoordSystem {
     RUBIN
     */
 
-    /*
-    static public enum CoordType {
-        TransverseMercator, Ellipsoid2D, index,
-    }*/
-
     public final String name;
-    //public final String country;
-    //public final CoordType type;
 
     public final double falseNorthing, falseEasting, centralMeridian, scale, axis, flattening;
 

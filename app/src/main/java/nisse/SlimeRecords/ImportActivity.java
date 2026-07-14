@@ -36,15 +36,15 @@ public class ImportActivity extends AppCompatActivity {
                 }
             }, uri -> {
                 if (uri != null) {
-                    ImportViewModel.DuplicateStrategy strategy;
+                    ImportProcessor.DuplicateStrategy strategy;
                     int checkedId = binding.rgStrategy.getCheckedRadioButtonId();
 
                     if (checkedId == R.id.rbReplace) {
-                        strategy = ImportViewModel.DuplicateStrategy.REPLACE;
+                        strategy = ImportProcessor.DuplicateStrategy.REPLACE;
                     } else if (checkedId == R.id.rbKeepBoth) {
-                        strategy = ImportViewModel.DuplicateStrategy.KEEP_BOTH;
+                        strategy = ImportProcessor.DuplicateStrategy.KEEP_BOTH;
                     } else {
-                        strategy = ImportViewModel.DuplicateStrategy.SKIP;
+                        strategy = ImportProcessor.DuplicateStrategy.SKIP;
                     }
 
                     importViewModel.startImport(uri, strategy);

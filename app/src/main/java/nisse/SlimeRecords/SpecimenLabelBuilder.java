@@ -12,6 +12,10 @@ import nisse.SlimeRecords.data.SpeciesAttributes;
 public class SpecimenLabelBuilder {
 
     public static String generateFullReport(Context context, List<ObservationRecord> items) {
+        return buildReport(getTemplate(context), items);
+    }
+
+    static String buildReport(String template, List<ObservationRecord> items) {
         StringBuilder allLabels = new StringBuilder();
 
         for (ObservationRecord item : items) {
@@ -25,11 +29,10 @@ public class SpecimenLabelBuilder {
             return "<html><body><h1>No specimens found to print.</h1></body></html>";
         }
 
-        String template = getTemplate(context);
         return template.replace("{{LABELS_HERE}}", allLabels.toString());
     }
 
-    private static String generateSingleLabelHtml(ObservationRecord item) {
+    static String generateSingleLabelHtml(ObservationRecord item) {
         SpeciesAttributes attrs = item.attributes;
         String dateOnly = item.localTime.length() >= 10
                 ? item.localTime.substring(0, 10) : "____-____-____";

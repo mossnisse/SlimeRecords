@@ -11,3 +11,17 @@ The app supports generating and printing professional labels and can export or i
 
 
 [Download the latest APK](https://github.com/mossnisse/SlimeRecords/releases/download/v0.002_Beta/SlimeRecords_v002_beta.apk)
+
+## Testing
+
+Run Gradle with JDK 17. The suite is fully local and does not require network access,
+GPS data, or shared user storage after dependencies have been downloaded.
+
+```text
+gradlew testDebugUnitTest
+gradlew connectedDebugAndroidTest
+gradlew jacocoTestReport
+```
+
+The HTML coverage report is written to
+`app/build/reports/jacoco/jacocoTestReport/html/index.html`.
