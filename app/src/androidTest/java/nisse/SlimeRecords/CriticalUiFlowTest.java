@@ -10,18 +10,24 @@ import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.intent.Intents.intended;
 import static androidx.test.espresso.intent.Intents.intending;
 import static androidx.test.espresso.intent.matcher.IntentMatchers.hasComponent;
+import static androidx.test.espresso.matcher.RootMatchers.withDecorView;
 import static androidx.test.espresso.matcher.ViewMatchers.hasErrorText;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
+import static androidx.test.espresso.matcher.ViewMatchers.isEnabled;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 
 import android.app.Activity;
+import android.app.Application;
 import android.app.Instrumentation;
 import android.content.Context;
 import android.content.Intent;
 import android.os.ParcelFileDescriptor;
+import android.view.View;
 
 import androidx.preference.PreferenceManager;
 import androidx.room.Room;
@@ -36,9 +42,12 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicReference;
 
 import nisse.SlimeRecords.data.CountryEntity;
 import nisse.SlimeRecords.data.DistrictEntity;
@@ -57,6 +66,7 @@ public class CriticalUiFlowTest {
     private Context context;
     private UserDatabase database;
     private LocationDao dao;
+    private TestProvider provider;
 
     @Before
     public void setUp() {
@@ -67,7 +77,8 @@ public class CriticalUiFlowTest {
                 .build();
         dao = database.locationDao();
         PreferenceManager.getDefaultSharedPreferences(context).edit().clear().commit();
-        AppDependencies.installForTests(new TestProvider());
+        provider = new TestProvider();
+        AppDependencies.installForTests(provider);
         Intents.init();
     }
 
@@ -130,10 +141,8 @@ public class CriticalUiFlowTest {
         record.attributes.organismQuantity = 12;
         long id = dao.insertLocation(record);
 
-        Intent intent = new Intent(context, RecordDetailActivity.class)
-                .putExtra("is_new", false)
-                .putExtra("location_id", id);
-        try (ActivityScenario<RecordDetailActivity> ignored = ActivityScenario.launch(intent)) {
+        try (ActivityScenario<HistoryActivity> ignored = ActivityScenario.launch(HistoryActivity.class)) {
+            onView(withText("Original taxon")).perform(click());
             onView(withId(R.id.input_note)).check(matches(withText("Old note")))
                     .perform(replaceText("Updated note"), closeSoftKeyboard());
             onView(withId(R.id.btn_save_detail)).perform(scrollTo(), click());
@@ -169,6 +178,68 @@ public class CriticalUiFlowTest {
     }
 
     @Test
+    public void exportFormatSelectionSurvivesRecreationAndStatesArePresented() {
+        try (ActivityScenario<ExportActivity> scenario = ActivityScenario.launch(ExportActivity.class)) {
+            onView(withId(R.id.edit_export_format)).perform(click());
+            onView(withText("Artportalen (Semicolon + SWEREF)")).perform(click());
+            onView(withId(R.id.edit_export_format)).check(matches(
+                    withText("Artportalen (Semicolon + SWEREF)")));
+
+            scenario.recreate();
+            onView(withId(R.id.edit_export_format)).check(matches(
+                    withText("Artportalen (Semicolon + SWEREF)")));
+
+            scenario.onActivity(activity ->
+                    activity.updateUiForState(ExportViewModel.ExportState.ERROR));
+            onView(withId(R.id.tv_export_status)).check(matches(withText(R.string.export_error)));
+            scenario.onActivity(activity ->
+                    activity.updateUiForState(ExportViewModel.ExportState.SUCCESS));
+            onView(withId(R.id.tv_export_status)).check(matches(withText(R.string.export_success)));
+        }
+    }
+
+    @Test
+    public void viewModelsRejectConcurrentImportAndExportRequests() {
+        QueuedExecutor exportQueue = new QueuedExecutor();
+        provider.executor = exportQueue;
+        ExportViewModel exportViewModel = new ExportViewModel((Application) context);
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
+            exportViewModel.startExport(ExportFormat.STANDARD_CSV);
+            exportViewModel.startExport(ExportFormat.EXCEL_CSV);
+        });
+        assertEquals(1, exportQueue.size());
+        assertEquals(ExportViewModel.ExportState.LOADING,
+                exportViewModel.getExportStatus().getValue());
+
+        QueuedExecutor importQueue = new QueuedExecutor();
+        provider.executor = importQueue;
+        ImportViewModel importViewModel = new ImportViewModel((Application) context);
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
+            importViewModel.startImport(android.net.Uri.EMPTY,
+                    ImportProcessor.DuplicateStrategy.SKIP);
+            importViewModel.startImport(android.net.Uri.EMPTY,
+                    ImportProcessor.DuplicateStrategy.REPLACE);
+        });
+        assertEquals(1, importQueue.size());
+        assertEquals(ImportViewModel.ImportState.LOADING,
+                importViewModel.getImportStatus().getValue());
+    }
+
+    @Test
+    public void printScreenShowsEmptyResultAndReEnablesActions() {
+        AtomicReference<View> decorView = new AtomicReference<>();
+        try (ActivityScenario<PrintActivity> scenario = ActivityScenario.launch(PrintActivity.class)) {
+            scenario.onActivity(activity -> decorView.set(activity.getWindow().getDecorView()));
+            onView(withId(R.id.btn_generate_label)).perform(click());
+            onView(withText("No specimens found!"))
+                    .inRoot(withDecorView(not(is(decorView.get()))))
+                    .check(matches(isDisplayed()));
+            onView(withId(R.id.btn_generate_label)).check(matches(isEnabled()));
+            onView(withId(R.id.btn_share_label)).check(matches(isEnabled()));
+        }
+    }
+
+    @Test
     public void mainMenuRoutesToImportScreen() {
         intending(hasComponent(ImportActivity.class.getName())).respondWith(
                 new Instrumentation.ActivityResult(Activity.RESULT_CANCELED, null));
@@ -181,6 +252,7 @@ public class CriticalUiFlowTest {
 
     private final class TestProvider implements AppDependencies.Provider {
         private final SpatialDao spatialDao = new EmptySpatialDao();
+        private Executor executor = Runnable::run;
 
         @Override
         public LocationDao locationDao(Context ignored) {
@@ -194,7 +266,7 @@ public class CriticalUiFlowTest {
 
         @Override
         public Executor executor() {
-            return Runnable::run;
+            return executor;
         }
 
         @Override
@@ -206,6 +278,19 @@ public class CriticalUiFlowTest {
         @Override
         public long currentTimeMillis() {
             return 1_721_300_000_000L;
+        }
+    }
+
+    private static final class QueuedExecutor implements Executor {
+        private final Queue<Runnable> tasks = new ArrayDeque<>();
+
+        @Override
+        public void execute(Runnable command) {
+            tasks.add(command);
+        }
+
+        int size() {
+            return tasks.size();
         }
     }
 

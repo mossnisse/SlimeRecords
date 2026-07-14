@@ -96,12 +96,10 @@ public abstract class LocationDao implements ImportRecordStore {
     @Query("SELECT * FROM location_table WHERE id = :id")
     public abstract RecordWithPhotos getLocationByIdSync(long id);
 
-    // This helper will check if a record exists by its unique "fingerprint"
-    // in case the ID column is missing or we are in "SKIP" mode.
-    // Coordinates are compared rounded to 6 decimals because the CSV export
-    // writes %.6f, so re-imported values never exactly match the stored doubles.
-    @Query("SELECT id FROM location_table WHERE ROUND(latitude, 6) = ROUND(:lat, 6) AND ROUND(longitude, 6) = ROUND(:lon, 6) AND localTime = :time LIMIT 1")
-    public abstract Long findIdByFingerprint(double lat, double lon, String time);
+    // Loaded once per import so duplicate detection does not need a table
+    // scan per CSV row; the 6-decimal rounding lives in ImportProcessor.
+    @Query("SELECT id, latitude, longitude, localTime FROM location_table")
+    public abstract List<RecordFingerprint> loadFingerprints();
 
     @Delete
     public abstract void deleteLocation(ObservationRecord location);

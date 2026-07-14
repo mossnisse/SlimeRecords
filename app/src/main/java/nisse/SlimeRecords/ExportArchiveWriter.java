@@ -5,11 +5,13 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.text.DateFormat;
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -25,10 +27,6 @@ public final class ExportArchiveWriter {
     private static final byte[] UTF8_BOM = {(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
     private final Supplier<String> timestampSupplier;
 
-    public ExportArchiveWriter() {
-        this(() -> DateFormat.getDateTimeInstance().format(new Date()));
-    }
-
     ExportArchiveWriter(Supplier<String> timestampSupplier) {
         this.timestampSupplier = timestampSupplier;
     }
@@ -37,15 +35,16 @@ public final class ExportArchiveWriter {
                       List<RecordWithPhotos> records,
                       ExportFormat format,
                       String metadataTemplate) throws IOException {
+        Map<String, String> photoArchiveNames = buildPhotoArchiveNames(records);
         try (ZipOutputStream zip = new ZipOutputStream(output)) {
             if (format == ExportFormat.ARTPORTALEN) {
                 writeArtportalenCsv(zip, records);
             } else {
                 writeCsv(zip, records, format == ExportFormat.EXCEL_CSV ? ";" : ",",
-                        format == ExportFormat.EXCEL_CSV);
+                        format == ExportFormat.EXCEL_CSV, photoArchiveNames);
             }
             writeReadme(zip, format, metadataTemplate);
-            writePhotos(zip, records);
+            writePhotos(zip, photoArchiveNames);
             zip.finish();
         }
     }
@@ -53,7 +52,8 @@ public final class ExportArchiveWriter {
     private void writeCsv(ZipOutputStream zip,
                           List<RecordWithPhotos> records,
                           String delimiter,
-                          boolean includeBom) throws IOException {
+                          boolean includeBom,
+                          Map<String, String> photoArchiveNames) throws IOException {
         zip.putNextEntry(new ZipEntry("data.csv"));
         if (includeBom) zip.write(UTF8_BOM);
         String header = String.join(delimiter,
@@ -64,12 +64,19 @@ public final class ExportArchiveWriter {
                 "isSpecimen", "SpecimenNr", "occurrenceRemarks", "photos") + "\n";
         zip.write(header.getBytes(StandardCharsets.UTF_8));
         for (RecordWithPhotos record : records) {
-            zip.write((formatLocationAsCsv(record, delimiter) + "\n").getBytes(StandardCharsets.UTF_8));
+            zip.write((formatLocationAsCsv(record, delimiter, photoArchiveNames) + "\n")
+                    .getBytes(StandardCharsets.UTF_8));
         }
         zip.closeEntry();
     }
 
     static String formatLocationAsCsv(RecordWithPhotos item, String delimiter) {
+        return formatLocationAsCsv(item, delimiter, null);
+    }
+
+    private static String formatLocationAsCsv(RecordWithPhotos item,
+                                              String delimiter,
+                                              Map<String, String> photoArchiveNames) {
         ObservationRecord record = item.location;
         SpeciesAttributes attributes = record.attributes != null
                 ? record.attributes : new SpeciesAttributes();
@@ -79,7 +86,10 @@ public final class ExportArchiveWriter {
             for (PhotoRecord photo : item.photos) {
                 if (photo.filePath != null && !photo.filePath.isEmpty()) {
                     if (photos.length() > 0) photos.append('|');
-                    photos.append(new File(photo.filePath).getName());
+                    String archiveName = photoArchiveNames != null
+                            ? photoArchiveNames.get(photo.filePath) : null;
+                    photos.append(archiveName != null
+                            ? archiveName : new File(photo.filePath).getName());
                 }
             }
         }
@@ -197,33 +207,55 @@ public final class ExportArchiveWriter {
         zip.closeEntry();
     }
 
-    private void writePhotos(ZipOutputStream zip, List<RecordWithPhotos> records) {
+    private static Map<String, String> buildPhotoArchiveNames(List<RecordWithPhotos> records) {
+        Map<String, String> archiveNames = new LinkedHashMap<>();
+        Set<String> usedNames = new HashSet<>();
         for (RecordWithPhotos record : records) {
             if (record.photos == null) continue;
             for (PhotoRecord photo : record.photos) {
-                File file = new File(photo.filePath);
-                if (!file.exists()) continue;
-                try {
-                    zip.putNextEntry(new ZipEntry("photos/" + file.getName()));
-                    try (FileInputStream input = new FileInputStream(file)) {
-                        copy(input, zip);
-                    }
-                    zip.closeEntry();
-                } catch (IOException ignored) {
-                    try {
-                        zip.closeEntry();
-                    } catch (IOException ignoredAgain) {
-                        // Keep exporting remaining records, matching the prior resilient behavior.
-                    }
+                if (photo.filePath == null || photo.filePath.isEmpty()
+                        || archiveNames.containsKey(photo.filePath)) {
+                    continue;
                 }
+                String requestedName = new File(photo.filePath).getName();
+                if (requestedName.isEmpty()) continue;
+                archiveNames.put(photo.filePath, uniquePhotoName(requestedName, usedNames));
             }
         }
+        return archiveNames;
     }
 
-    private static void copy(FileInputStream input, OutputStream output) throws IOException {
-        byte[] buffer = new byte[8192];
-        int read;
-        while ((read = input.read(buffer)) != -1) output.write(buffer, 0, read);
+    private static String uniquePhotoName(String requestedName, Set<String> usedNames) {
+        if (usedNames.add(requestedName)) return requestedName;
+        String base = requestedName;
+        String extension = "";
+        int dot = requestedName.lastIndexOf('.');
+        if (dot > 0) {
+            base = requestedName.substring(0, dot);
+            extension = requestedName.substring(dot);
+        }
+        int suffix = 1;
+        String candidate;
+        do {
+            candidate = base + "_exported_" + suffix++ + extension;
+        } while (!usedNames.add(candidate));
+        return candidate;
+    }
+
+    private static void writePhotos(ZipOutputStream zip,
+                                    Map<String, String> photoArchiveNames) throws IOException {
+        for (Map.Entry<String, String> photo : photoArchiveNames.entrySet()) {
+            File file = new File(photo.getKey());
+            if (!file.isFile()) {
+                throw new IOException("Photo file is missing: " + file.getName());
+            }
+            zip.putNextEntry(new ZipEntry("photos/" + photo.getValue()));
+            try (FileInputStream input = new FileInputStream(file)) {
+                FileUtils.copy(input, zip);
+            } finally {
+                zip.closeEntry();
+            }
+        }
     }
 
     private static String quoted(String value) {

@@ -17,7 +17,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import nisse.SlimeRecords.data.ObservationRecord;
-import nisse.SlimeRecords.data.UserDatabase;
 import nisse.SlimeRecords.databinding.ActivityPrintBinding;
 
 public class PrintActivity extends AppCompatActivity {
@@ -85,7 +84,7 @@ public class PrintActivity extends AppCompatActivity {
                 }
 
                 // Move heavy file operations to background thread
-                UserDatabase.getDbExecutor().execute(() -> {
+                AppDependencies.get().executor().execute(() -> {
                     Uri savedUri;
                     try {
                         String htmlContent = SpecimenLabelBuilder.generateFullReport(PrintActivity.this, filtered);

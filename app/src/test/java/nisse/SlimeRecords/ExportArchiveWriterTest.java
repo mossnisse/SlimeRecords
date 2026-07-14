@@ -3,12 +3,14 @@ package nisse.SlimeRecords;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
@@ -90,6 +92,44 @@ public class ExportArchiveWriterTest {
         String known = ExportArchiveWriter.formatLocationAsCsv(item, ",");
         assertTrue(unknown.contains(",,WGS84,,"));
         assertTrue(known.contains(",0,WGS84,WGS84,"));
+    }
+
+    @Test
+    public void archiveRenamesDifferentPhotosWithTheSameBasename() throws Exception {
+        File firstDirectory = temporaryFolder.newFolder("first");
+        File secondDirectory = temporaryFolder.newFolder("second");
+        File firstPhoto = new File(firstDirectory, "voucher.jpg");
+        File secondPhoto = new File(secondDirectory, "voucher.jpg");
+        try (FileOutputStream output = new FileOutputStream(firstPhoto)) {
+            output.write(new byte[] {1});
+        }
+        try (FileOutputStream output = new FileOutputStream(secondPhoto)) {
+            output.write(new byte[] {2});
+        }
+        RecordWithPhotos first = record();
+        first.location.id = 1;
+        first.photos = Collections.singletonList(new PhotoRecord(1, firstPhoto.getAbsolutePath()));
+        RecordWithPhotos second = record();
+        second.location.id = 2;
+        second.photos = Collections.singletonList(new PhotoRecord(2, secondPhoto.getAbsolutePath()));
+
+        Map<String, byte[]> entries = writeAndRead(ExportFormat.STANDARD_CSV, first, second);
+
+        assertArrayEquals(new byte[] {1}, entries.get("photos/voucher.jpg"));
+        assertArrayEquals(new byte[] {2}, entries.get("photos/voucher_exported_1.jpg"));
+        String csv = new String(entries.get("data.csv"), StandardCharsets.UTF_8);
+        assertTrue(csv.contains("\"voucher.jpg\""));
+        assertTrue(csv.contains("\"voucher_exported_1.jpg\""));
+    }
+
+    @Test
+    public void missingPhotoFailsInsteadOfProducingIncompleteArchive() {
+        RecordWithPhotos item = record();
+        item.photos = Collections.singletonList(new PhotoRecord(item.location.id,
+                new File(temporaryFolder.getRoot(), "missing.jpg").getAbsolutePath()));
+
+        assertThrows(IOException.class,
+                () -> writeAndRead(ExportFormat.STANDARD_CSV, item));
     }
 
     private Map<String, byte[]> writeAndRead(ExportFormat format,

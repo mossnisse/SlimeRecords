@@ -102,7 +102,7 @@ tasks.register<JacocoReport>("jacocoTestReport") {
         "**/*Binding*.*", "**/*Adapter*.*"
     )
     classDirectories.setFrom(
-        fileTree(layout.buildDirectory.dir("intermediates/javac/debug/classes")) {
+        fileTree(layout.buildDirectory.dir("intermediates/javac/debug/compileDebugJavaWithJavac/classes")) {
             exclude(excluded)
         }
     )

@@ -29,6 +29,7 @@ import nisse.SlimeRecords.data.LocalitySuggestion;
 import nisse.SlimeRecords.data.LocationDao;
 import nisse.SlimeRecords.data.ObservationRecord;
 import nisse.SlimeRecords.data.RecentCollector;
+import nisse.SlimeRecords.data.RecordFingerprint;
 import nisse.SlimeRecords.data.SpeciesAttributes;
 import nisse.SlimeRecords.data.UserDatabase;
 
@@ -64,14 +65,17 @@ public class LocationDaoTest {
     }
 
     @Test
-    public void fingerprintRoundsToExportPrecision() {
+    public void loadFingerprintsReturnsStoredIdentity() {
         ObservationRecord record = record(0, 59.12345649, 18.00000049,
                 "2026-07-14 10:00:00", "Site");
         long id = dao.insertLocation(record);
-        assertEquals(Long.valueOf(id), dao.findIdByFingerprint(
-                59.1234564, 18.0000004, record.localTime));
-        assertEquals(null, dao.findIdByFingerprint(
-                59.123458, 18.0000004, record.localTime));
+
+        List<RecordFingerprint> fingerprints = dao.loadFingerprints();
+        assertEquals(1, fingerprints.size());
+        assertEquals(id, fingerprints.get(0).id);
+        assertEquals(59.12345649, fingerprints.get(0).latitude, 0.0);
+        assertEquals(18.00000049, fingerprints.get(0).longitude, 0.0);
+        assertEquals("2026-07-14 10:00:00", fingerprints.get(0).localTime);
     }
 
     @Test

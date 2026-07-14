@@ -25,6 +25,7 @@ import org.junit.rules.TemporaryFolder;
 import nisse.SlimeRecords.data.ImportRecordStore;
 import nisse.SlimeRecords.data.ObservationRecord;
 import nisse.SlimeRecords.data.PhotoRecord;
+import nisse.SlimeRecords.data.RecordFingerprint;
 import nisse.SlimeRecords.data.SpeciesAttributes;
 
 public class ImportProcessorTest {
@@ -44,7 +45,9 @@ public class ImportProcessorTest {
         assertEquals(9, record.id);
         assertEquals("Linnaea borealis", record.attributes.taxonName);
         assertEquals(null, record.attributes.organismQuantity);
-        assertFalse(record.hasAltitude);
+        // An exported "0" is a real sea-level measurement, not an unknown altitude.
+        assertTrue(record.hasAltitude);
+        assertEquals(0.0, record.altitude, 0.0);
         assertTrue(record.timestamp > 0);
     }
 
@@ -57,25 +60,88 @@ public class ImportProcessorTest {
         existing.longitude = 18.2;
         existing.localTime = "2026-07-14 12:30:00";
         store.insertLocationWithPhotos(existing, Collections.emptyList());
-        File csv = write("duplicates.csv", minimalCsv(
+        // No ID column value: only the rounded coordinate fingerprint can match.
+        File byFingerprint = write("duplicates_fingerprint.csv", minimalCsv(
+                "0,59.1234564,18.2,2026-07-14 12:30:00,updated"));
+        File byId = write("duplicates_id.csv", minimalCsv(
                 "5,59.1234564,18.2,2026-07-14 12:30:00,updated"));
         ImportProcessor processor = processor(store);
 
-        ImportResult skipped = processor.process(csv, temporaryFolder.newFolder("skip"),
+        ImportResult skipped = processor.process(byFingerprint, temporaryFolder.newFolder("skip"),
                 ImportProcessor.DuplicateStrategy.SKIP);
         assertEquals(1, skipped.skipped);
         assertEquals(1, store.records.size());
 
-        ImportResult replaced = processor.process(csv, temporaryFolder.newFolder("replace"),
+        ImportResult replaced = processor.process(byId, temporaryFolder.newFolder("replace"),
                 ImportProcessor.DuplicateStrategy.REPLACE);
         assertEquals(1, replaced.updated);
         assertEquals("updated", store.records.get(0).locality);
 
-        ImportResult kept = processor.process(csv, temporaryFolder.newFolder("keep"),
+        ImportResult kept = processor.process(byId, temporaryFolder.newFolder("keep"),
                 ImportProcessor.DuplicateStrategy.KEEP_BOTH);
         assertEquals(1, kept.added);
         assertEquals(2, store.records.size());
         assertTrue(store.records.get(1).id != 5);
+    }
+
+    @Test
+    public void fingerprintMatchesExportRoundingForNegativeCoordinates() throws Exception {
+        FakeStore store = new FakeStore();
+        ObservationRecord existing = new ObservationRecord();
+        existing.latitude = -0.0000005;
+        existing.longitude = -10.0000005;
+        existing.localTime = "2026-07-14 12:30:00";
+        store.insertLocationWithPhotos(existing, Collections.emptyList());
+        File csv = write("negative_fingerprint.csv", minimalCsv(
+                "0,-0.000001,-10.000001,2026-07-14 12:30:00,duplicate"));
+
+        ImportResult result = processor(store).process(csv,
+                temporaryFolder.newFolder("negative-fingerprint-photos"),
+                ImportProcessor.DuplicateStrategy.SKIP);
+
+        assertEquals(1, result.skipped);
+        assertEquals(1, store.records.size());
+    }
+
+    @Test
+    public void rejectsMalformedAndOutOfRangeRequiredValuesPerRow() throws Exception {
+        FakeStore store = new FakeStore();
+        File csv = write("malformed_rows.csv", minimalCsv(
+                "1,59.1,18.2,2026-07-14 12:30:00,valid")
+                + "2,bad,18.2,2026-07-14 12:30:00,bad latitude\n"
+                + "3,91,18.2,2026-07-14 12:30:00,outside latitude\n"
+                + "4,59.1,Infinity,2026-07-14 12:30:00,infinite longitude\n"
+                + "5,59.1,18.2,,missing date\n");
+
+        ImportResult result = processor(store).process(csv,
+                temporaryFolder.newFolder("malformed-row-photos"),
+                ImportProcessor.DuplicateStrategy.SKIP);
+
+        assertEquals(1, result.added);
+        assertEquals(4, result.failed);
+        assertEquals(4, result.errors.size());
+        assertEquals(1, store.records.size());
+        assertEquals("valid", store.records.get(0).locality);
+    }
+
+    @Test
+    public void databaseFailureDoesNotRollbackOtherRowsOrReportThemAsFailed() throws Exception {
+        FakeStore store = new FakeStore();
+        store.failLocality = "fail";
+        File csv = write("database_failure.csv", minimalCsv(
+                "1,59.1,18.1,2026-07-14 10:00:00,first")
+                + "2,59.2,18.2,2026-07-14 11:00:00,fail\n"
+                + "3,59.3,18.3,2026-07-14 12:00:00,last\n");
+
+        ImportResult result = processor(store).process(csv,
+                temporaryFolder.newFolder("database-failure-photos"),
+                ImportProcessor.DuplicateStrategy.SKIP);
+
+        assertEquals(2, result.added);
+        assertEquals(1, result.failed);
+        assertEquals(2, store.records.size());
+        assertEquals("first", store.records.get(0).locality);
+        assertEquals("last", store.records.get(1).locality);
     }
 
     @Test
@@ -111,6 +177,8 @@ public class ImportProcessorTest {
         source.latitude = 59.3293;
         source.longitude = 18.0686;
         source.accuracy = 7.1f;
+        source.altitude = 0;
+        source.hasAltitude = true; // a real 0 m measurement must survive the round trip
         source.localTime = "2026-07-14 12:30:00";
         source.locality = "Park, north";
         source.note = "quoted \"note\"";
@@ -137,6 +205,8 @@ public class ImportProcessorTest {
         assertEquals(source.locality, restored.locality);
         assertEquals(source.note, restored.note);
         assertEquals(source.attributes.taxonName, restored.attributes.taxonName);
+        assertTrue(restored.hasAltitude);
+        assertEquals(0.0, restored.altitude, 0.0);
     }
 
     @Test
@@ -174,6 +244,7 @@ public class ImportProcessorTest {
         final List<ObservationRecord> records = new ArrayList<>();
         final Map<Long, List<String>> photoPaths = new HashMap<>();
         long nextId = 100;
+        String failLocality;
 
         @Override
         public boolean existsById(long id) {
@@ -181,17 +252,24 @@ public class ImportProcessorTest {
         }
 
         @Override
-        public Long findIdByFingerprint(double latitude, double longitude, String localTime) {
+        public List<RecordFingerprint> loadFingerprints() {
+            List<RecordFingerprint> fingerprints = new ArrayList<>();
             for (ObservationRecord record : records) {
-                if (rounded(record.latitude) == rounded(latitude)
-                        && rounded(record.longitude) == rounded(longitude)
-                        && record.localTime.equals(localTime)) return record.id;
+                RecordFingerprint fingerprint = new RecordFingerprint();
+                fingerprint.id = record.id;
+                fingerprint.latitude = record.latitude;
+                fingerprint.longitude = record.longitude;
+                fingerprint.localTime = record.localTime;
+                fingerprints.add(fingerprint);
             }
-            return null;
+            return fingerprints;
         }
 
         @Override
         public void insertLocationWithPhotos(ObservationRecord location, List<String> paths) {
+            if (location.locality.equals(failLocality)) {
+                throw new IllegalStateException("simulated database failure");
+            }
             if (location.id == 0) location.id = nextId++;
             records.add(location);
             photoPaths.put(location.id, new ArrayList<>(paths));
@@ -221,10 +299,6 @@ public class ImportProcessorTest {
         private ObservationRecord find(long id) {
             for (ObservationRecord record : records) if (record.id == id) return record;
             return null;
-        }
-
-        private static long rounded(double value) {
-            return Math.round(value * 1_000_000d);
         }
     }
 }

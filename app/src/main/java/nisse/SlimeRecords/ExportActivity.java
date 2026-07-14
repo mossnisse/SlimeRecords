@@ -6,21 +6,34 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Toast;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import nisse.SlimeRecords.databinding.ActivityExportBinding;
 
 public class ExportActivity extends AppCompatActivity {
+    // Maps dropdown positions to formats; must stay in the same order as R.array.export_formats.
+    private static final ExportFormat[] FORMAT_OPTIONS = {
+            ExportFormat.STANDARD_CSV, ExportFormat.EXCEL_CSV, ExportFormat.ARTPORTALEN};
+
     private ActivityExportBinding binding;
     private ExportViewModel exportViewModel;
     private int currentLocationCount = 0;
+    private int selectedFormatPosition = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = ActivityExportBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        if (savedInstanceState != null) {
+            selectedFormatPosition = savedInstanceState.getInt("selected_format_position", 0);
+        }
+        if (selectedFormatPosition < 0 || selectedFormatPosition >= FORMAT_OPTIONS.length) {
+            selectedFormatPosition = 0;
+        }
 
         exportViewModel = new ViewModelProvider(this).get(ExportViewModel.class);
 
@@ -57,13 +70,14 @@ public class ExportActivity extends AppCompatActivity {
 
         formatDropdown.setAdapter(adapter);
 
-        formatDropdown.setText(adapter.getItem(0).toString(), false);
+        formatDropdown.setText(adapter.getItem(selectedFormatPosition).toString(), false);
+        // Track the selection by position instead of parsing the (translatable) label text.
+        formatDropdown.setOnItemClickListener((parent, view, position, id) ->
+                selectedFormatPosition = position);
 
         binding.btnStartUsbExport.setOnClickListener(v -> {
             if (currentLocationCount > 0) {
-                // Retrieve text from the AutoCompleteTextView
-                String selectedFormat = formatDropdown.getText().toString();
-                exportViewModel.startExport(selectedFormat);
+                exportViewModel.startExport(FORMAT_OPTIONS[selectedFormatPosition]);
             } else {
                 Toast.makeText(this, "No data to export", Toast.LENGTH_SHORT).show();
             }
@@ -80,7 +94,7 @@ public class ExportActivity extends AppCompatActivity {
         });
     }
 
-    private void updateUiForState(ExportViewModel.ExportState state) {
+    void updateUiForState(ExportViewModel.ExportState state) {
         boolean isLoading = (state == ExportViewModel.ExportState.LOADING);
 
         binding.btnStartUsbExport.setEnabled(!isLoading);
@@ -107,6 +121,12 @@ public class ExportActivity extends AppCompatActivity {
         intent.putExtra(Intent.EXTRA_TEXT, "Attached is the data export including photos.");
 
         startActivity(Intent.createChooser(intent, "Send Export..."));
+    }
+
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putInt("selected_format_position", selectedFormatPosition);
     }
 
     @Override

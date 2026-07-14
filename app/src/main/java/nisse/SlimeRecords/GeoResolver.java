@@ -16,7 +16,6 @@ import nisse.SlimeRecords.data.CountryEntity;
 import nisse.SlimeRecords.data.SpatialDatabase;
 import nisse.SlimeRecords.data.SpatialDao;
 import nisse.SlimeRecords.data.SpatialResolver;
-import nisse.SlimeRecords.data.UserDatabase;
 
 public class GeoResolver {
     private static final String TAG = "GeoResolver";

@@ -49,6 +49,9 @@ public class ImportViewModel extends AndroidViewModel {
                 ImportProcessor processor = new ImportProcessor(
                         locationDao, () -> AppDependencies.get().currentTimeMillis());
                 ImportResult result = processor.process(temporaryFile, photoDirectory, strategy);
+                for (String error : result.errors) {
+                    Log.w("Import", "Row failed: " + error);
+                }
                 statusMessage.postValue(result.toString());
                 importStatus.postValue(ImportState.SUCCESS);
             } catch (Exception exception) {

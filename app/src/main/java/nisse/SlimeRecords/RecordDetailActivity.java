@@ -27,6 +27,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 import nisse.SlimeRecords.coords.CoordSystem;
 import nisse.SlimeRecords.coords.Coordinates;
@@ -505,7 +506,7 @@ public class RecordDetailActivity extends AppCompatActivity {
                     // The list may have been rebuilt while the dialog was open
                     // (the photos LiveData re-emits on any DB change), so
                     // re-resolve the index instead of trusting the stale one.
-                    int currentIndex = currentPhotos.indexOf(photoToDelete);
+                    int currentIndex = indexOfPhoto(photoToDelete);
                     if (currentIndex == -1) return;
                     currentPhotos.remove(currentIndex);
                     photoAdapter.notifyItemRemoved(currentIndex);
@@ -522,6 +523,23 @@ public class RecordDetailActivity extends AppCompatActivity {
                             "Take Photo" : "Add Photo (" + currentPhotos.size() + ")");
                 })
                 .setNegativeButton("Cancel", null).show();
+    }
+
+    /**
+     * PhotoRecord does not override equals(), and the photos LiveData rebuilds
+     * currentPhotos with fresh instances on every emission, so an identity
+     * lookup fails after a refresh. Match by database id, or by file path for
+     * photos that are not saved yet.
+     */
+    private int indexOfPhoto(PhotoRecord photo) {
+        for (int i = 0; i < currentPhotos.size(); i++) {
+            PhotoRecord candidate = currentPhotos.get(i);
+            boolean matches = photo.id != 0
+                    ? candidate.id == photo.id
+                    : candidate.id == 0 && Objects.equals(candidate.filePath, photo.filePath);
+            if (matches) return i;
+        }
+        return -1;
     }
 
     private void displayFormattedCoordinates() {

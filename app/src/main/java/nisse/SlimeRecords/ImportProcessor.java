@@ -16,11 +16,13 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.LongSupplier;
+import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import nisse.SlimeRecords.data.ImportRecordStore;
 import nisse.SlimeRecords.data.ObservationRecord;
+import nisse.SlimeRecords.data.RecordFingerprint;
 import nisse.SlimeRecords.data.SpeciesAttributes;
 
 /** Imports SlimeRecords CSV and ZIP files without depending on Android framework classes. */
@@ -29,10 +31,6 @@ public final class ImportProcessor {
 
     private final ImportRecordStore store;
     private final LongSupplier currentTimeMillis;
-
-    public ImportProcessor(ImportRecordStore store) {
-        this(store, System::currentTimeMillis);
-    }
 
     ImportProcessor(ImportRecordStore store, LongSupplier currentTimeMillis) {
         this.store = store;
@@ -83,7 +81,7 @@ public final class ImportProcessor {
                         if (!safeName.isEmpty()) {
                             File staged = new File(staging, safeName);
                             try (FileOutputStream output = new FileOutputStream(staged)) {
-                                copy(zip, output);
+                                FileUtils.copy(zip, output);
                             }
                             stagedPhotos.put(safeName, staged);
                         }
@@ -118,8 +116,8 @@ public final class ImportProcessor {
         if (lines.length < 2) throw new IOException("The CSV file contains no data rows.");
 
         String delimiter = lines[0].contains(";") ? ";" : ",";
-        String regex = delimiter + "(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)";
-        String[] headers = lines[0].split(regex, -1);
+        Pattern splitter = Pattern.compile(delimiter + "(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
+        String[] headers = splitter.split(lines[0], -1);
         Map<String, Integer> columns = new HashMap<>();
         for (int i = 0; i < headers.length; i++) {
             columns.put(cleanQuotes(headers[i]).trim().toLowerCase(Locale.ROOT), i);
@@ -132,21 +130,29 @@ public final class ImportProcessor {
 
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
         dateFormat.setLenient(false);
+        Map<String, Long> fingerprints = loadFingerprints();
+        List<String> replacedPaths = new ArrayList<>();
         for (int row = 1; row < lines.length; row++) {
             String line = lines[row].trim();
             if (line.isEmpty()) continue;
             try {
-                String[] parts = line.split(regex, -1);
-                double latitude = getDouble(parts, columns, "decimalLatitude", 0);
-                double longitude = getDouble(parts, columns, "decimalLongitude", 0);
+                String[] parts = splitter.split(line, -1);
+                double latitude = getRequiredDouble(parts, columns,
+                        "decimalLatitude", -90, 90);
+                double longitude = getRequiredDouble(parts, columns,
+                        "decimalLongitude", -180, 180);
                 String localTime = getString(parts, columns, "eventDate", "");
-                long exportedId = (long) getDouble(parts, columns, "id", 0);
+                if (localTime.isEmpty()) {
+                    throw new IllegalArgumentException("eventDate is required");
+                }
+                long exportedId = getOptionalLong(parts, columns, "id", 0);
 
                 long existingId = 0;
                 if (exportedId != 0 && store.existsById(exportedId)) {
                     existingId = exportedId;
                 } else {
-                    Long fingerprintId = store.findIdByFingerprint(latitude, longitude, localTime);
+                    Long fingerprintId = fingerprints.get(
+                            fingerprintKey(latitude, longitude, localTime));
                     if (fingerprintId != null) existingId = fingerprintId;
                 }
                 if (existingId != 0 && strategy == DuplicateStrategy.SKIP) {
@@ -160,8 +166,8 @@ public final class ImportProcessor {
                 else if (strategy != DuplicateStrategy.KEEP_BOTH) record.id = exportedId;
                 record.latitude = latitude;
                 record.longitude = longitude;
-                record.accuracy = (float) getDouble(parts, columns,
-                        "coordinateUncertaintyInMeters", 0);
+                record.accuracy = (float) getOptionalDouble(parts, columns,
+                        "coordinateUncertaintyInMeters", 0, 0, Double.MAX_VALUE);
                 populateAltitude(record, getString(parts, columns, "verbatimElevation", ""));
                 record.localTime = localTime;
                 record.note = getString(parts, columns, "occurrenceRemarks", "");
@@ -188,32 +194,70 @@ public final class ImportProcessor {
                     }
                 }
 
+                // The DAO implementations make each record-and-photos operation atomic.
+                // Keeping rows in separate transactions lets a bad row fail without
+                // poisoning or rolling back successful rows from the same import.
                 if (replace) {
-                    List<String> oldPaths = store.replaceLocationWithPhotos(existingId, record, photoPaths);
-                    for (String oldPath : oldPaths) {
-                        if (store.getPhotoReferenceCount(oldPath) == 0) new File(oldPath).delete();
-                    }
+                    replacedPaths.addAll(
+                            store.replaceLocationWithPhotos(existingId, record, photoPaths));
                     result.updated++;
                 } else {
                     store.insertLocationWithPhotos(record, photoPaths);
                     result.added++;
                 }
-            } catch (Exception ignored) {
+                // Later rows in the same file must see this record as existing.
+                fingerprints.put(fingerprintKey(record.latitude, record.longitude,
+                        record.localTime), record.id);
+            } catch (Exception exception) {
                 result.failed++;
+                if (result.errors.size() < ImportResult.MAX_REPORTED_ERRORS) {
+                    result.errors.add("Row " + row + ": " + exception.getMessage());
+                }
+            }
+        }
+        // Replaced photo files are removed only after the transaction has
+        // committed, so a rollback can never leave records pointing at
+        // already-deleted files.
+        for (String oldPath : replacedPaths) {
+            try {
+                if (store.getPhotoReferenceCount(oldPath) == 0) new File(oldPath).delete();
+            } catch (RuntimeException ignored) {
+                // Database changes have already committed; cleanup failure must not
+                // turn a successful import into a misleading overall error.
             }
         }
         return result;
+    }
+
+    private Map<String, Long> loadFingerprints() {
+        Map<String, Long> fingerprints = new HashMap<>();
+        for (RecordFingerprint fingerprint : store.loadFingerprints()) {
+            fingerprints.put(fingerprintKey(fingerprint.latitude, fingerprint.longitude,
+                    fingerprint.localTime), fingerprint.id);
+        }
+        return fingerprints;
+    }
+
+    // Coordinates are matched rounded to 6 decimals because the CSV export
+    // writes %.6f, so re-imported values never exactly match the stored doubles.
+    private static String fingerprintKey(double latitude, double longitude, String localTime) {
+        return String.format(Locale.US, "%.6f|%.6f|%s", latitude, longitude, localTime);
     }
 
     private static void populateAltitude(ObservationRecord record, String text) {
         try {
             if (!text.trim().isEmpty()) {
                 record.altitude = Double.parseDouble(text.trim());
-                record.hasAltitude = record.altitude != 0.0;
+                // The exporter writes an elevation (including "0") only for known
+                // altitudes, so any parsed value is a real measurement — a real
+                // 0 m reading must survive an export/import round trip.
+                record.hasAltitude = true;
             }
-        } catch (NumberFormatException ignored) {
-            record.altitude = 0;
-            record.hasAltitude = false;
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("verbatimElevation is not a valid number", exception);
+        }
+        if (!Double.isFinite(record.altitude)) {
+            throw new IllegalArgumentException("verbatimElevation must be finite");
         }
     }
 
@@ -258,7 +302,7 @@ public final class ImportProcessor {
         importedPhotos.add(destination);
         try (FileInputStream input = new FileInputStream(staged);
              FileOutputStream output = new FileOutputStream(destination, false)) {
-            copy(input, output);
+            FileUtils.copy(input, output);
         }
         resolved = destination.getAbsolutePath();
         resolvedPhotoPaths.put(safeName, resolved);
@@ -290,15 +334,53 @@ public final class ImportProcessor {
         return cleanQuotes(parts[index]);
     }
 
-    private static double getDouble(String[] parts,
-                                    Map<String, Integer> columns,
-                                    String key,
-                                    double fallback) {
+    private static double getRequiredDouble(String[] parts,
+                                            Map<String, Integer> columns,
+                                            String key,
+                                            double minimum,
+                                            double maximum) {
+        String value = getString(parts, columns, key, "").trim();
+        if (value.isEmpty()) throw new IllegalArgumentException(key + " is required");
+        return parseBoundedDouble(value, key, minimum, maximum);
+    }
+
+    private static double getOptionalDouble(String[] parts,
+                                            Map<String, Integer> columns,
+                                            String key,
+                                            double fallback,
+                                            double minimum,
+                                            double maximum) {
+        String value = getString(parts, columns, key, "").trim();
+        return value.isEmpty() ? fallback : parseBoundedDouble(value, key, minimum, maximum);
+    }
+
+    private static double parseBoundedDouble(String value,
+                                             String key,
+                                             double minimum,
+                                             double maximum) {
         try {
-            String value = getString(parts, columns, key, "");
-            return value.isEmpty() ? fallback : Double.parseDouble(value);
-        } catch (NumberFormatException ignored) {
-            return fallback;
+            double parsed = Double.parseDouble(value);
+            if (!Double.isFinite(parsed) || parsed < minimum || parsed > maximum) {
+                throw new IllegalArgumentException(key + " is outside its supported range");
+            }
+            return parsed;
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException(key + " is not a valid number", exception);
+        }
+    }
+
+    private static long getOptionalLong(String[] parts,
+                                        Map<String, Integer> columns,
+                                        String key,
+                                        long fallback) {
+        String value = getString(parts, columns, key, "").trim();
+        if (value.isEmpty()) return fallback;
+        try {
+            long parsed = Long.parseLong(value);
+            if (parsed < 0) throw new IllegalArgumentException(key + " must not be negative");
+            return parsed;
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException(key + " is not a valid whole number", exception);
         }
     }
 
@@ -313,14 +395,8 @@ public final class ImportProcessor {
 
     private static String readToString(InputStream input) throws IOException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
-        copy(input, output);
+        FileUtils.copy(input, output);
         return output.toString(StandardCharsets.UTF_8.name());
-    }
-
-    private static void copy(InputStream input, java.io.OutputStream output) throws IOException {
-        byte[] buffer = new byte[8192];
-        int read;
-        while ((read = input.read(buffer)) != -1) output.write(buffer, 0, read);
     }
 
     private static void deleteRecursively(File file) {

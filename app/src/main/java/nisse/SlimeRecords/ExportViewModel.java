@@ -18,6 +18,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.text.DateFormat;
+import java.util.Date;
 import java.util.List;
 
 import nisse.SlimeRecords.data.LocationDao;
@@ -36,10 +38,6 @@ public class ExportViewModel extends AndroidViewModel {
         locationDao = AppDependencies.get().locationDao(application);
     }
 
-    public void startExport(String displayFormat) {
-        startExport(ExportFormat.fromDisplayName(displayFormat));
-    }
-
     public void startExport(ExportFormat format) {
         if (exportStatus.getValue() == ExportState.LOADING) return;
         exportStatus.setValue(ExportState.LOADING);
@@ -48,9 +46,10 @@ public class ExportViewModel extends AndroidViewModel {
             Uri uri = null;
             try {
                 Context context = getApplication();
+                long exportTime = AppDependencies.get().currentTimeMillis();
                 ContentValues values = new ContentValues();
                 values.put(MediaStore.MediaColumns.DISPLAY_NAME,
-                        "SlimeRecords_" + AppDependencies.get().currentTimeMillis() + ".zip");
+                        "SlimeRecords_" + exportTime + ".zip");
                 values.put(MediaStore.MediaColumns.MIME_TYPE, "application/zip");
                 values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
                 values.put(MediaStore.MediaColumns.IS_PENDING, 1);
@@ -62,8 +61,11 @@ public class ExportViewModel extends AndroidViewModel {
                 List<RecordWithPhotos> records = locationDao.getAllLocationsWithPhotosSync();
                 try (OutputStream output = context.getContentResolver().openOutputStream(uri)) {
                     if (output == null) throw new IOException("Failed to open export destination");
-                    new ExportArchiveWriter().write(output, records, format,
-                            loadAsset("metadata_template.txt"));
+                    // Use the same injected clock as the file name above so the
+                    // readme's export date can never disagree with it.
+                    new ExportArchiveWriter(() -> DateFormat.getDateTimeInstance()
+                            .format(new Date(exportTime)))
+                            .write(output, records, format, loadAsset("metadata_template.txt"));
                 }
 
                 values.clear();
