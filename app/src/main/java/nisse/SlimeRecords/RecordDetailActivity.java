@@ -46,7 +46,6 @@ public class RecordDetailActivity extends AppCompatActivity {
     private double altitude;
     private boolean hasAltitude;
     private boolean isNew, isSaved = false;
-    private boolean persistenceRequested = false;
     private ActivityRecordDetailBinding binding;
     private String currentPhotoPath;
     private final List<PhotoRecord> currentPhotos = new ArrayList<>();
@@ -67,6 +66,7 @@ public class RecordDetailActivity extends AppCompatActivity {
     private boolean coordsDisplayed = false;
     private boolean applyingGeographyResult = false;
     private boolean geographyEditingEnabled = false;
+    private boolean geographyLookupPending = false;
     // One flag per async-populated geography field: once the user edits a
     // field, lookup results may no longer overwrite it. Indexed so all fields
     // share one wiring path (see bindGeographyField).
@@ -98,7 +98,6 @@ public class RecordDetailActivity extends AppCompatActivity {
             accuracy = savedInstanceState.getFloat("accuracy", 0);
             altitude = savedInstanceState.getDouble("altitude", 0);
             hasAltitude = savedInstanceState.getBoolean("hasAltitude", false);
-            persistenceRequested = savedInstanceState.getBoolean("persistenceRequested", false);
             existingDetailsLoaded = savedInstanceState.getBoolean("existingDetailsLoaded", false);
             boolean[] restoredEdits = savedInstanceState.getBooleanArray("geographyEdited");
             if (restoredEdits != null && restoredEdits.length == GEO_FIELD_COUNT) {
@@ -113,13 +112,6 @@ public class RecordDetailActivity extends AppCompatActivity {
         initUI();
         initAutocomplete();
         setupObservers();
-
-        // A save was already requested before recreation; keep the buttons
-        // disabled until the observers report success or failure.
-        if (persistenceRequested) {
-            binding.btnSaveDetail.setEnabled(false);
-            binding.btnCancelDetail.setEnabled(false);
-        }
 
         if (isNew && savedInstanceState == null) setupNewLocation();
         else if (isNew) onCoordinatesLoaded(false);
@@ -137,7 +129,6 @@ public class RecordDetailActivity extends AppCompatActivity {
         outState.putFloat("accuracy", accuracy);
         outState.putDouble("altitude", altitude);
         outState.putBoolean("hasAltitude", hasAltitude);
-        outState.putBoolean("persistenceRequested", persistenceRequested);
         outState.putBoolean("existingDetailsLoaded", existingDetailsLoaded);
         outState.putBooleanArray("geographyEdited", geographyEdited);
         if (isNew) {
@@ -159,14 +150,13 @@ public class RecordDetailActivity extends AppCompatActivity {
 
         historyViewModel.getOperationError().observe(this, message -> {
             Toast.makeText(this, message, Toast.LENGTH_LONG).show();
-            // Let the user retry (or cancel) instead of leaving the screen stuck
-            persistenceRequested = false;
-            binding.btnSaveDetail.setEnabled(true);
-            binding.btnCancelDetail.setEnabled(true);
+            updatePersistenceControls();
         });
 
-        // A failed photo deletion is unrelated to any save in flight, so it
-        // must not touch persistenceRequested or the button states.
+        historyViewModel.getOperationInProgress().observe(this, ignored ->
+                updatePersistenceControls());
+
+        // A failed photo deletion is unrelated to any save in flight.
         historyViewModel.getPhotoDeletionError().observe(this, message ->
                 Toast.makeText(this, message, Toast.LENGTH_LONG).show());
 
@@ -184,9 +174,8 @@ public class RecordDetailActivity extends AppCompatActivity {
         });
 
         searchViewModel.getGeographyLookupPending().observe(this, pending -> {
-            if (!persistenceRequested) {
-                binding.btnSaveDetail.setEnabled(!Boolean.TRUE.equals(pending));
-            }
+            geographyLookupPending = Boolean.TRUE.equals(pending);
+            updatePersistenceControls();
         });
 
         searchViewModel.getGeographyLookupError().observe(this, message ->
@@ -396,6 +385,7 @@ public class RecordDetailActivity extends AppCompatActivity {
     }
 
     private void onSaveClicked() {
+        if (historyViewModel.isOperationInProgress()) return;
         // No lookup-pending check needed here: the geographyLookupPending
         // observer keeps the save button disabled while a lookup runs.
 
@@ -523,7 +513,6 @@ public class RecordDetailActivity extends AppCompatActivity {
         for (PhotoRecord p : currentPhotos) {
             pathsToSave.add(p.filePath);
         }
-        persistenceRequested = true;
         binding.btnSaveDetail.setEnabled(false);
         binding.btnCancelDetail.setEnabled(false);
         if (isNew) {
@@ -544,6 +533,13 @@ public class RecordDetailActivity extends AppCompatActivity {
         if (collectorToSave != null && !collectorToSave.isEmpty()) {
             historyViewModel.updateRecentCollector(collectorToSave);
         }
+    }
+
+    private void updatePersistenceControls() {
+        if (binding == null || historyViewModel == null) return;
+        boolean saving = historyViewModel.isOperationInProgress();
+        binding.btnSaveDetail.setEnabled(!saving && !geographyLookupPending);
+        binding.btnCancelDetail.setEnabled(!saving);
     }
 
     private void confirmPhotoDeletion(int position) {
@@ -895,7 +891,8 @@ public class RecordDetailActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (isFinishing() && isNew && !isSaved && !persistenceRequested) {
+        if (isFinishing() && isNew && !isSaved
+                && (historyViewModel == null || !historyViewModel.isOperationInProgress())) {
             for (PhotoRecord p : currentPhotos) FileUtils.deleteFileAtPath(p.filePath);
             FileUtils.deleteFileAtPath(currentPhotoPath);
         }

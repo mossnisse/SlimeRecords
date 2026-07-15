@@ -25,10 +25,10 @@ public class HistoryViewModel extends AndroidViewModel {
     private final LocationDao locationDao;
     public final LiveData<PagingData<RecordWithPhotos>> historyLiveData;
     private final MutableLiveData<Boolean> operationFinished = new MutableLiveData<>(false);
+    private final MutableLiveData<Boolean> operationInProgress = new MutableLiveData<>(false);
     private final ErrorEvent operationError = new ErrorEvent();
     // Photo deletion is independent of the save/update flow, so its failures
-    // use a separate channel: observers of operationError react by resetting
-    // save state, which must not happen for an unrelated photo error.
+    // use a separate channel and cannot interfere with persistence controls.
     private final ErrorEvent photoDeletionError = new ErrorEvent();
 
     public HistoryViewModel(@NonNull Application application) {
@@ -55,6 +55,7 @@ public class HistoryViewModel extends AndroidViewModel {
      */
     public void saveLocationWithPhotos(ObservationRecord record, List<String> photoPaths,
                                        Runnable afterCommitted) {
+        if (!beginOperation()) return;
         AppDependencies.get().executor().execute(() -> {
             try {
                 locationDao.insertLocationWithPhotos(record, photoPaths);
@@ -66,9 +67,10 @@ public class HistoryViewModel extends AndroidViewModel {
                         Log.e("HistoryViewModel", "Post-save action failed", e);
                     }
                 }
-                operationFinished.postValue(true);
+                finishOperationSuccessfully();
             } catch (Exception e) {
                 Log.e("HistoryViewModel", "Saving record failed", e);
+                operationInProgress.postValue(false);
                 operationError.post("Could not save the record.");
             }
         });
@@ -78,6 +80,7 @@ public class HistoryViewModel extends AndroidViewModel {
     public void saveSpecimenLocationWithPhotos(ObservationRecord record, List<String> photoPaths,
                                                int preferenceNextNumber,
                                                IntConsumer afterCommitted) {
+        if (!beginOperation()) return;
         AppDependencies.get().executor().execute(() -> {
             try {
                 int nextNumber = locationDao.insertSpecimenLocationWithPhotos(
@@ -90,21 +93,24 @@ public class HistoryViewModel extends AndroidViewModel {
                         Log.e("HistoryViewModel", "Post-save action failed", e);
                     }
                 }
-                operationFinished.postValue(true);
+                finishOperationSuccessfully();
             } catch (Exception e) {
                 Log.e("HistoryViewModel", "Saving specimen record failed", e);
+                operationInProgress.postValue(false);
                 operationError.post("Could not save the record.");
             }
         });
     }
 
     public void updateLocation(ObservationRecord record) {
+        if (!beginOperation()) return;
         AppDependencies.get().executor().execute(() -> {
             try {
                 locationDao.updateLocation(record);
-                operationFinished.postValue(true);
+                finishOperationSuccessfully();
             } catch (Exception e) {
                 Log.e("HistoryViewModel", "Updating record failed", e);
+                operationInProgress.postValue(false);
                 operationError.post("Could not save the changes.");
             }
         });
@@ -142,6 +148,10 @@ public class HistoryViewModel extends AndroidViewModel {
 
     public LiveData<RecordWithPhotos> getLocationWithPhotos(long id) { return locationDao.getLocationById(id); }
     public LiveData<Boolean> getOperationFinished() { return operationFinished; }
+    public LiveData<Boolean> getOperationInProgress() { return operationInProgress; }
+    public boolean isOperationInProgress() {
+        return Boolean.TRUE.equals(operationInProgress.getValue());
+    }
     public ErrorEvent getOperationError() { return operationError; }
     public ErrorEvent getPhotoDeletionError() { return photoDeletionError; }
     public LiveData<List<String>> getRecentCollectors() { return locationDao.getRecentCollectorNames(); }
@@ -162,6 +172,20 @@ public class HistoryViewModel extends AndroidViewModel {
         return locationDao.getLocationCount();
     }
 
+    private boolean beginOperation() {
+        if (isOperationInProgress()) return false;
+        operationFinished.setValue(false);
+        operationInProgress.setValue(true);
+        return true;
+    }
+
+    private void finishOperationSuccessfully() {
+        // Post progress first so a finishing Activity never treats the save as
+        // still in flight after it receives the completion event.
+        operationInProgress.postValue(false);
+        operationFinished.postValue(true);
+    }
+
     public LiveData<List<String>> getSortedNearbyLocalities(double userLat, double userLon) {
         // Configuration: Adjust these to change the search behavior
         final double searchRadiusMeters = 2000.0;
@@ -173,16 +197,19 @@ public class HistoryViewModel extends AndroidViewModel {
 
         // Longitude range shrinks as we move toward the poles
         double cosLat = Math.cos(Math.toRadians(userLat));
-        // Use a small epsilon (1e-6) to avoid division by zero at the exact poles
+        // Use all longitudes at the exact poles instead of dividing by zero.
         double lonRange = (Math.abs(cosLat) > 1e-6) ?
-                ((searchRadiusMeters / 1000.0) / (kmPerDegreeLat * cosLat)) : latRange;
+                ((searchRadiusMeters / 1000.0) / (kmPerDegreeLat * Math.abs(cosLat))) : 180.0;
 
-        double minLat = userLat - latRange;
-        double maxLat = userLat + latRange;
-        double minLon = userLon - lonRange;
-        double maxLon = userLon + lonRange;
+        double minLat = Math.max(-90.0, userLat - latRange);
+        double maxLat = Math.min(90.0, userLat + latRange);
+        boolean allLongitudes = minLat <= -90.0 || maxLat >= 90.0 || lonRange >= 180.0;
+        double minLon = normalizeLongitude(userLon - lonRange);
+        double maxLon = normalizeLongitude(userLon + lonRange);
+        boolean wrapsAntimeridian = !allLongitudes && minLon > maxLon;
 
-        return Transformations.map(locationDao.getNearbyLocalityData(minLat, maxLat, minLon, maxLon), list -> {
+        return Transformations.map(locationDao.getNearbyLocalityData(
+                minLat, maxLat, minLon, maxLon, wrapsAntimeridian, allLongitudes), list -> {
             List<String> names = new ArrayList<>();
             if (list == null || list.isEmpty()) return names;
 
@@ -213,5 +240,12 @@ public class HistoryViewModel extends AndroidViewModel {
 
             return names;
         });
+    }
+
+    static double normalizeLongitude(double longitude) {
+        double normalized = longitude % 360.0;
+        if (normalized >= 180.0) normalized -= 360.0;
+        if (normalized < -180.0) normalized += 360.0;
+        return normalized;
     }
 }

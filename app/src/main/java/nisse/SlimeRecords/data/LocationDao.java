@@ -188,15 +188,23 @@ public abstract class LocationDao implements ImportRecordStore {
     @Query("SELECT locality as name, AVG(latitude) as latitude, AVG(longitude) as longitude " +
             "FROM location_table " +
             "WHERE latitude BETWEEN :minLat AND :maxLat " +
-            "AND longitude BETWEEN :minLon AND :maxLon " +
+            "AND (:allLongitudes = 1 " +
+            "OR (:wrapsAntimeridian = 0 AND longitude BETWEEN :minLon AND :maxLon) " +
+            "OR (:wrapsAntimeridian = 1 AND (longitude >= :minLon OR longitude <= :maxLon))) " +
             "AND locality IS NOT NULL AND locality != '' " +
             "GROUP BY locality")
     public abstract LiveData<List<LocalitySuggestion>> getNearbyLocalityData(
-            double minLat, double maxLat, double minLon, double maxLon);
+            double minLat, double maxLat, double minLon, double maxLon,
+            boolean wrapsAntimeridian, boolean allLongitudes);
 
     // --- EXPORT METHODS ---
     @Query("SELECT COUNT(*) FROM location_table")
     public abstract LiveData<Integer> getLocationCount();
+
+    // The value itself is irrelevant. Referencing both tables makes Room emit
+    // whenever any exportable record or photo link is inserted, updated, or deleted.
+    @Query("SELECT (SELECT COUNT(*) FROM location_table) + (SELECT COUNT(*) FROM photo_table)")
+    public abstract LiveData<Integer> getExportContentSignal();
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     public abstract void insertRecentCollector(RecentCollector collector);

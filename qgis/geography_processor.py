@@ -32,8 +32,7 @@ def process_geography(conn, export_folder, layers_config):
 
         layers = QgsProject.instance().mapLayersByName(config["layer_name"])
         if not layers:
-            print(f"Error: Layer '{config['layer_name']}' not found.")
-            continue
+            raise RuntimeError(f"Required layer '{config['layer_name']}' not found.")
         
         layer = layers[0]
         processed_ids = set()
@@ -71,3 +70,6 @@ def process_geography(conn, export_folder, layers_config):
                         for point in ring:
                             bin_file.write(struct.pack("ii", int(round(point.y())), int(round(point.x()))))
                             byte_offset += 8
+
+        if not processed_ids:
+            raise RuntimeError(f"Required layer '{config['layer_name']}' contains no features.")

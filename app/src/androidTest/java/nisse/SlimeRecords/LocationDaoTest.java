@@ -164,7 +164,7 @@ public class LocationDaoTest {
 
         assertEquals(1, await(dao.getSpecimenLocations()).size());
         List<LocalitySuggestion> suggestions = await(dao.getNearbyLocalityData(
-                58.9, 59.1, 17.9, 18.1));
+                58.9, 59.1, 17.9, 18.1, false, false));
         assertEquals(1, suggestions.size());
         assertEquals(59.005, suggestions.get(0).latitude, 0.000001);
 
@@ -172,6 +172,23 @@ public class LocationDaoTest {
         List<String> collectors = await(dao.getRecentCollectorNames());
         assertEquals(5, collectors.size());
         assertEquals("C6", collectors.get(0));
+    }
+
+    @Test
+    public void nearbyLocalityQueryCrossesTheAntimeridian() throws Exception {
+        dao.insertLocation(record(0, 0.0, 179.99,
+                "2026-07-14 10:00:00", "East Dateline"));
+        dao.insertLocation(record(0, 0.0, -179.99,
+                "2026-07-15 10:00:00", "West Dateline"));
+        dao.insertLocation(record(0, 0.0, 0.0,
+                "2026-07-16 10:00:00", "Greenwich"));
+
+        List<LocalitySuggestion> suggestions = await(dao.getNearbyLocalityData(
+                -0.1, 0.1, 179.98, -179.98, true, false));
+
+        assertEquals(2, suggestions.size());
+        assertTrue(suggestions.stream().anyMatch(item -> "East Dateline".equals(item.name)));
+        assertTrue(suggestions.stream().anyMatch(item -> "West Dateline".equals(item.name)));
     }
 
     private static ObservationRecord record(long id, double lat, double lon,

@@ -27,6 +27,7 @@ import android.app.Instrumentation;
 import android.content.Context;
 import android.content.Intent;
 import android.os.ParcelFileDescriptor;
+import android.os.SystemClock;
 import android.view.View;
 
 import androidx.preference.PreferenceManager;
@@ -250,17 +251,31 @@ public class CriticalUiFlowTest {
     }
 
     @Test
-    public void viewModelsRejectConcurrentImportAndExportRequests() {
+    public void viewModelsRejectConcurrentSaveImportAndExportRequests() {
         QueuedExecutor exportQueue = new QueuedExecutor();
         provider.executor = exportQueue;
-        ExportViewModel exportViewModel = new ExportViewModel((Application) context);
+        AtomicReference<ExportViewModel> exportViewModelReference = new AtomicReference<>();
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(() ->
+                exportViewModelReference.set(new ExportViewModel((Application) context)));
+        ExportViewModel exportViewModel = exportViewModelReference.get();
         InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
             exportViewModel.startExport(ExportFormat.STANDARD_CSV);
             exportViewModel.startExport(ExportFormat.EXCEL_CSV);
         });
-        assertEquals(1, exportQueue.size());
+        waitForQueueSize(exportQueue, 1);
         assertEquals(ExportViewModel.ExportState.LOADING,
                 exportViewModel.getExportStatus().getValue());
+
+        QueuedExecutor saveQueue = new QueuedExecutor();
+        provider.executor = saveQueue;
+        HistoryViewModel historyViewModel = new HistoryViewModel((Application) context);
+        ObservationRecord record = new ObservationRecord();
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
+            historyViewModel.saveLocationWithPhotos(record, Collections.emptyList());
+            historyViewModel.saveLocationWithPhotos(record, Collections.emptyList());
+        });
+        assertEquals(1, saveQueue.size());
+        assertEquals(Boolean.TRUE, historyViewModel.getOperationInProgress().getValue());
 
         QueuedExecutor importQueue = new QueuedExecutor();
         provider.executor = importQueue;
@@ -274,6 +289,15 @@ public class CriticalUiFlowTest {
         assertEquals(1, importQueue.size());
         assertEquals(ImportViewModel.ImportState.LOADING,
                 importViewModel.getImportStatus().getValue());
+    }
+
+    private static void waitForQueueSize(QueuedExecutor queue, int expectedSize) {
+        long deadline = SystemClock.uptimeMillis() + 2_000;
+        while (queue.size() != expectedSize && SystemClock.uptimeMillis() < deadline) {
+            InstrumentationRegistry.getInstrumentation().waitForIdleSync();
+            SystemClock.sleep(10);
+        }
+        assertEquals(expectedSize, queue.size());
     }
 
     @Test
@@ -340,11 +364,11 @@ public class CriticalUiFlowTest {
             tasks.add(command);
         }
 
-        int size() {
+        synchronized int size() {
             return tasks.size();
         }
 
-        void runNext() {
+        synchronized void runNext() {
             Runnable task = tasks.poll();
             if (task != null) task.run();
         }

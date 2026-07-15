@@ -46,18 +46,9 @@ public class ExportActivity extends AppCompatActivity {
         HistoryViewModel historyViewModel = new ViewModelProvider(this).get(HistoryViewModel.class);
         // Observe Item Count
         historyViewModel.getLocationCount().observe(this, count -> {
-            int oldCount = this.currentLocationCount;
             this.currentLocationCount = (count != null) ? count : 0;
-
-            // Check if the count changed while we were in a SUCCESS state
             ExportViewModel.ExportState currentState = exportViewModel.getExportStatus().getValue();
-
-            if (currentState == ExportViewModel.ExportState.SUCCESS && oldCount != currentLocationCount) {
-                // Data changed! The old export is now "stale".
-                // We don't reset the ViewModel, but we tell the UI to show the Ready message again.
-                updateUiForState(ExportViewModel.ExportState.IDLE);
-            }
-            else if (currentState == ExportViewModel.ExportState.IDLE) {
+            if (currentState == ExportViewModel.ExportState.IDLE) {
                 // Standard refresh of the count message
                 binding.tvExportStatus.setText(getString(R.string.export_ready_format, currentLocationCount));
             }
