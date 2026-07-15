@@ -1,6 +1,7 @@
 package nisse.SlimeRecords;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -103,6 +104,19 @@ public class LocationDaoTest {
         assertTrue(dao.deleteLocationWithPhotos(dao.getLocationByIdSync(first.id)).isEmpty());
         assertEquals(Collections.singletonList("shared.jpg"),
                 dao.deleteLocationWithPhotos(dao.getLocationByIdSync(second.id)));
+    }
+
+    @Test
+    public void individualPhotoDeletionPreservesSharedFileOwnership() {
+        ObservationRecord first = record(0, 59, 18, "2026-07-14 10:00:00", "One");
+        ObservationRecord second = record(0, 60, 19, "2026-07-15 10:00:00", "Two");
+        dao.insertLocationWithPhotos(first, Collections.singletonList("shared.jpg"));
+        dao.insertLocationWithPhotos(second, Collections.singletonList("shared.jpg"));
+
+        int firstPhotoId = dao.getLocationByIdSync(first.id).photos.get(0).id;
+        int secondPhotoId = dao.getLocationByIdSync(second.id).photos.get(0).id;
+        assertFalse(dao.deletePhotoAndIsPathOrphaned(firstPhotoId, "shared.jpg"));
+        assertTrue(dao.deletePhotoAndIsPathOrphaned(secondPhotoId, "shared.jpg"));
     }
 
     @Test

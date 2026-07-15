@@ -78,8 +78,16 @@ public class GeoResolver {
                 public void onGeocode(@NonNull List<Address> addresses) {
                     // Hop back to the executor: the listener's thread is not
                     // specified and processGeocoderResult queries Room synchronously.
-                    AppDependencies.get().executor().execute(() ->
-                            processGeocoderResult(addresses, callback));
+                    // This task runs outside resolve()'s try/catch, so it needs its
+                    // own handler — every path must invoke the callback exactly once
+                    // or the caller's pending state never clears.
+                    AppDependencies.get().executor().execute(() -> {
+                        try {
+                            processGeocoderResult(addresses, callback);
+                        } catch (Exception e) {
+                            callback.onError(e);
+                        }
+                    });
                 }
 
                 @Override

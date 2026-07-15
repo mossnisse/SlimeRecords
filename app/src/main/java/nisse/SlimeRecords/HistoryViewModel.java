@@ -24,7 +24,11 @@ public class HistoryViewModel extends AndroidViewModel {
     private final LocationDao locationDao;
     public final LiveData<PagingData<RecordWithPhotos>> historyLiveData;
     private final MutableLiveData<Boolean> operationFinished = new MutableLiveData<>(false);
-    private final MutableLiveData<String> operationError = new MutableLiveData<>();
+    private final ErrorEvent operationError = new ErrorEvent();
+    // Photo deletion is independent of the save/update flow, so its failures
+    // use a separate channel: observers of operationError react by resetting
+    // save state, which must not happen for an unrelated photo error.
+    private final ErrorEvent photoDeletionError = new ErrorEvent();
 
     public HistoryViewModel(@NonNull Application application) {
         super(application);
@@ -38,13 +42,33 @@ public class HistoryViewModel extends AndroidViewModel {
     }
 
     public void saveLocationWithPhotos(ObservationRecord record, List<String> photoPaths) {
+        saveLocationWithPhotos(record, photoPaths, null);
+    }
+
+    /**
+     * @param afterCommitted runs on the background executor right after the
+     *                       insert transaction commits, so side effects tied to
+     *                       a successful save (e.g. advancing the specimen
+     *                       counter) are durable even if the process dies
+     *                       before the UI observes the result.
+     */
+    public void saveLocationWithPhotos(ObservationRecord record, List<String> photoPaths,
+                                       Runnable afterCommitted) {
         AppDependencies.get().executor().execute(() -> {
             try {
                 locationDao.insertLocationWithPhotos(record, photoPaths);
+                if (afterCommitted != null) {
+                    try {
+                        afterCommitted.run();
+                    } catch (Exception e) {
+                        // The record IS saved; do not report this as a save failure.
+                        Log.e("HistoryViewModel", "Post-save action failed", e);
+                    }
+                }
                 operationFinished.postValue(true);
             } catch (Exception e) {
                 Log.e("HistoryViewModel", "Saving record failed", e);
-                operationError.postValue("Could not save the record.");
+                operationError.post("Could not save the record.");
             }
         });
     }
@@ -56,7 +80,7 @@ public class HistoryViewModel extends AndroidViewModel {
                 operationFinished.postValue(true);
             } catch (Exception e) {
                 Log.e("HistoryViewModel", "Updating record failed", e);
-                operationError.postValue("Could not save the changes.");
+                operationError.post("Could not save the changes.");
             }
         });
     }
@@ -71,35 +95,42 @@ public class HistoryViewModel extends AndroidViewModel {
                 }
             } catch (Exception e) {
                 Log.e("HistoryViewModel", "Deleting record failed", e);
-                operationError.postValue("Could not delete the record.");
+                operationError.post("Could not delete the record.");
             }
         });
     }
 
     public void deletePhoto(PhotoRecord photo) {
         AppDependencies.get().executor().execute(() -> {
-            // Delete the specific photo entry by ID
-            locationDao.deletePhotoById(photo.id);
-
-            // Check reference count for the path
-            if (locationDao.getPhotoReferenceCount(photo.filePath) == 0) {
-                FileUtils.deleteFileAtPath(photo.filePath);
+            try {
+                boolean orphaned = locationDao.deletePhotoAndIsPathOrphaned(
+                        photo.id, photo.filePath);
+                if (orphaned) {
+                    FileUtils.deleteFileAtPath(photo.filePath);
+                }
+            } catch (Exception e) {
+                Log.e("HistoryViewModel", "Deleting photo failed", e);
+                photoDeletionError.post("Could not delete the photo.");
             }
         });
     }
 
     public LiveData<RecordWithPhotos> getLocationWithPhotos(long id) { return locationDao.getLocationById(id); }
     public LiveData<Boolean> getOperationFinished() { return operationFinished; }
-    public LiveData<String> getOperationError() { return operationError; }
-    /** Marks the current error as handled so it isn't re-delivered after rotation. */
-    public void clearOperationError() { operationError.setValue(null); }
+    public ErrorEvent getOperationError() { return operationError; }
+    public ErrorEvent getPhotoDeletionError() { return photoDeletionError; }
     public LiveData<List<String>> getRecentCollectors() { return locationDao.getRecentCollectorNames(); }
 
     public void updateRecentCollector(String name) {
         if (name == null || name.trim().isEmpty()) return;
-        AppDependencies.get().executor().execute(() ->
-                locationDao.insertRecentCollector(new RecentCollector(name.trim(), AppDependencies.get().currentTimeMillis()))
-        );
+        AppDependencies.get().executor().execute(() -> {
+            try {
+                locationDao.insertRecentCollector(new RecentCollector(
+                        name.trim(), AppDependencies.get().currentTimeMillis()));
+            } catch (Exception e) {
+                Log.e("HistoryViewModel", "Updating recent collector failed", e);
+            }
+        });
     }
 
     public LiveData<Integer> getLocationCount() {

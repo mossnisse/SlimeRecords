@@ -25,6 +25,8 @@ public class SearchViewModel extends AndroidViewModel {
     private final MutableLiveData<String> countryCodeResult = new MutableLiveData<>();
     private final MutableLiveData<String> provinceResult = new MutableLiveData<>();
     private final MutableLiveData<String> districtResult = new MutableLiveData<>();
+    private final MutableLiveData<Boolean> geographyLookupPending = new MutableLiveData<>(false);
+    private final ErrorEvent geographyLookupError = new ErrorEvent();
     private final MutableLiveData<List<SpeciesReferenceWithAccepted>> speciesSuggestions = new MutableLiveData<>();
     private final SpatialDao spatialDao;
     private final AtomicLong searchGeneration = new AtomicLong();
@@ -35,6 +37,8 @@ public class SearchViewModel extends AndroidViewModel {
     }
 
     public void performFullSpatialLookup(double lat, double lon) {
+        geographyLookupError.clear();
+        geographyLookupPending.setValue(true);
         AppDependencies.get().resolveGeography(getApplication(), lat, lon, new GeoResolver.GeoCallback() {
             @Override
             public void onResolved(String country, String province, String district, String countryCode) {
@@ -43,17 +47,24 @@ public class SearchViewModel extends AndroidViewModel {
                 countryCodeResult.postValue(countryCode);
                 provinceResult.postValue(province);
                 districtResult.postValue(district);
+                geographyLookupPending.postValue(false);
             }
 
             @Override
             public void onManualEntryRequired() {
                 countryResult.postValue("Unknown");
                 countryCodeResult.postValue("");
+                provinceResult.postValue("");
+                districtResult.postValue("");
+                geographyLookupPending.postValue(false);
             }
 
             @Override
             public void onError(Exception e) {
                 Log.e("Geo", "Unified lookup failed", e);
+                geographyLookupError.post(
+                        "Could not determine the geographic fields. Enter them manually.");
+                geographyLookupPending.postValue(false);
             }
         });
     }
@@ -69,6 +80,8 @@ public class SearchViewModel extends AndroidViewModel {
     public LiveData<String> getCountryCodeResult() { return countryCodeResult; }
     public LiveData<String> getProvinceResult() { return provinceResult; }
     public LiveData<String> getDistrictResult() { return districtResult; }
+    public LiveData<Boolean> getGeographyLookupPending() { return geographyLookupPending; }
+    public ErrorEvent getGeographyLookupError() { return geographyLookupError; }
 
     public LiveData<List<SpeciesReferenceWithAccepted>> getSpeciesSuggestions() {
         return speciesSuggestions;

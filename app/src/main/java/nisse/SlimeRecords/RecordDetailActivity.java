@@ -5,6 +5,8 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -63,6 +65,16 @@ public class RecordDetailActivity extends AppCompatActivity {
     // TextView whose text is lost on recreation, so it must be repainted once
     // per activity instance even when existingDetailsLoaded was restored.
     private boolean coordsDisplayed = false;
+    private boolean applyingGeographyResult = false;
+    private boolean geographyEditingEnabled = false;
+    // One flag per async-populated geography field: once the user edits a
+    // field, lookup results may no longer overwrite it. Indexed so all fields
+    // share one wiring path (see bindGeographyField).
+    private static final int GEO_COUNTRY = 0;
+    private static final int GEO_PROVINCE = 1;
+    private static final int GEO_DISTRICT = 2;
+    private static final int GEO_FIELD_COUNT = 3;
+    private final boolean[] geographyEdited = new boolean[GEO_FIELD_COUNT];
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,6 +100,10 @@ public class RecordDetailActivity extends AppCompatActivity {
             hasAltitude = savedInstanceState.getBoolean("hasAltitude", false);
             persistenceRequested = savedInstanceState.getBoolean("persistenceRequested", false);
             existingDetailsLoaded = savedInstanceState.getBoolean("existingDetailsLoaded", false);
+            boolean[] restoredEdits = savedInstanceState.getBooleanArray("geographyEdited");
+            if (restoredEdits != null && restoredEdits.length == GEO_FIELD_COUNT) {
+                System.arraycopy(restoredEdits, 0, geographyEdited, 0, GEO_FIELD_COUNT);
+            }
             List<String> restoredPaths = savedInstanceState.getStringArrayList("newPhotoPaths");
             if (restoredPaths != null) {
                 for (String p : restoredPaths) currentPhotos.add(new PhotoRecord(0, p));
@@ -123,6 +139,7 @@ public class RecordDetailActivity extends AppCompatActivity {
         outState.putBoolean("hasAltitude", hasAltitude);
         outState.putBoolean("persistenceRequested", persistenceRequested);
         outState.putBoolean("existingDetailsLoaded", existingDetailsLoaded);
+        outState.putBooleanArray("geographyEdited", geographyEdited);
         if (isNew) {
             // New photos only exist in memory until the record is saved
             ArrayList<String> paths = new ArrayList<>();
@@ -141,27 +158,39 @@ public class RecordDetailActivity extends AppCompatActivity {
         });
 
         historyViewModel.getOperationError().observe(this, message -> {
-            if (message != null) {
-                historyViewModel.clearOperationError();
-                Toast.makeText(this, message, Toast.LENGTH_LONG).show();
-                // Let the user retry (or cancel) instead of leaving the screen stuck
-                persistenceRequested = false;
-                binding.btnSaveDetail.setEnabled(true);
-                binding.btnCancelDetail.setEnabled(true);
-            }
+            Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+            // Let the user retry (or cancel) instead of leaving the screen stuck
+            persistenceRequested = false;
+            binding.btnSaveDetail.setEnabled(true);
+            binding.btnCancelDetail.setEnabled(true);
         });
 
-        searchViewModel.getCountryResult().observe(this, name -> binding.editCountry.setText(name));
+        // A failed photo deletion is unrelated to any save in flight, so it
+        // must not touch persistenceRequested or the button states.
+        historyViewModel.getPhotoDeletionError().observe(this, message ->
+                Toast.makeText(this, message, Toast.LENGTH_LONG).show());
+
+        bindGeographyField(GEO_COUNTRY, binding.editCountry,
+                searchViewModel.getCountryResult(), () -> currentCountryCode = "");
+        bindGeographyField(GEO_PROVINCE, binding.editProvince,
+                searchViewModel.getProvinceResult(), null);
+        bindGeographyField(GEO_DISTRICT, binding.editDistrict,
+                searchViewModel.getDistrictResult(), null);
 
         searchViewModel.getCountryCodeResult().observe(this, code -> {
-            if (code != null) {
+            if (code != null && !geographyEdited[GEO_COUNTRY]) {
                 this.currentCountryCode = code;
             }
         });
 
-        searchViewModel.getProvinceResult().observe(this, name -> binding.editProvince.setText(name));
+        searchViewModel.getGeographyLookupPending().observe(this, pending -> {
+            if (!persistenceRequested) {
+                binding.btnSaveDetail.setEnabled(!Boolean.TRUE.equals(pending));
+            }
+        });
 
-        searchViewModel.getDistrictResult().observe(this, name -> binding.editDistrict.setText(name));
+        searchViewModel.getGeographyLookupError().observe(this, message ->
+                Toast.makeText(this, message, Toast.LENGTH_LONG).show());
 
         historyViewModel.getRecentCollectors().observe(this, (List<String> list) -> {
             if (list != null && !list.isEmpty()) {
@@ -304,9 +333,9 @@ public class RecordDetailActivity extends AppCompatActivity {
 
                 binding.inputNote.setText(currentRecord.note); // Set General Notes
                 binding.editLocality.setText(currentRecord.locality);
-                binding.editCountry.setText(currentRecord.country);
-                binding.editProvince.setText(currentRecord.province);
-                binding.editDistrict.setText(currentRecord.district);
+                setGeographyText(binding.editCountry, currentRecord.country);
+                setGeographyText(binding.editProvince, currentRecord.province);
+                setGeographyText(binding.editDistrict, currentRecord.district);
                 this.currentCountryCode = currentRecord.countryCode;
 
                 // Set flexible attributes
@@ -367,6 +396,9 @@ public class RecordDetailActivity extends AppCompatActivity {
     }
 
     private void onSaveClicked() {
+        // No lookup-pending check needed here: the geographyLookupPending
+        // observer keeps the save button disabled while a lookup runs.
+
         // Prevent a double-tap from inserting the record twice
         binding.btnSaveDetail.setEnabled(false);
 
@@ -401,8 +433,15 @@ public class RecordDetailActivity extends AppCompatActivity {
         if (prefs.getBoolean("show_organism_quantity_field", false)) {
             String q = binding.inputOrganismQuantity.getText().toString().trim();
             try {
-                attrs.organismQuantity = q.isEmpty() ? null : Integer.parseInt(q);
-            } catch (NumberFormatException e) { /* Keep existing value in attrs */ }
+                attrs.organismQuantity = RecordInputValidator.parseOptionalQuantity(q);
+                binding.layoutOrganismQuantity.setError(null);
+            } catch (IllegalArgumentException e) {
+                binding.layoutOrganismQuantity.setError(
+                        "Enter a whole number from 0 to " + Integer.MAX_VALUE + ".");
+                binding.inputOrganismQuantity.requestFocus();
+                binding.btnSaveDetail.setEnabled(true);
+                return;
+            }
         }
 
         if (prefs.getBoolean("show_life_stage_field", false)) {
@@ -436,6 +475,7 @@ public class RecordDetailActivity extends AppCompatActivity {
         attrs.collector = collectorToSave;
 
         // Specimen logic
+        String nextSpecimenNumber = null;
         if (prefs.getBoolean("show_is_specimen", true)) {
             attrs.isSpecimen = binding.checkboxIsSpecimen.isChecked();
             if (attrs.isSpecimen) {
@@ -446,11 +486,12 @@ public class RecordDetailActivity extends AppCompatActivity {
 
                 if (isNew) {
                     try {
-                        // Only increment if it's actually a number
                         int currentNr = Integer.parseInt(nrText);
-                        prefs.edit().putString("last_specimen_number", String.valueOf(currentNr + 1)).apply();
+                        nextSpecimenNumber = String.valueOf(Math.addExact(currentNr, 1));
                     } catch (NumberFormatException e) {
                         Log.e("LocationDetail", "Could not parse specimen number: " + nrText);
+                    } catch (ArithmeticException e) {
+                        Log.e("LocationDetail", "Specimen number is already at its maximum value", e);
                     }
                 }
             }
@@ -458,10 +499,12 @@ public class RecordDetailActivity extends AppCompatActivity {
 
         // Save or Update Execution
         if (isNew) {
-            String localTime = java.time.LocalDateTime.now().format(
+            long now = AppDependencies.get().currentTimeMillis();
+            String localTime = java.time.LocalDateTime.ofInstant(
+                    java.time.Instant.ofEpochMilli(now), java.time.ZoneId.systemDefault()).format(
                     java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
-            currentRecord = new ObservationRecord(lat, lon, altitude, System.currentTimeMillis(), accuracy, localTime, noteText);
+            currentRecord = new ObservationRecord(lat, lon, altitude, now, accuracy, localTime, noteText);
         } else {
             currentRecord.note = noteText;
         }
@@ -485,7 +528,13 @@ public class RecordDetailActivity extends AppCompatActivity {
         binding.btnSaveDetail.setEnabled(false);
         binding.btnCancelDetail.setEnabled(false);
         if (isNew) {
-            historyViewModel.saveLocationWithPhotos(currentRecord, pathsToSave);
+            // The counter advances on the save executor right after the insert
+            // commits: a synchronous write keyed to the transaction, so process
+            // death cannot leave a saved record with an unadvanced counter.
+            final String advanceCounterTo = nextSpecimenNumber;
+            historyViewModel.saveLocationWithPhotos(currentRecord, pathsToSave,
+                    advanceCounterTo == null ? null : () ->
+                            prefs.edit().putString("last_specimen_number", advanceCounterTo).commit());
         } else {
             historyViewModel.updateLocation(currentRecord);
         }
@@ -508,14 +557,14 @@ public class RecordDetailActivity extends AppCompatActivity {
                     // re-resolve the index instead of trusting the stale one.
                     int currentIndex = indexOfPhoto(photoToDelete);
                     if (currentIndex == -1) return;
-                    currentPhotos.remove(currentIndex);
-                    photoAdapter.notifyItemRemoved(currentIndex);
-
                     if (!isNew && photoToDelete.id != 0) {
-                        // This is an existing record in the DB
+                        // Let Room's LiveData remove it from the UI only after
+                        // the transactional deletion succeeds.
                         historyViewModel.deletePhoto(photoToDelete);
                     } else {
                         // This is a fresh photo taken during this session, delete file directly
+                        currentPhotos.remove(currentIndex);
+                        photoAdapter.notifyItemRemoved(currentIndex);
                         FileUtils.deleteFileAtPath(photoToDelete.filePath);
                     }
 
@@ -523,6 +572,50 @@ public class RecordDetailActivity extends AppCompatActivity {
                             "Take Photo" : "Add Photo (" + currentPhotos.size() + ")");
                 })
                 .setNegativeButton("Cancel", null).show();
+    }
+
+    /**
+     * Wires one async-populated geography field: lookup results fill the field
+     * only until the user edits it, and a user edit permanently claims it.
+     * Adding a field means one call here plus growing the geographyEdited array.
+     */
+    private void bindGeographyField(int fieldIndex, android.widget.EditText field,
+                                    LiveData<String> lookupResult, Runnable onUserEdit) {
+        field.addTextChangedListener(geographyWatcher(() -> {
+            geographyEdited[fieldIndex] = true;
+            if (onUserEdit != null) onUserEdit.run();
+        }));
+        lookupResult.observe(this, name -> {
+            if (!geographyEdited[fieldIndex]) setGeographyText(field, name);
+        });
+    }
+
+    private TextWatcher geographyWatcher(Runnable onEdited) {
+        return new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                if (geographyEditingEnabled && !applyingGeographyResult) onEdited.run();
+            }
+        };
+    }
+
+    private void setGeographyText(android.widget.EditText field, String value) {
+        applyingGeographyResult = true;
+        try {
+            field.setText(value != null ? value : "");
+        } finally {
+            applyingGeographyResult = false;
+        }
+    }
+
+    @Override
+    protected void onPostResume() {
+        super.onPostResume();
+        // View state restoration and initial model population are not user edits.
+        geographyEditingEnabled = true;
     }
 
     /**

@@ -155,6 +155,57 @@ public class CriticalUiFlowTest {
     }
 
     @Test
+    public void invalidOrganismQuantityDoesNotSaveTheRecord() {
+        PreferenceManager.getDefaultSharedPreferences(context).edit()
+                .putBoolean("show_organism_quantity_field", true)
+                .commit();
+
+        Intent intent = new Intent(context, RecordDetailActivity.class)
+                .putExtra("is_new", true)
+                .putExtra("lat", 59.3293)
+                .putExtra("lon", 18.0686)
+                .putExtra("acc", 4.5f);
+        try (ActivityScenario<RecordDetailActivity> ignored = ActivityScenario.launch(intent)) {
+            onView(withId(R.id.input_organism_quantity))
+                    .perform(scrollTo(), replaceText("999999999999999"), closeSoftKeyboard());
+            onView(withId(R.id.btn_save_detail)).perform(scrollTo(), click());
+            onView(withText("Enter a whole number from 0 to 2147483647."))
+                    .check(matches(isDisplayed()));
+            onView(withId(R.id.btn_save_detail)).check(matches(isEnabled()));
+            assertEquals(0, dao.getAllLocationsWithPhotosSync().size());
+        }
+    }
+
+    @Test
+    public void specimenCounterAdvancesOnlyAfterSuccessfulPersistence() {
+        PreferenceManager.getDefaultSharedPreferences(context).edit()
+                .putBoolean("show_is_specimen", true)
+                .putString("last_specimen_number", "7")
+                .commit();
+        QueuedExecutor saveQueue = new QueuedExecutor();
+        provider.executor = saveQueue;
+
+        Intent intent = new Intent(context, RecordDetailActivity.class)
+                .putExtra("is_new", true)
+                .putExtra("lat", 59.3293)
+                .putExtra("lon", 18.0686)
+                .putExtra("acc", 4.5f);
+        try (ActivityScenario<RecordDetailActivity> ignored = ActivityScenario.launch(intent)) {
+            onView(withId(R.id.checkbox_is_specimen)).perform(scrollTo(), click());
+            onView(withId(R.id.btn_save_detail)).perform(scrollTo(), click());
+
+            assertEquals("7", PreferenceManager.getDefaultSharedPreferences(context)
+                    .getString("last_specimen_number", ""));
+            assertEquals(1, saveQueue.size());
+
+            saveQueue.runNext();
+            InstrumentationRegistry.getInstrumentation().waitForIdleSync();
+            assertEquals("8", PreferenceManager.getDefaultSharedPreferences(context)
+                    .getString("last_specimen_number", ""));
+        }
+    }
+
+    @Test
     public void printScreenRejectsOverflowingRangeBeforeDatabaseWork() {
         try (ActivityScenario<PrintActivity> ignored = ActivityScenario.launch(PrintActivity.class)) {
             onView(withId(R.id.input_range_from))
@@ -291,6 +342,11 @@ public class CriticalUiFlowTest {
 
         int size() {
             return tasks.size();
+        }
+
+        void runNext() {
+            Runnable task = tasks.poll();
+            if (task != null) task.run();
         }
     }
 

@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Governs API 29-30 only (targetSdk >= 31 uses data_extraction_rules.xml).
+     Mirror that file's policy: cloud backup keeps preferences and app files
+     but leaves out the Room database and photos, which exceed the transport
+     quota and must restore together (use the ZIP export instead).
+     Device-to-device transfer moves everything. -->
 <full-backup-content>
-    <exclude domain="database" path="user_locations.db"/>
-    <exclude domain="database" path="user_locations.db-shm"/>
-    <exclude domain="database" path="user_locations.db-wal"/>
-    <exclude domain="database" path="user_locations.db-journal"/>
-
+    <include domain="root" path="." />
+    <include domain="file" path="." />
+    <include domain="sharedpref" path="." />
+    <include domain="database" path="." requireFlags="deviceToDeviceTransfer" />
+    <include domain="external" path="." requireFlags="deviceToDeviceTransfer" />
 </full-backup-content>

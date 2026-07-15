@@ -152,6 +152,9 @@ public class Coordinates {
     public void setFromDMS(double latDeg, double latMin, double latSec, String latDir,
                            double lonDeg, double lonMin, double lonSec, String lonDir) {
 
+        validateDmsComponents(latDeg, latMin, latSec, latDir, true);
+        validateDmsComponents(lonDeg, lonMin, lonSec, lonDir, false);
+
         this.north = dmsToDecimal(latDeg, latMin, latSec, latDir);
         this.east = dmsToDecimal(lonDeg, lonMin, lonSec, lonDir);
     }
@@ -176,7 +179,7 @@ public class Coordinates {
         double decimal = Math.abs(deg) + (min / 60.0) + (sec / 3600.0);
 
         // Normalize direction string
-        String dir = (direction == null) ? "" : direction.trim().toUpperCase();
+        String dir = (direction == null) ? "" : direction.trim().toUpperCase(Locale.ROOT);
 
         if (dir.equals("S") || dir.equals("W") || deg < 0) {
             return -decimal;
@@ -192,7 +195,31 @@ public class Coordinates {
         try {
             return Double.parseDouble(str.replace(',', '.').replace(" ", ""));
         } catch (NumberFormatException e) {
-            return 0.0;
+            throw new IllegalArgumentException("Invalid DMS number: " + str, e);
+        }
+    }
+
+    private void validateDmsComponents(double deg, double min, double sec,
+                                       String direction, boolean latitude) {
+        if (!Double.isFinite(deg) || !Double.isFinite(min) || !Double.isFinite(sec)) {
+            throw new IllegalArgumentException("DMS components must be finite numbers");
+        }
+        if (min < 0 || min >= 60 || sec < 0 || sec >= 60) {
+            throw new IllegalArgumentException("DMS minutes and seconds must be between 0 and 60");
+        }
+
+        // Check the combined magnitude, not the degrees alone: 89° 59.9' 59"
+        // has every component in range yet exceeds 90 degrees in total.
+        double maxDegrees = latitude ? 90.0 : 180.0;
+        if (Math.abs(deg) + (min / 60.0) + (sec / 3600.0) > maxDegrees) {
+            throw new IllegalArgumentException(latitude ?
+                    "Latitude is outside its valid range" : "Longitude is outside its valid range");
+        }
+
+        String dir = direction == null ? "" : direction.trim().toUpperCase(Locale.ROOT);
+        String allowed = latitude ? "NS" : "EW";
+        if (!dir.isEmpty() && (dir.length() != 1 || allowed.indexOf(dir.charAt(0)) < 0)) {
+            throw new IllegalArgumentException("Invalid DMS direction: " + direction);
         }
     }
 
@@ -246,7 +273,11 @@ public class Coordinates {
 
     private static int alphaToNum(char c) {
         if (Character.isDigit(c)) return c - '0';
-        return Character.toUpperCase(c) - 'A';
+        char upper = Character.toUpperCase(c);
+        if (upper < 'A' || upper > 'Z') {
+            throw new IllegalArgumentException("Invalid RUBIN character: " + c);
+        }
+        return upper - 'A';
     }
 
     private static char numToAlpha(int n, boolean uppercase) {
@@ -391,6 +422,14 @@ public class Coordinates {
         return res;
     }
 
+    /**
+     * Guards mgrsAlphaToNum, which assumes a letter from the 24-letter MGRS
+     * alphabet and would silently map 'I' to the same index as 'J'.
+     */
+    private static boolean isMgrsSquareLetter(char c) {
+        return c >= 'A' && c <= 'Z' && c != 'I' && c != 'O';
+    }
+
     // convert wgs84 to and MGRS string
     public String toMGRS() {
         UTMResult utm = this.toUTM();
@@ -436,25 +475,61 @@ public class Coordinates {
      */
     public static Coordinates fromMGRS(String mgrsStr) {
         // 1. Clean the string
-        String cleanStr = mgrsStr.replaceAll("\\s+", "").toUpperCase();
-        if (cleanStr.length() < 5) throw new IllegalArgumentException("Invalid MGRS string");
+        if (mgrsStr == null) throw new IllegalArgumentException("MGRS string is required");
+        String cleanStr = mgrsStr.replaceAll("\\s+", "").toUpperCase(Locale.ROOT);
+        if (cleanStr.length() < 4) throw new IllegalArgumentException("Invalid MGRS string");
 
         // 2. Extract components
-        // Find where the letters start (usually index 1 or 2)
-        int firstLetterIdx = Character.isLetter(cleanStr.charAt(1)) ? 1 : 2;
-        int zone = Integer.parseInt(cleanStr.substring(0, firstLetterIdx));
+        int firstLetterIdx = 0;
+        while (firstLetterIdx < cleanStr.length() &&
+                firstLetterIdx < 2 && Character.isDigit(cleanStr.charAt(firstLetterIdx))) {
+            firstLetterIdx++;
+        }
+        if (firstLetterIdx == 0 || cleanStr.length() < firstLetterIdx + 3) {
+            throw new IllegalArgumentException("Invalid MGRS structure");
+        }
+
+        final int zone;
+        try {
+            zone = Integer.parseInt(cleanStr.substring(0, firstLetterIdx));
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid MGRS zone", e);
+        }
+        if (zone < 1 || zone > 60) throw new IllegalArgumentException("MGRS zone must be from 1 to 60");
         char latBand = cleanStr.charAt(firstLetterIdx);
 
         // Ensure it's a valid UTM band (Polar UPS areas not supported in this basic parser)
-        if (latBand < 'C' || latBand > 'X') throw new IllegalArgumentException("Unsupported UTM Latitude Band");
+        if ("CDEFGHJKLMNPQRSTUVWX".indexOf(latBand) < 0) {
+            throw new IllegalArgumentException("Unsupported UTM latitude band");
+        }
+        if (latBand == 'X' && (zone == 32 || zone == 34 || zone == 36)) {
+            throw new IllegalArgumentException("This UTM zone does not exist in latitude band X");
+        }
 
-        // Extract the 100km square letters (e.g. 'U' and 'C')
+        // Extract the 100km square letters (e.g. 'U' and 'C'). Validity is
+        // checked against the same skip-I/O alphabet the encoder uses
+        // (mgrsAlphaToNum): columns cycle through it in groups of 8 per zone,
+        // rows span its first 20 letters (A-V).
         char colLetter = cleanStr.charAt(firstLetterIdx + 1);
         char rowLetter = cleanStr.charAt(firstLetterIdx + 2);
+        int columnSetStart = ((zone - 1) % 3) * 8;
+        int colIndex = isMgrsSquareLetter(colLetter) ? mgrsAlphaToNum(colLetter) : -1;
+        if (colIndex < columnSetStart || colIndex >= columnSetStart + 8) {
+            throw new IllegalArgumentException("Invalid MGRS column letter for zone");
+        }
+        int rowIndex = isMgrsSquareLetter(rowLetter) ? mgrsAlphaToNum(rowLetter) : -1;
+        if (rowIndex < 0 || rowIndex >= 20) {
+            throw new IllegalArgumentException("Invalid MGRS row letter");
+        }
 
-        // Extract precision coordinates (e.g. '12345' and '67890')
+        // Extract precision coordinates (e.g. '12345' and '67890'). At least
+        // one digit pair is required: a bare zone+band+square reference only
+        // identifies a 100km square, which would be misleading to return as a
+        // precise point.
         String numPart = cleanStr.substring(firstLetterIdx + 3);
-        if (numPart.length() % 2 != 0) throw new IllegalArgumentException("Invalid MGRS numerical part length");
+        if (numPart.length() > 10 || numPart.length() % 2 != 0 || !numPart.matches("\\d+")) {
+            throw new IllegalArgumentException("Invalid MGRS numerical part");
+        }
         int precisionLength = numPart.length() / 2;
 
         String eStr = numPart.substring(0, precisionLength);

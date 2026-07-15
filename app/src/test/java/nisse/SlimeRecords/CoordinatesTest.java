@@ -65,7 +65,35 @@ public class CoordinatesTest {
     public void malformedGridReferencesAreRejected() {
         assertThrows(IllegalArgumentException.class,
                 () -> new Coordinates(0, 0).setFromRUBIN("7", false));
+        // Non-alphanumeric grid letters must not silently become an offset
+        assertThrows(IllegalArgumentException.class,
+                () -> new Coordinates(0, 0).setFromRUBIN("7@AB", false));
         assertThrows(IllegalArgumentException.class, () -> Coordinates.fromMGRS("33VUC123"));
+        assertThrows(IllegalArgumentException.class, () -> Coordinates.fromMGRS(null));
+        // A bare 100km square reference carries no point precision
+        assertThrows(IllegalArgumentException.class, () -> Coordinates.fromMGRS("33VUC"));
+        assertThrows(IllegalArgumentException.class, () -> Coordinates.fromMGRS("61VUC1234567890"));
+        assertThrows(IllegalArgumentException.class, () -> Coordinates.fromMGRS("33IUC1234567890"));
+        assertThrows(IllegalArgumentException.class, () -> Coordinates.fromMGRS("33VIC1234567890"));
+        assertThrows(IllegalArgumentException.class, () -> Coordinates.fromMGRS("32XNA0000000000"));
+        assertThrows(IllegalArgumentException.class,
+                () -> Coordinates.fromMGRS("33VUC123456789012"));
+    }
+
+    @Test
+    public void malformedDmsValuesAreRejectedInsteadOfBecomingZero() {
+        Coordinates coordinates = new Coordinates(0, 0);
+        assertThrows(IllegalArgumentException.class, () -> coordinates.setFromDMS(
+                "north", "0", "0", "N", "18", "0", "0", "E"));
+        assertThrows(IllegalArgumentException.class, () -> coordinates.setFromDMS(
+                59, 60, 0, "N", 18, 0, 0, "E"));
+        assertThrows(IllegalArgumentException.class, () -> coordinates.setFromDMS(
+                91, 0, 0, "N", 18, 0, 0, "E"));
+        // Every component in range, but the combined magnitude exceeds 90
+        assertThrows(IllegalArgumentException.class, () -> coordinates.setFromDMS(
+                89, 59.9, 59, "N", 18, 0, 0, "E"));
+        assertThrows(IllegalArgumentException.class, () -> coordinates.setFromDMS(
+                59, 0, 0, "E", 18, 0, 0, "E"));
     }
 
     @Test

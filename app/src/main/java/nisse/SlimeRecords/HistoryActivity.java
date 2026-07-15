@@ -3,6 +3,7 @@ package nisse.SlimeRecords;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
+import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -26,6 +27,9 @@ public class HistoryActivity extends AppCompatActivity {
 
         // Setup ViewModel
         viewModel = new ViewModelProvider(this).get(HistoryViewModel.class);
+
+        viewModel.getOperationError().observe(this, message ->
+                Toast.makeText(this, message, Toast.LENGTH_LONG).show());
 
         // Observe the Paging LiveData (Untangled)
         viewModel.historyLiveData.observe(this, pagingData ->

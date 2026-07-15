@@ -28,11 +28,19 @@ import com.google.android.gms.location.Priority;
 import nisse.SlimeRecords.databinding.ActivityMainBinding;
 
 public class MainActivity extends AppCompatActivity {
+    /**
+     * The location flow is always in exactly one of these states, so a single
+     * field replaces flags that would otherwise have to be kept in sync from
+     * every exit path.
+     */
+    private enum LocationFlow { IDLE, CHECKING_SETTINGS, UPDATES_ACTIVE }
+
     private ActivityMainBinding binding;
     private SearchViewModel viewModel;
     private FusedLocationProviderClient fusedClient;
     private LocationRequest locationRequest;
     private LocationCallback locationCallback;
+    private LocationFlow locationFlow = LocationFlow.IDLE;
 
     // --- Permission Launchers ---
     private final ActivityResultLauncher<String> requestPermissionLauncher =
@@ -40,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
                 if (isGranted) {
                     checkLocationSettings();
                 } else {
-                    binding.tvStatus.setText("Permission denied. Cannot search.");
+                    abortLocationSearch("Permission denied. Cannot search.");
                 }
             });
 
@@ -49,7 +57,7 @@ public class MainActivity extends AppCompatActivity {
                 if (result.getResultCode() == RESULT_OK) {
                     startLocationUpdates();
                 } else {
-                    binding.tvStatus.setText("Location services must be enabled.");
+                    abortLocationSearch("Location services must be enabled.");
                 }
             });
 
@@ -70,6 +78,7 @@ public class MainActivity extends AppCompatActivity {
         // setupLocationLogic
         locationRequest = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000)
                 .setMinUpdateIntervalMillis(500)
+                .setMaxUpdateAgeMillis(0)
                 .build();
 
         locationCallback = new LocationCallback() {
@@ -80,8 +89,14 @@ public class MainActivity extends AppCompatActivity {
 
                 Location best = viewModel.getCurrentBestLocation();
 
-                // If best is null (new search), or newLocation is more accurate:
-                if (best == null || newLocation.getAccuracy() < best.getAccuracy()) {
+                float distanceFromBest = best == null ? 0 : best.distanceTo(newLocation);
+                // Order fixes by the monotonic elapsed-realtime clock: getTime()
+                // is wall-clock and the fused provider mixes GPS- and device-
+                // sourced timestamps, which can appear to run backwards.
+                if (best == null || LocationSelection.shouldReplace(
+                        best.getAccuracy(), best.getElapsedRealtimeNanos() / 1_000_000L,
+                        newLocation.getAccuracy(), newLocation.getElapsedRealtimeNanos() / 1_000_000L,
+                        distanceFromBest)) {
                     viewModel.setCurrentBestLocation(newLocation);
 
                     int acc = (int) Math.ceil(newLocation.getAccuracy());
@@ -129,6 +144,7 @@ public class MainActivity extends AppCompatActivity {
         super.onStop();
         // Pause GPS but do NOT change user intent
         fusedClient.removeLocationUpdates(locationCallback);
+        locationFlow = LocationFlow.IDLE;
     }
 
     @Override
@@ -138,21 +154,33 @@ public class MainActivity extends AppCompatActivity {
         if (wants != null && wants) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                     == PackageManager.PERMISSION_GRANTED) {
-                startLocationUpdates();
+                checkLocationSettings();
             }
         }
     }
 
+    private boolean userWantsSearch() {
+        return Boolean.TRUE.equals(viewModel.getUserWantsSearching().getValue());
+    }
+
     private void startLocationUpdates() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) return;
+        // The user-intent check matters because this is reached from async
+        // callbacks (settings check, resolution dialog) that may resolve after
+        // the user has already pressed STOP.
+        if (!userWantsSearch()
+                || ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                        != PackageManager.PERMISSION_GRANTED
+                || locationFlow == LocationFlow.UPDATES_ACTIVE) return;
 
         binding.tvStatus.setText("Acquiring GPS signal...");
-        fusedClient.requestLocationUpdates(locationRequest, locationCallback, getMainLooper());
+        locationFlow = LocationFlow.UPDATES_ACTIVE;
+        fusedClient.requestLocationUpdates(locationRequest, locationCallback, getMainLooper())
+                .addOnFailureListener(this, e -> abortLocationSearch("Could not start location updates."));
     }
 
     private void stopLocationUpdates(boolean shouldTransition) {
         fusedClient.removeLocationUpdates(locationCallback);
+        locationFlow = LocationFlow.IDLE;
         binding.tvStatus.setText("Ready to search.");
 
         Location best = viewModel.getCurrentBestLocation();
@@ -178,7 +206,10 @@ public class MainActivity extends AppCompatActivity {
                     .setMessage("This app needs location access to find your 'socken' and coordinates.")
                     .setPositiveButton("OK", (d, id) ->
                             requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION))
-                    .setNegativeButton("Cancel", null)
+                    .setNegativeButton("Cancel", (d, id) ->
+                            abortLocationSearch("Location permission is required to search."))
+                    .setOnCancelListener(d ->
+                            abortLocationSearch("Location permission is required to search."))
                     .show();
         } else {
             requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION);
@@ -186,26 +217,45 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void checkLocationSettings() {
+        if (locationFlow != LocationFlow.IDLE) return;
+        locationFlow = LocationFlow.CHECKING_SETTINGS;
+
         LocationSettingsRequest request = new LocationSettingsRequest.Builder()
                 .addLocationRequest(locationRequest)
                 .build();
 
         LocationServices.getSettingsClient(this)
                 .checkLocationSettings(request)
-                .addOnSuccessListener(this, response -> startLocationUpdates())
+                .addOnSuccessListener(this, response -> {
+                    locationFlow = LocationFlow.IDLE;
+                    startLocationUpdates();
+                })
                 .addOnFailureListener(this, e -> {
+                    locationFlow = LocationFlow.IDLE;
+                    // The user may have pressed STOP while the check was in
+                    // flight; don't surface a dialog they no longer asked for.
+                    if (!userWantsSearch()) return;
                     if (e instanceof ResolvableApiException) {
                         try {
                             IntentSenderRequest isr =
                                     new IntentSenderRequest.Builder(((ResolvableApiException) e).getResolution()).build();
                             settingsLauncher.launch(isr);
-                        } catch (Exception ignored) {
-                            binding.tvStatus.setText("Error opening location settings.");
+                        } catch (Exception error) {
+                            abortLocationSearch("Error opening location settings.");
                         }
                     } else {
-                        binding.tvStatus.setText("Location settings are not satisfied on this device.");
+                        abortLocationSearch("Location settings are not satisfied on this device.");
                     }
                 });
+    }
+
+    private void abortLocationSearch(String message) {
+        fusedClient.removeLocationUpdates(locationCallback);
+        locationFlow = LocationFlow.IDLE;
+        viewModel.setUserWantsSearching(false);
+        // The observer above resets the generic status first; keep the useful
+        // failure reason visible after the state has returned to idle.
+        binding.tvStatus.setText(message);
     }
 
     // Menu

@@ -88,6 +88,13 @@ public abstract class LocationDao implements ImportRecordStore {
     @Query("DELETE FROM photo_table WHERE id = :photoId")
     public abstract void deletePhotoById(int photoId);
 
+    /** Removes a photo link and checks file ownership in one database transaction. */
+    @Transaction
+    public boolean deletePhotoAndIsPathOrphaned(int photoId, String path) {
+        deletePhotoById(photoId);
+        return getPhotoReferenceCount(path) == 0;
+    }
+
     @Transaction
     @Query("SELECT * FROM location_table WHERE id = :id LIMIT 1")
     public abstract LiveData<RecordWithPhotos> getLocationById(long id);
