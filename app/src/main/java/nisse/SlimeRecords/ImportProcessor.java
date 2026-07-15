@@ -16,7 +16,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.LongSupplier;
-import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -28,6 +27,11 @@ import nisse.SlimeRecords.data.SpeciesAttributes;
 /** Imports SlimeRecords CSV and ZIP files without depending on Android framework classes. */
 public final class ImportProcessor {
     public enum DuplicateStrategy { SKIP, REPLACE, KEEP_BOTH }
+
+    private static final long MAX_CSV_BYTES = 10L * 1024 * 1024;
+    private static final long MAX_PHOTO_BYTES = 25L * 1024 * 1024;
+    private static final long MAX_ARCHIVE_EXTRACTED_BYTES = 250L * 1024 * 1024;
+    private static final int MAX_ARCHIVE_ENTRIES = 5_000;
 
     private final ImportRecordStore store;
     private final LongSupplier currentTimeMillis;
@@ -43,7 +47,7 @@ public final class ImportProcessor {
         if (photoDirectory == null) throw new IOException("Photo storage is unavailable.");
         if (isZipFile(source)) return processZip(source, photoDirectory, strategy);
         try (FileInputStream input = new FileInputStream(source)) {
-            return parseAndSave(readToString(input), photoDirectory, new HashMap<>(), strategy,
+            return parseAndSave(readToString(input, MAX_CSV_BYTES, null), photoDirectory, new HashMap<>(), strategy,
                     new HashMap<>(), new ArrayList<>());
         }
     }
@@ -69,19 +73,24 @@ public final class ImportProcessor {
         Map<String, File> stagedPhotos = new HashMap<>();
         Map<String, String> resolvedPhotoPaths = new HashMap<>();
         List<File> importedPhotos = new ArrayList<>();
+        ExtractionBudget extractionBudget = new ExtractionBudget();
         try {
             try (ZipInputStream zip = new ZipInputStream(new FileInputStream(source))) {
                 ZipEntry entry;
+                int entryCount = 0;
                 while ((entry = zip.getNextEntry()) != null) {
+                    if (++entryCount > MAX_ARCHIVE_ENTRIES) {
+                        throw new IOException("ZIP archive contains too many entries.");
+                    }
                     String name = entry.getName();
                     if (name.endsWith(".csv") && !name.startsWith("photos/")) {
-                        csv = readToString(zip);
+                        csv = readToString(zip, MAX_CSV_BYTES, extractionBudget);
                     } else if (name.startsWith("photos/") && !entry.isDirectory()) {
                         String safeName = new File(name).getName();
                         if (!safeName.isEmpty()) {
                             File staged = new File(staging, safeName);
                             try (FileOutputStream output = new FileOutputStream(staged)) {
-                                FileUtils.copy(zip, output);
+                                copyLimited(zip, output, MAX_PHOTO_BYTES, extractionBudget);
                             }
                             stagedPhotos.put(safeName, staged);
                         }
@@ -112,15 +121,14 @@ public final class ImportProcessor {
                                       List<File> importedPhotos) throws IOException {
         ImportResult result = new ImportResult();
         if (csv.startsWith("\uFEFF")) csv = csv.substring(1);
-        String[] lines = csv.split("\\r?\\n");
-        if (lines.length < 2) throw new IOException("The CSV file contains no data rows.");
+        char delimiter = detectDelimiter(firstCsvRecord(csv));
+        List<List<String>> rows = parseCsvRecords(csv, delimiter);
+        if (rows.size() < 2) throw new IOException("The CSV file contains no data rows.");
 
-        String delimiter = lines[0].contains(";") ? ";" : ",";
-        Pattern splitter = Pattern.compile(delimiter + "(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
-        String[] headers = splitter.split(lines[0], -1);
+        List<String> headers = rows.get(0);
         Map<String, Integer> columns = new HashMap<>();
-        for (int i = 0; i < headers.length; i++) {
-            columns.put(cleanQuotes(headers[i]).trim().toLowerCase(Locale.ROOT), i);
+        for (int i = 0; i < headers.size(); i++) {
+            columns.put(headers.get(i).trim().toLowerCase(Locale.ROOT), i);
         }
         if (!columns.containsKey("decimallatitude")
                 || !columns.containsKey("decimallongitude")
@@ -132,11 +140,11 @@ public final class ImportProcessor {
         dateFormat.setLenient(false);
         Map<String, Long> fingerprints = loadFingerprints();
         List<String> replacedPaths = new ArrayList<>();
-        for (int row = 1; row < lines.length; row++) {
-            String line = lines[row].trim();
-            if (line.isEmpty()) continue;
+        for (int row = 1; row < rows.size(); row++) {
+            List<String> csvRow = rows.get(row);
+            if (csvRow.size() == 1 && csvRow.get(0).trim().isEmpty()) continue;
             try {
-                String[] parts = splitter.split(line, -1);
+                String[] parts = csvRow.toArray(new String[0]);
                 double latitude = getRequiredDouble(parts, columns,
                         "decimalLatitude", -90, 90);
                 double longitude = getRequiredDouble(parts, columns,
@@ -183,6 +191,7 @@ public final class ImportProcessor {
                     record.timestamp = currentTimeMillis.getAsLong();
                 }
                 record.attributes = parseAttributes(parts, columns);
+                Integer importedSpecimenNumber = importedSpecimenNumber(record);
 
                 List<String> photoPaths = new ArrayList<>();
                 String photoNames = getString(parts, columns, "photos", "");
@@ -199,10 +208,12 @@ public final class ImportProcessor {
                 // poisoning or rolling back successful rows from the same import.
                 if (replace) {
                     replacedPaths.addAll(
-                            store.replaceLocationWithPhotos(existingId, record, photoPaths));
+                            store.replaceImportedLocationWithPhotos(existingId, record, photoPaths,
+                                    importedSpecimenNumber));
                     result.updated++;
                 } else {
-                    store.insertLocationWithPhotos(record, photoPaths);
+                    store.insertImportedLocationWithPhotos(record, photoPaths,
+                            importedSpecimenNumber);
                     result.added++;
                 }
                 // Later rows in the same file must see this record as existing.
@@ -331,7 +342,7 @@ public final class ImportProcessor {
                                     String fallback) {
         Integer index = columns.get(key.toLowerCase(Locale.ROOT));
         if (index == null || index >= parts.length) return fallback;
-        return cleanQuotes(parts[index]);
+        return parts[index];
     }
 
     private static double getRequiredDouble(String[] parts,
@@ -384,19 +395,113 @@ public final class ImportProcessor {
         }
     }
 
-    private static String cleanQuotes(String input) {
-        if (input == null) return "";
-        String value = input.trim();
-        if (value.length() >= 2 && value.startsWith("\"") && value.endsWith("\"")) {
-            value = value.substring(1, value.length() - 1);
+    private static Integer importedSpecimenNumber(ObservationRecord record) {
+        if (record.attributes == null || !record.attributes.isSpecimen
+                || record.attributes.specimenNr == null) return null;
+        try {
+            int number = Integer.parseInt(record.attributes.specimenNr.trim());
+            return number >= 0 ? number : null;
+        } catch (NumberFormatException ignored) {
+            return null;
         }
-        return value.replace("\"\"", "\"");
     }
 
-    private static String readToString(InputStream input) throws IOException {
+    private static String firstCsvRecord(String csv) throws IOException {
+        boolean inQuotes = false;
+        for (int i = 0; i < csv.length(); i++) {
+            char c = csv.charAt(i);
+            if (c == '\"') {
+                if (inQuotes && i + 1 < csv.length() && csv.charAt(i + 1) == '\"') i++;
+                else inQuotes = !inQuotes;
+            } else if (!inQuotes && (c == '\n' || c == '\r')) {
+                return csv.substring(0, i);
+            }
+        }
+        if (inQuotes) throw new IOException("CSV has an unterminated quoted field.");
+        return csv;
+    }
+
+    private static char detectDelimiter(String header) {
+        int commas = 0;
+        int semicolons = 0;
+        boolean inQuotes = false;
+        for (int i = 0; i < header.length(); i++) {
+            char c = header.charAt(i);
+            if (c == '\"') {
+                if (inQuotes && i + 1 < header.length() && header.charAt(i + 1) == '\"') i++;
+                else inQuotes = !inQuotes;
+            } else if (!inQuotes && c == ',') commas++;
+            else if (!inQuotes && c == ';') semicolons++;
+        }
+        return semicolons > commas ? ';' : ',';
+    }
+
+    private static List<List<String>> parseCsvRecords(String csv, char delimiter) throws IOException {
+        List<List<String>> rows = new ArrayList<>();
+        List<String> row = new ArrayList<>();
+        StringBuilder field = new StringBuilder();
+        boolean inQuotes = false;
+        for (int i = 0; i < csv.length(); i++) {
+            char c = csv.charAt(i);
+            if (c == '\"') {
+                if (inQuotes && i + 1 < csv.length() && csv.charAt(i + 1) == '\"') {
+                    field.append('\"');
+                    i++;
+                } else {
+                    inQuotes = !inQuotes;
+                }
+            } else if (!inQuotes && c == delimiter) {
+                row.add(field.toString());
+                field.setLength(0);
+            } else if (!inQuotes && (c == '\n' || c == '\r')) {
+                row.add(field.toString());
+                rows.add(row);
+                row = new ArrayList<>();
+                field.setLength(0);
+                if (c == '\r' && i + 1 < csv.length() && csv.charAt(i + 1) == '\n') i++;
+            } else {
+                field.append(c == '\r' ? '\n' : c);
+            }
+        }
+        if (inQuotes) throw new IOException("CSV has an unterminated quoted field.");
+        if (field.length() > 0 || !row.isEmpty()) {
+            row.add(field.toString());
+            rows.add(row);
+        }
+        return rows;
+    }
+
+    private static String readToString(InputStream input, long maxBytes,
+                                       ExtractionBudget budget) throws IOException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
-        FileUtils.copy(input, output);
+        copyLimited(input, output, maxBytes, budget);
         return output.toString(StandardCharsets.UTF_8.name());
+    }
+
+    private static void copyLimited(InputStream input, java.io.OutputStream output,
+                                    long maxBytes, ExtractionBudget budget) throws IOException {
+        byte[] buffer = new byte[8192];
+        long entryBytes = 0;
+        int read;
+        while ((read = input.read(buffer)) != -1) {
+            if (entryBytes > maxBytes - read) {
+                throw new IOException("ZIP entry exceeds the supported size limit.");
+            }
+            if (budget != null) budget.add(read);
+            output.write(buffer, 0, read);
+            entryBytes += read;
+        }
+    }
+
+    private static final class ExtractionBudget {
+        private long extractedBytes;
+
+        void add(int bytes) throws IOException {
+            if (extractedBytes > MAX_ARCHIVE_EXTRACTED_BYTES - bytes) {
+                throw new IOException("ZIP archive exceeds the supported extracted size.");
+            }
+            extractedBytes += bytes;
+        }
     }
 
     private static void deleteRecursively(File file) {

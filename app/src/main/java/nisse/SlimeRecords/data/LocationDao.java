@@ -33,6 +33,74 @@ public abstract class LocationDao implements ImportRecordStore {
     }
 
     /**
+     * Saves a specimen and reserves its number in the same Room transaction.
+     * The preference value is used only to seed the durable counter for users
+     * upgrading from an older version.
+     *
+     * @return the next number to show after this record
+     */
+    @Transaction
+    public int insertSpecimenLocationWithPhotos(ObservationRecord location, List<String> photoPaths,
+                                                int preferenceNextNumber) {
+        if (location.attributes == null || !location.attributes.isSpecimen) {
+            throw new IllegalArgumentException("A specimen record is required");
+        }
+
+        SpecimenCounter counter = getSpecimenCounter();
+        int assignedNumber = counter != null ? counter.nextNumber : preferenceNextNumber;
+        if (assignedNumber < 0) {
+            throw new IllegalArgumentException("Specimen number must not be negative");
+        }
+        int nextNumber = Math.addExact(assignedNumber, 1);
+
+        // The database counter is authoritative after the first specimen save,
+        // including if a previous process died before SharedPreferences updated.
+        location.attributes.specimenNr = String.valueOf(assignedNumber);
+        insertLocationWithPhotos(location, photoPaths);
+
+        if (counter == null) {
+            insertSpecimenCounter(new SpecimenCounter(nextNumber));
+        } else {
+            counter.nextNumber = nextNumber;
+            updateSpecimenCounter(counter);
+        }
+        return nextNumber;
+    }
+
+    /** Saves an imported row and keeps the durable counter ahead of its number. */
+    @Transaction
+    @Override
+    public void insertImportedLocationWithPhotos(ObservationRecord location, List<String> photoPaths,
+                                                 Integer importedSpecimenNumber) {
+        insertLocationWithPhotos(location, photoPaths);
+        advanceSpecimenCounterPast(importedSpecimenNumber);
+    }
+
+    /** Replaces an imported row and advances the counter in that same transaction. */
+    @Transaction
+    @Override
+    public List<String> replaceImportedLocationWithPhotos(long existingId,
+                                                           ObservationRecord location,
+                                                           List<String> photoPaths,
+                                                           Integer importedSpecimenNumber) {
+        List<String> oldPaths = replaceLocationWithPhotos(existingId, location, photoPaths);
+        advanceSpecimenCounterPast(importedSpecimenNumber);
+        return oldPaths;
+    }
+
+    private void advanceSpecimenCounterPast(Integer importedSpecimenNumber) {
+        if (importedSpecimenNumber == null) return;
+        int requiredNextNumber = Math.addExact(importedSpecimenNumber, 1);
+        SpecimenCounter counter = getSpecimenCounter();
+        if (counter == null) {
+            insertSpecimenCounter(new SpecimenCounter(requiredNextNumber));
+        } else if (counter.nextNumber < requiredNextNumber) {
+            counter.nextNumber = requiredNextNumber;
+            updateSpecimenCounter(counter);
+        }
+    }
+
+    /**
      * Replaces a location and its photo links atomically. The returned paths
      * belong to the old record and may be deleted from disk after this
      * transaction commits, provided no other record still references them.
@@ -132,6 +200,15 @@ public abstract class LocationDao implements ImportRecordStore {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     public abstract void insertRecentCollector(RecentCollector collector);
+
+    @Query("SELECT * FROM specimen_counter WHERE id = 1")
+    public abstract SpecimenCounter getSpecimenCounter();
+
+    @Insert
+    public abstract void insertSpecimenCounter(SpecimenCounter counter);
+
+    @Update
+    public abstract void updateSpecimenCounter(SpecimenCounter counter);
 
     @Query("SELECT name FROM recent_collectors ORDER BY lastUsed DESC LIMIT 5")
     public abstract LiveData<List<String>> getRecentCollectorNames();

@@ -475,7 +475,7 @@ public class RecordDetailActivity extends AppCompatActivity {
         attrs.collector = collectorToSave;
 
         // Specimen logic
-        String nextSpecimenNumber = null;
+        Integer preferenceSpecimenNumber = null;
         if (prefs.getBoolean("show_is_specimen", true)) {
             attrs.isSpecimen = binding.checkboxIsSpecimen.isChecked();
             if (attrs.isSpecimen) {
@@ -487,11 +487,10 @@ public class RecordDetailActivity extends AppCompatActivity {
                 if (isNew) {
                     try {
                         int currentNr = Integer.parseInt(nrText);
-                        nextSpecimenNumber = String.valueOf(Math.addExact(currentNr, 1));
+                        if (currentNr < 0) throw new NumberFormatException("Negative specimen number");
+                        preferenceSpecimenNumber = currentNr;
                     } catch (NumberFormatException e) {
                         Log.e("LocationDetail", "Could not parse specimen number: " + nrText);
-                    } catch (ArithmeticException e) {
-                        Log.e("LocationDetail", "Specimen number is already at its maximum value", e);
                     }
                 }
             }
@@ -528,13 +527,16 @@ public class RecordDetailActivity extends AppCompatActivity {
         binding.btnSaveDetail.setEnabled(false);
         binding.btnCancelDetail.setEnabled(false);
         if (isNew) {
-            // The counter advances on the save executor right after the insert
-            // commits: a synchronous write keyed to the transaction, so process
-            // death cannot leave a saved record with an unadvanced counter.
-            final String advanceCounterTo = nextSpecimenNumber;
-            historyViewModel.saveLocationWithPhotos(currentRecord, pathsToSave,
-                    advanceCounterTo == null ? null : () ->
-                            prefs.edit().putString("last_specimen_number", advanceCounterTo).commit());
+            if (attrs.isSpecimen && preferenceSpecimenNumber != null) {
+                // Room persists the record and counter together. Preferences is
+                // only a UI cache for the next form, never the source of truth.
+                historyViewModel.saveSpecimenLocationWithPhotos(currentRecord, pathsToSave,
+                        preferenceSpecimenNumber, nextNumber -> prefs.edit()
+                                .putString("last_specimen_number", String.valueOf(nextNumber))
+                                .commit());
+            } else {
+                historyViewModel.saveLocationWithPhotos(currentRecord, pathsToSave);
+            }
         } else {
             historyViewModel.updateLocation(currentRecord);
         }

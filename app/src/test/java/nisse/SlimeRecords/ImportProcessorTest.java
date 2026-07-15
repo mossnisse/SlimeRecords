@@ -52,6 +52,22 @@ public class ImportProcessorTest {
     }
 
     @Test
+    public void preservesQuotedNewlinesAndForwardsImportedSpecimenNumber() throws Exception {
+        FakeStore store = new FakeStore();
+        File csv = write("quoted_newline.csv",
+                "ID,decimalLatitude,decimalLongitude,eventDate,occurrenceRemarks,isSpecimen,SpecimenNr\n"
+                        + "1,59.1,18.2,2026-07-14 12:30:00,\"first line\nsecond line\",true,100\n");
+
+        ImportResult result = processor(store).process(csv, temporaryFolder.newFolder("photos"),
+                ImportProcessor.DuplicateStrategy.SKIP);
+
+        assertEquals(1, result.added);
+        assertEquals(0, result.failed);
+        assertEquals("first line\nsecond line", store.records.get(0).note);
+        assertEquals(Collections.singletonList(100), store.importedSpecimenNumbers);
+    }
+
+    @Test
     public void appliesAllDuplicateStrategiesByIdAndFingerprint() throws Exception {
         FakeStore store = new FakeStore();
         ObservationRecord existing = new ObservationRecord();
@@ -243,6 +259,7 @@ public class ImportProcessorTest {
     private static final class FakeStore implements ImportRecordStore {
         final List<ObservationRecord> records = new ArrayList<>();
         final Map<Long, List<String>> photoPaths = new HashMap<>();
+        final List<Integer> importedSpecimenNumbers = new ArrayList<>();
         long nextId = 100;
         String failLocality;
 
@@ -273,6 +290,13 @@ public class ImportProcessorTest {
             if (location.id == 0) location.id = nextId++;
             records.add(location);
             photoPaths.put(location.id, new ArrayList<>(paths));
+        }
+
+        @Override
+        public void insertImportedLocationWithPhotos(ObservationRecord location, List<String> paths,
+                                                      Integer importedSpecimenNumber) {
+            insertLocationWithPhotos(location, paths);
+            if (importedSpecimenNumber != null) importedSpecimenNumbers.add(importedSpecimenNumber);
         }
 
         @Override

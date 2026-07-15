@@ -13,6 +13,7 @@ import androidx.paging.PagingData;
 import androidx.paging.PagingLiveData;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.IntConsumer;
 import nisse.SlimeRecords.data.LocalitySuggestion;
 import nisse.SlimeRecords.data.LocationDao;
 import nisse.SlimeRecords.data.ObservationRecord;
@@ -68,6 +69,30 @@ public class HistoryViewModel extends AndroidViewModel {
                 operationFinished.postValue(true);
             } catch (Exception e) {
                 Log.e("HistoryViewModel", "Saving record failed", e);
+                operationError.post("Could not save the record.");
+            }
+        });
+    }
+
+    /** Saves a specimen and advances its durable counter in the same transaction. */
+    public void saveSpecimenLocationWithPhotos(ObservationRecord record, List<String> photoPaths,
+                                               int preferenceNextNumber,
+                                               IntConsumer afterCommitted) {
+        AppDependencies.get().executor().execute(() -> {
+            try {
+                int nextNumber = locationDao.insertSpecimenLocationWithPhotos(
+                        record, photoPaths, preferenceNextNumber);
+                if (afterCommitted != null) {
+                    try {
+                        afterCommitted.accept(nextNumber);
+                    } catch (Exception e) {
+                        // The record and durable counter are already saved.
+                        Log.e("HistoryViewModel", "Post-save action failed", e);
+                    }
+                }
+                operationFinished.postValue(true);
+            } catch (Exception e) {
+                Log.e("HistoryViewModel", "Saving specimen record failed", e);
                 operationError.post("Could not save the record.");
             }
         });

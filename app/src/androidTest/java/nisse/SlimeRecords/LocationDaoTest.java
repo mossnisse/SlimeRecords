@@ -120,6 +120,39 @@ public class LocationDaoTest {
     }
 
     @Test
+    public void specimenCounterUsesDurableValueWhenPreferenceCacheIsStale() {
+        ObservationRecord first = record(0, 59, 18, "2026-07-14 10:00:00", "One");
+        first.attributes = new SpeciesAttributes();
+        first.attributes.isSpecimen = true;
+        assertEquals(8, dao.insertSpecimenLocationWithPhotos(first, Collections.emptyList(), 7));
+        assertEquals("7", dao.getLocationByIdSync(first.id).location.attributes.specimenNr);
+
+        // Simulates a process death before the preference cache was updated.
+        ObservationRecord second = record(0, 60, 19, "2026-07-15 10:00:00", "Two");
+        second.attributes = new SpeciesAttributes();
+        second.attributes.isSpecimen = true;
+        assertEquals(9, dao.insertSpecimenLocationWithPhotos(second, Collections.emptyList(), 7));
+        assertEquals("8", dao.getLocationByIdSync(second.id).location.attributes.specimenNr);
+        assertEquals(9, dao.getSpecimenCounter().nextNumber);
+    }
+
+    @Test
+    public void importedSpecimenAdvancesCounterBeforeTheNextLocalSave() {
+        ObservationRecord imported = record(0, 59, 18, "2026-07-14 10:00:00", "Imported");
+        imported.attributes = new SpeciesAttributes();
+        imported.attributes.isSpecimen = true;
+        imported.attributes.specimenNr = "100";
+        dao.insertImportedLocationWithPhotos(imported, Collections.emptyList(), 100);
+        assertEquals(101, dao.getSpecimenCounter().nextNumber);
+
+        ObservationRecord local = record(0, 60, 19, "2026-07-15 10:00:00", "Local");
+        local.attributes = new SpeciesAttributes();
+        local.attributes.isSpecimen = true;
+        assertEquals(102, dao.insertSpecimenLocationWithPhotos(local, Collections.emptyList(), 7));
+        assertEquals("101", dao.getLocationByIdSync(local.id).location.attributes.specimenNr);
+    }
+
+    @Test
     public void specimenCollectorAndLocalityQueriesReturnExpectedData() throws Exception {
         ObservationRecord first = record(0, 59.0, 18.0, "2026-07-14 10:00:00", "Shared");
         first.attributes = new SpeciesAttributes();

@@ -11,5 +11,23 @@ public interface ImportRecordStore {
     List<String> replaceLocationWithPhotos(long existingId,
                                            ObservationRecord location,
                                            List<String> photoPaths);
+
+    /**
+     * Persists an imported row. Production storage also advances its durable
+     * specimen counter when {@code importedSpecimenNumber} is non-null.
+     */
+    default void insertImportedLocationWithPhotos(ObservationRecord location,
+                                                  List<String> photoPaths,
+                                                  Integer importedSpecimenNumber) {
+        insertLocationWithPhotos(location, photoPaths);
+    }
+
+    /** See {@link #insertImportedLocationWithPhotos}. */
+    default List<String> replaceImportedLocationWithPhotos(long existingId,
+                                                           ObservationRecord location,
+                                                           List<String> photoPaths,
+                                                           Integer importedSpecimenNumber) {
+        return replaceLocationWithPhotos(existingId, location, photoPaths);
+    }
     int getPhotoReferenceCount(String path);
 }
